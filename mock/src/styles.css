@@ -826,137 +826,123 @@ textarea {
   padding: 10px;
 }
 
-.upload-zone {
-  background: #eff6ff;
-  border: 1px dashed #60a5fa;
-  border-radius: 18px;
-  color: #1e40af;
+.composer-shell {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 26px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+  color: #f9fafb;
   display: grid;
-  gap: 10px;
+  gap: 14px;
   padding: 18px;
 }
 
-.upload-zone p {
-  color: #475569;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.compact-upload {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-height: 140px;
-}
-
-.capture-card {
-  background: #fff;
-  border: 1px solid #bfdbfe;
-  border-radius: 16px;
-  color: #1e3a8a;
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-  text-align: center;
-}
-
-.capture-card span {
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.capture-card small {
-  color: #475569;
-  line-height: 1.5;
-}
-
-.capture-card input {
-  width: 100%;
-}
-
-.primary-capture {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-
-.primary-capture small {
-  color: #dbeafe;
-}
-
-.paste-hint {
-  color: #475569;
-  font-size: 13px;
-  font-weight: 800;
-  grid-column: 1 / -1;
-  text-align: center;
-}
-
-.ocr-workflow {
-  display: grid;
-  gap: 12px;
-}
-
-.ocr-step-card {
-  align-items: start;
-  background: #f8fafc;
-  border: 1px solid #dbe4ef;
-  border-radius: 18px;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 42px 1fr;
-  padding: 16px;
-}
-
-.ocr-step-card.active-card {
-  background: #fff;
-  border-color: #2563eb;
-  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.12);
-}
-
-.step-badge {
-  align-items: center;
-  background: #e5e7eb;
-  border-radius: 999px;
-  color: #4b5563;
-  display: inline-flex;
-  font-weight: 900;
-  height: 34px;
-  justify-content: center;
-  width: 34px;
-}
-
-.step-badge.active {
-  background: #2563eb;
-  color: #fff;
-}
-
-.ocr-step-body {
-  display: grid;
-  gap: 12px;
-}
-
-.ocr-step-header {
-  align-items: center;
+.attachment-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+}
+
+.attachment-chip {
+  background: #1f2937;
+  border: 1px solid #4b5563;
+  border-radius: 999px;
+  color: #d1d5db;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.composer-textarea {
+  background: transparent;
+  border: 0;
+  color: #f9fafb;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 320px;
+  outline: none;
+  padding: 4px;
+}
+
+.composer-footer {
+  align-items: flex-end;
+  display: flex;
   justify-content: space-between;
+  position: relative;
 }
 
-.ocr-step-header h3 {
-  margin: 0;
+.composer-left {
+  position: relative;
 }
 
-.workflow-arrow {
-  color: #2563eb;
+.icon-button,
+.run-button,
+.stop-button {
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
   font-size: 22px;
   font-weight: 900;
-  line-height: 1;
-  text-align: center;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
 }
 
-.toc-textarea {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  min-height: 260px;
+.icon-button {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.icon-button.active,
+.icon-button:hover {
+  background: #4b5563;
+}
+
+.attachment-menu {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  bottom: 56px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  display: grid;
+  gap: 4px;
+  left: 0;
+  min-width: 260px;
+  padding: 8px;
+  position: absolute;
+  z-index: 2;
+}
+
+.attachment-menu button {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: #1f2937;
+  font-weight: 800;
+  padding: 12px;
+  text-align: left;
+}
+
+.attachment-menu button:hover {
+  background: #f3f4f6;
+}
+
+.composer-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.stop-button {
+  background: #374151;
+  color: #f9fafb;
+  font-size: 16px;
+}
+
+.run-button {
+  background: #f9fafb;
+  color: #111827;
 }
 
 .stepper {
@@ -1079,8 +1065,6 @@ textarea {
   .evm-metrics,
   .creation-choice,
   .choice-grid,
-  .compact-upload,
-  .ocr-step-card,
   .stepper,
   .option-grid {
     grid-template-columns: 1fr;

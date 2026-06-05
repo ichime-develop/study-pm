@@ -1,0 +1,23 @@
+Sources used:
+- /Users/ichikawa/StudioProjects/study-pm/docs/requirements.md
+  - Defines Study PM as a PC Web learning-support app for Java, SQL, IT architecture, and project management study.
+  - Core cycle: project creation, AI-assisted plan draft, WBS, schedule, learning logs, progress updates, dashboard, questions, AI answer support.
+  - Final MVP scope covers authentication, projects, WBS, learning logs, EVM/burndown, questions, AI answers, AI learning plan generation.
+  - Phased releases: MVP1 planning and logs, MVP2 EVM/burndown, MVP3 questions, MVP4 AI support.
+- /Users/ichikawa/StudioProjects/study-pm/docs/ui-mock/mvp1-screen-plan.md
+  - PC Web mock target includes 15 screens.
+  - Highest-priority screens: dashboard, project list, project detail, WBS editor, learning log form.
+  - Mobile app is planned in separate repository study-pm-mobile, sharing business rules, data, and API.
+- /Users/ichikawa/StudioProjects/study-pm/mock/src/App.tsx
+  - React mock implements all planned screen switches in a single app shell.
+  - Dashboard includes active projects, upcoming tasks, delayed tasks, recent logs, unresolved/investigating questions, and AI plan entry.
+- /Users/ichikawa/StudioProjects/study-pm/mock/src/data/mockData.ts
+  - Sample data date is 2026-06-05.
+  - Projects include Java Silver 合格, SQL基礎習得, PMBOK概要理解, and an archived design project.
+  - Java Silver sample includes WBS tasks, 5.25h actual learning logs, unresolved questions, AI answer examples, TOC text, and AI-generated plan tasks.
+- /Users/ichikawa/StudioProjects/study-pm/mock/src/domain/calculations.ts
+  - Parent task and project summaries aggregate planned hours, actual hours, weighted progress, delay, and out-of-project-range warnings from leaf tasks.
+
+Identity asset provenance:
+- No official logo or app icon exists in the repository.
+- Deck uses no logo or app icon; "Study PM" is represented as plain text and abstract editable shapes.

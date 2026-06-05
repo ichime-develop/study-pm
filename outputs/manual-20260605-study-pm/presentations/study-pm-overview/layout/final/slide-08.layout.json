@@ -1,0 +1,1210 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/t0rtcm",
+    "id": "t0rtcm",
+    "slide": 8,
+    "layoutId": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Hiragino Sans"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wjudg7ad",
+      "id": "1",
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "geometry": "rect",
+      "fillColor": "#0F172A",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7y1kre1w",
+      "id": "2",
+      "name": "kicker-decisions-marker",
+      "bbox": [
+        58,
+        52,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#D08A22",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ed8v6psf",
+      "id": "3",
+      "name": "kicker-decisions-label",
+      "bbox": [
+        80,
+        46,
+        440,
+        22
+      ],
+      "geometry": "rect",
+      "text": "D E C I S I O N S",
+      "textPreview": "D E C I S I O N S",
+      "resolvedFontSize": 9.51,
+      "resolvedTextStyle": {
+        "fontSize": 9.51,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "D E C I S I O N S"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "D E C I S I O N S",
+          "runs": [
+            {
+              "index": 1,
+              "text": "D E C I S I O N S",
+              "fontSize": 9.51,
+              "typeface": "Hiragino Sans",
+              "color": "#AAB4C4",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pwb2hwfy",
+      "id": "4",
+      "bbox": [
+        58,
+        82,
+        980,
+        76
+      ],
+      "geometry": "rect",
+      "text": "次のマイルストーンは、バックエンド実装前に振る舞いの契約を固定すること。",
+      "textPreview": "次のマイルストーンは、バックエンド実装前に振る舞いの契約を固定すること。",
+      "resolvedFontSize": 33,
+      "resolvedTextStyle": {
+        "fontSize": 33,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "次のマイルストーンは、バックエンド実装前に振る舞いの契約を"
+          },
+          {
+            "index": 2,
+            "text": "固定すること。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "次のマイルストーンは、バックエンド実装前に振る舞いの契約を固定すること。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "次のマイルストーンは、バックエンド実装前に振る舞いの契約を固定すること。",
+              "fontSize": 33,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0bi9s36h",
+      "id": "5",
+      "bbox": [
+        58,
+        202,
+        860,
+        40
+      ],
+      "geometry": "rect",
+      "text": "画面モックで見えている入力制約、集計ルール、AI送信範囲、MVP境界を仕様へ落とし、DB/API設計へ進める。",
+      "textPreview": "画面モックで見えている入力制約、集計ルール、AI送信範囲、MVP境界を仕様へ落とし、DB/API設計へ進める。",
+      "resolvedFontSize": 14.51,
+      "resolvedTextStyle": {
+        "fontSize": 14.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "画面モックで見えている入力制約、集計ルール、AI送信範囲、MVP境界を仕様へ落とし、DB/API設計へ進める。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "画面モックで見えている入力制約、集計ルール、AI送信範囲、MVP境界を仕様へ落とし、DB/API設計へ進める。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "画面モックで見えている入力制約、集計ルール、AI送信範囲、MVP境界を仕様へ落とし、DB/API設計へ進める。",
+              "fontSize": 14.51,
+              "typeface": "Hiragino Sans",
+              "color": "#CBD5E1"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7qpg3ex0",
+      "id": "6",
+      "bbox": [
+        84,
+        278,
+        820,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#334155",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/i5sneloj",
+      "id": "7",
+      "bbox": [
+        84,
+        292,
+        44,
+        26
+      ],
+      "geometry": "rect",
+      "text": "01",
+      "textPreview": "01",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "01"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "01",
+          "runs": [
+            {
+              "index": 1,
+              "text": "01",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#D08A22",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pkzupwb2",
+      "id": "8",
+      "bbox": [
+        154,
+        290,
+        180,
+        26
+      ],
+      "geometry": "rect",
+      "text": "集計ルール",
+      "textPreview": "集計ルール",
+      "resolvedFontSize": 19,
+      "resolvedTextStyle": {
+        "fontSize": 19,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "集計ルール"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "集計ルール",
+          "runs": [
+            {
+              "index": 1,
+              "text": "集計ルール",
+              "fontSize": 19,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0z61032l",
+      "id": "9",
+      "bbox": [
+        360,
+        292,
+        520,
+        34
+      ],
+      "geometry": "rect",
+      "text": "親タスク、プロジェクト、EVM、バーンダウンをどの履歴から算出するか",
+      "textPreview": "親タスク、プロジェクト、EVM、バーンダウンをどの履歴から算出するか",
+      "resolvedFontSize": 12.51,
+      "resolvedTextStyle": {
+        "fontSize": 12.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "親タスク、プロジェクト、EVM、バーンダウンをどの履歴から算出するか"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "親タスク、プロジェクト、EVM、バーンダウンをどの履歴から算出するか",
+          "runs": [
+            {
+              "index": 1,
+              "text": "親タスク、プロジェクト、EVM、バーンダウンをどの履歴から算出するか",
+              "fontSize": 12.51,
+              "typeface": "Hiragino Sans",
+              "color": "#AAB4C4"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/qpg3ex0n",
+      "id": "10",
+      "bbox": [
+        84,
+        364,
+        820,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#334155",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fa9w3m94",
+      "id": "11",
+      "bbox": [
+        84,
+        378,
+        44,
+        26
+      ],
+      "geometry": "rect",
+      "text": "02",
+      "textPreview": "02",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "02"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "02",
+          "runs": [
+            {
+              "index": 1,
+              "text": "02",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#D08A22",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8v6psfil",
+      "id": "12",
+      "bbox": [
+        154,
+        376,
+        180,
+        26
+      ],
+      "geometry": "rect",
+      "text": "AI送信契約",
+      "textPreview": "AI送信契約",
+      "resolvedFontSize": 19,
+      "resolvedTextStyle": {
+        "fontSize": 19,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "AI送信契約"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "AI送信契約",
+          "runs": [
+            {
+              "index": 1,
+              "text": "AI送信契約",
+              "fontSize": 19,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xczed8v6",
+      "id": "13",
+      "bbox": [
+        360,
+        378,
+        520,
+        34
+      ],
+      "geometry": "rect",
+      "text": "質問回答と学習計画生成で、どの情報を外部送信可能にするか",
+      "textPreview": "質問回答と学習計画生成で、どの情報を外部送信可能にするか",
+      "resolvedFontSize": 12.51,
+      "resolvedTextStyle": {
+        "fontSize": 12.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "質問回答と学習計画生成で、どの情報を外部送信可能にするか"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "質問回答と学習計画生成で、どの情報を外部送信可能にするか",
+          "runs": [
+            {
+              "index": 1,
+              "text": "質問回答と学習計画生成で、どの情報を外部送信可能にするか",
+              "fontSize": 12.51,
+              "typeface": "Hiragino Sans",
+              "color": "#AAB4C4"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/qd4vmtwr",
+      "id": "14",
+      "bbox": [
+        84,
+        450,
+        820,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#334155",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fyxobm58",
+      "id": "15",
+      "bbox": [
+        84,
+        464,
+        44,
+        26
+      ],
+      "geometry": "rect",
+      "text": "03",
+      "textPreview": "03",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "03"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "03",
+          "runs": [
+            {
+              "index": 1,
+              "text": "03",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#D08A22",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8jqh0fep",
+      "id": "16",
+      "bbox": [
+        154,
+        462,
+        180,
+        26
+      ],
+      "geometry": "rect",
+      "text": "MVP境界",
+      "textPreview": "MVP境界",
+      "resolvedFontSize": 19,
+      "resolvedTextStyle": {
+        "fontSize": 19,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVP境界"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVP境界",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVP境界",
+              "fontSize": 19,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/x4nap4r6",
+      "id": "17",
+      "bbox": [
+        360,
+        464,
+        520,
+        34
+      ],
+      "geometry": "rect",
+      "text": "段階リリースをどこで切り、受入確認をどの画面で行うか",
+      "textPreview": "段階リリースをどこで切り、受入確認をどの画面で行うか",
+      "resolvedFontSize": 12.51,
+      "resolvedTextStyle": {
+        "fontSize": 12.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "段階リリースをどこで切り、受入確認をどの画面で行うか"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "段階リリースをどこで切り、受入確認をどの画面で行うか",
+          "runs": [
+            {
+              "index": 1,
+              "text": "段階リリースをどこで切り、受入確認をどの画面で行うか",
+              "fontSize": 12.51,
+              "typeface": "Hiragino Sans",
+              "color": "#AAB4C4"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 18,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q1orytsv",
+      "id": "18",
+      "bbox": [
+        954,
+        262,
+        210,
+        268
+      ],
+      "geometry": "rect",
+      "fillColor": "#F8FAFC",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 19,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fmlkjm1c",
+      "id": "19",
+      "bbox": [
+        986,
+        296,
+        150,
+        22
+      ],
+      "geometry": "rect",
+      "text": "Next output",
+      "textPreview": "Next output",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Next output"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Next output",
+          "runs": [
+            {
+              "index": 1,
+              "text": "Next output",
+              "fontSize": 18,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 20,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/r2p8nqxs",
+      "id": "20",
+      "bbox": [
+        990,
+        344,
+        136,
+        24
+      ],
+      "geometry": "rect",
+      "fillColor": "#DCE8FF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 21,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2hwfyxob",
+      "id": "21",
+      "bbox": [
+        1000,
+        349,
+        116,
+        12
+      ],
+      "geometry": "rect",
+      "text": "DB設計",
+      "textPreview": "DB設計",
+      "resolvedFontSize": 10.51,
+      "resolvedTextStyle": {
+        "fontSize": 10.51,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "DB設計"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "DB設計",
+          "runs": [
+            {
+              "index": 1,
+              "text": "DB設計",
+              "fontSize": 10.51,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 22,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/94fu18jq",
+      "id": "22",
+      "bbox": [
+        990,
+        386,
+        136,
+        24
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 23,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kjm1cfa9",
+      "id": "23",
+      "bbox": [
+        1000,
+        391,
+        116,
+        12
+      ],
+      "geometry": "rect",
+      "text": "API設計",
+      "textPreview": "API設計",
+      "resolvedFontSize": 10.51,
+      "resolvedTextStyle": {
+        "fontSize": 10.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "API設計"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "API設計",
+          "runs": [
+            {
+              "index": 1,
+              "text": "API設計",
+              "fontSize": 10.51,
+              "typeface": "Hiragino Sans",
+              "color": "#111827"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 24,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ra5gbq1o",
+      "id": "24",
+      "bbox": [
+        990,
+        428,
+        136,
+        24
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 25,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2p8nqxs7",
+      "id": "25",
+      "bbox": [
+        1000,
+        433,
+        116,
+        12
+      ],
+      "geometry": "rect",
+      "text": "業務ロジック設計",
+      "textPreview": "業務ロジック設計",
+      "resolvedFontSize": 10.51,
+      "resolvedTextStyle": {
+        "fontSize": 10.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "業務ロジック設計"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "業務ロジック設計",
+          "runs": [
+            {
+              "index": 1,
+              "text": "業務ロジック設計",
+              "fontSize": 10.51,
+              "typeface": "Hiragino Sans",
+              "color": "#111827"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 26,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/9gr2p8nq",
+      "id": "26",
+      "bbox": [
+        990,
+        470,
+        136,
+        24
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 27,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gvy90je9",
+      "id": "27",
+      "bbox": [
+        1000,
+        475,
+        116,
+        12
+      ],
+      "geometry": "rect",
+      "text": "受入観点",
+      "textPreview": "受入観点",
+      "resolvedFontSize": 10.51,
+      "resolvedTextStyle": {
+        "fontSize": 10.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "受入観点"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "受入観点",
+          "runs": [
+            {
+              "index": 1,
+              "text": "受入観点",
+              "fontSize": 10.51,
+              "typeface": "Hiragino Sans",
+              "color": "#111827"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 28,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/re1w7mp0",
+      "id": "28",
+      "bbox": [
+        58,
+        682,
+        1110,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 29,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2t83itgf",
+      "id": "29",
+      "bbox": [
+        58,
+        690,
+        820,
+        15
+      ],
+      "geometry": "rect",
+      "text": "Source: requirements.md document purpose and current UI mock scope",
+      "textPreview": "Source: requirements.md document purpose and current UI mock scope",
+      "resolvedFontSize": 7.8,
+      "resolvedTextStyle": {
+        "fontSize": 7.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Source: requirements.md document purpose and current UI mock scope"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Source: requirements.md document purpose and current UI mock scope",
+          "runs": [
+            {
+              "index": 1,
+              "text": "Source: requirements.md document purpose and current UI mock scope",
+              "fontSize": 7.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 30,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cvixczed",
+      "id": "30",
+      "bbox": [
+        1176,
+        684,
+        48,
+        24
+      ],
+      "geometry": "rect",
+      "text": "08",
+      "textPreview": "08",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "right"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "08"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "08",
+          "runs": [
+            {
+              "index": 1,
+              "text": "08",
+              "fontSize": 12,
+              "typeface": "Hiragino Sans",
+              "color": "#687386",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

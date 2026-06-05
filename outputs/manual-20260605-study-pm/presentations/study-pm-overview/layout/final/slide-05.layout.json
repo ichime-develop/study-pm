@@ -1,0 +1,1304 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/bn9aqa",
+    "id": "bn9aqa",
+    "slide": 5,
+    "layoutId": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Hiragino Sans"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/upwb2hwf",
+      "id": "1",
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5gbq1ory",
+      "id": "2",
+      "name": "kicker-mvp shape-marker",
+      "bbox": [
+        58,
+        52,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#2563EB",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cvixczed",
+      "id": "3",
+      "name": "kicker-mvp shape-label",
+      "bbox": [
+        80,
+        46,
+        440,
+        22
+      ],
+      "geometry": "rect",
+      "text": "M V P   S H A P E",
+      "textPreview": "M V P   S H A P E",
+      "resolvedFontSize": 9.51,
+      "resolvedTextStyle": {
+        "fontSize": 9.51,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "M V P   S H A P E"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "M V P   S H A P E",
+          "runs": [
+            {
+              "index": 1,
+              "text": "M V P   S H A P E",
+              "fontSize": 9.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/nyd0z610",
+      "id": "4",
+      "bbox": [
+        58,
+        82,
+        1020,
+        94
+      ],
+      "geometry": "rect",
+      "text": "MVPは、計画管理を先に成立させてから\n可視化・知識化・AI支援を足す。",
+      "textPreview": "MVPは、計画管理を先に成立させてから | 可視化・知識化・AI支援を足す。",
+      "resolvedFontSize": 32,
+      "resolvedTextStyle": {
+        "fontSize": 32,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVPは、計画管理を先に成立させてから"
+          },
+          {
+            "index": 2,
+            "text": "可視化・知識化・AI支援を足す。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVPは、計画管理を先に成立させてから",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVPは、計画管理を先に成立させてから",
+              "fontSize": 32,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "text": "可視化・知識化・AI支援を足す。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "可視化・知識化・AI支援を足す。",
+              "fontSize": 32,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/udg7adsj",
+      "id": "5",
+      "bbox": [
+        58,
+        190,
+        820,
+        36
+      ],
+      "geometry": "rect",
+      "text": "画面モックは最終MVPの主要15画面を先に検証し、段階リリースの境界を確認するためのもの。",
+      "textPreview": "画面モックは最終MVPの主要15画面を先に検証し、段階リリースの境界を確認するためのもの。",
+      "resolvedFontSize": 14.51,
+      "resolvedTextStyle": {
+        "fontSize": 14.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "画面モックは最終MVPの主要15画面を先に検証し、段階リリースの境界を確認するためのもの。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "画面モックは最終MVPの主要15画面を先に検証し、段階リリースの境界を確認するためのもの。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "画面モックは最終MVPの主要15画面を先に検証し、段階リリースの境界を確認するためのもの。",
+              "fontSize": 14.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/54zidony",
+      "id": "6",
+      "bbox": [
+        76,
+        250,
+        88,
+        44
+      ],
+      "geometry": "rect",
+      "fillColor": "#2563EB",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cj6tovah",
+      "id": "7",
+      "bbox": [
+        76,
+        262,
+        88,
+        18
+      ],
+      "geometry": "rect",
+      "text": "MVP 1",
+      "textPreview": "MVP 1",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVP 1"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVP 1",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVP 1",
+              "fontSize": 13,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/judg7ads",
+      "id": "8",
+      "bbox": [
+        164,
+        272,
+        850,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#2563EB",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/u9knih4b",
+      "id": "9",
+      "bbox": [
+        194,
+        248,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "学習計画と実績を管理できる",
+      "textPreview": "学習計画と実績を管理できる",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "学習計画と実績を管理できる"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "学習計画と実績を管理できる",
+          "runs": [
+            {
+              "index": 1,
+              "text": "学習計画と実績を管理できる",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/47y1kre1",
+      "id": "10",
+      "bbox": [
+        194,
+        278,
+        760,
+        24
+      ],
+      "geometry": "rect",
+      "text": "認証 / プロジェクト / WBS / 学習記録 / 基本ダッシュボード",
+      "textPreview": "認証 / プロジェクト / WBS / 学習記録 / 基本ダッシュボード",
+      "resolvedFontSize": 11.8,
+      "resolvedTextStyle": {
+        "fontSize": 11.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "認証 / プロジェクト / WBS / 学習記録 / 基本ダッシュボード"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "認証 / プロジェクト / WBS / 学習記録 / 基本ダッシュボード",
+          "runs": [
+            {
+              "index": 1,
+              "text": "認証 / プロジェクト / WBS / 学習記録 / 基本ダッシュボード",
+              "fontSize": 11.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/tsvu9kni",
+      "id": "11",
+      "bbox": [
+        76,
+        332,
+        88,
+        44
+      ],
+      "geometry": "rect",
+      "fillColor": "#D08A22",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/m1cfa9w3",
+      "id": "12",
+      "bbox": [
+        76,
+        344,
+        88,
+        18
+      ],
+      "geometry": "rect",
+      "text": "MVP 2",
+      "textPreview": "MVP 2",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVP 2"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVP 2",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVP 2",
+              "fontSize": 13,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bm58z25k",
+      "id": "13",
+      "bbox": [
+        164,
+        354,
+        850,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#D08A22",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4vmtwra5",
+      "id": "14",
+      "bbox": [
+        194,
+        330,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "計画との差を可視化できる",
+      "textPreview": "計画との差を可視化できる",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "計画との差を可視化できる"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "計画との差を可視化できる",
+          "runs": [
+            {
+              "index": 1,
+              "text": "計画との差を可視化できる",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/tgfmlkjm",
+      "id": "15",
+      "bbox": [
+        194,
+        360,
+        760,
+        24
+      ],
+      "geometry": "rect",
+      "text": "進捗履歴 / 計画履歴 / EVM / バーンダウン / 遅延表示",
+      "textPreview": "進捗履歴 / 計画履歴 / EVM / バーンダウン / 遅延表示",
+      "resolvedFontSize": 11.8,
+      "resolvedTextStyle": {
+        "fontSize": 11.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "進捗履歴 / 計画履歴 / EVM / バーンダウン / 遅延表示"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "進捗履歴 / 計画履歴 / EVM / バーンダウン / 遅延表示",
+          "runs": [
+            {
+              "index": 1,
+              "text": "進捗履歴 / 計画履歴 / EVM / バーンダウン / 遅延表示",
+              "fontSize": 11.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mp0bi9s3",
+      "id": "16",
+      "bbox": [
+        76,
+        414,
+        88,
+        44
+      ],
+      "geometry": "rect",
+      "fillColor": "#14A76C",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bat47y1k",
+      "id": "17",
+      "bbox": [
+        76,
+        426,
+        88,
+        18
+      ],
+      "geometry": "rect",
+      "text": "MVP 3",
+      "textPreview": "MVP 3",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVP 3"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVP 3",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVP 3",
+              "fontSize": 13,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 18,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4nap4r65",
+      "id": "18",
+      "bbox": [
+        164,
+        436,
+        850,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#14A76C",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 19,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/t83itgfm",
+      "id": "19",
+      "bbox": [
+        194,
+        412,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "学習中の疑問を蓄積できる",
+      "textPreview": "学習中の疑問を蓄積できる",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "学習中の疑問を蓄積できる"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "学習中の疑問を蓄積できる",
+          "runs": [
+            {
+              "index": 1,
+              "text": "学習中の疑問を蓄積できる",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 20,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xs72x4na",
+      "id": "20",
+      "bbox": [
+        194,
+        442,
+        760,
+        24
+      ],
+      "geometry": "rect",
+      "text": "質問管理 / 回答メモ",
+      "textPreview": "質問管理 / 回答メモ",
+      "resolvedFontSize": 11.8,
+      "resolvedTextStyle": {
+        "fontSize": 11.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "質問管理 / 回答メモ"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "質問管理 / 回答メモ",
+          "runs": [
+            {
+              "index": 1,
+              "text": "質問管理 / 回答メモ",
+              "fontSize": 11.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 21,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/87ed8bat",
+      "id": "21",
+      "bbox": [
+        76,
+        496,
+        88,
+        44
+      ],
+      "geometry": "rect",
+      "fillColor": "#7C3AED",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 22,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fmlkjm1c",
+      "id": "22",
+      "bbox": [
+        76,
+        508,
+        88,
+        18
+      ],
+      "geometry": "rect",
+      "text": "MVP 4",
+      "textPreview": "MVP 4",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "MVP 4"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "MVP 4",
+          "runs": [
+            {
+              "index": 1,
+              "text": "MVP 4",
+              "fontSize": 13,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 23,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q1orytsv",
+      "id": "23",
+      "bbox": [
+        164,
+        518,
+        850,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#7C3AED",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 24,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/1gvy90je",
+      "id": "24",
+      "bbox": [
+        194,
+        494,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "AIを学習支援へ利用できる",
+      "textPreview": "AIを学習支援へ利用できる",
+      "resolvedFontSize": 17,
+      "resolvedTextStyle": {
+        "fontSize": 17,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "AIを学習支援へ利用できる"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "AIを学習支援へ利用できる",
+          "runs": [
+            {
+              "index": 1,
+              "text": "AIを学習支援へ利用できる",
+              "fontSize": 17,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 25,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8z25kb6x",
+      "id": "25",
+      "bbox": [
+        194,
+        524,
+        760,
+        24
+      ],
+      "geometry": "rect",
+      "text": "AI回答 / 回答履歴 / 教材OCR / AI学習計画生成",
+      "textPreview": "AI回答 / 回答履歴 / 教材OCR / AI学習計画生成",
+      "resolvedFontSize": 11.8,
+      "resolvedTextStyle": {
+        "fontSize": 11.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "AI回答 / 回答履歴 / 教材OCR / AI学習計画生成"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "AI回答 / 回答履歴 / 教材OCR / AI学習計画生成",
+          "runs": [
+            {
+              "index": 1,
+              "text": "AI回答 / 回答履歴 / 教材OCR / AI学習計画生成",
+              "fontSize": 11.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 26,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/je9cvixc",
+      "id": "26",
+      "bbox": [
+        964,
+        236,
+        196,
+        344
+      ],
+      "geometry": "rect",
+      "fillColor": "#0F172A",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 27,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/qtcj6tov",
+      "id": "27",
+      "bbox": [
+        1002,
+        278,
+        120,
+        82
+      ],
+      "geometry": "rect",
+      "text": "15",
+      "textPreview": "15",
+      "resolvedFontSize": 66,
+      "resolvedTextStyle": {
+        "fontSize": 66,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "15"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "15",
+          "runs": [
+            {
+              "index": 1,
+              "text": "15",
+              "fontSize": 66,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 28,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xczed8v6",
+      "id": "28",
+      "bbox": [
+        1002,
+        358,
+        120,
+        20
+      ],
+      "geometry": "rect",
+      "text": "PC Web screens",
+      "textPreview": "PC Web screens",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "Hiragino Sans",
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "PC Web screens"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "PC Web screens",
+          "runs": [
+            {
+              "index": 1,
+              "text": "PC Web screens",
+              "fontSize": 13,
+              "typeface": "Hiragino Sans",
+              "color": "#CBD5E1"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 29,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8v6psfil",
+      "id": "29",
+      "bbox": [
+        996,
+        420,
+        132,
+        86
+      ],
+      "geometry": "rect",
+      "text": "優先順はダッシュボード、プロジェクト一覧、詳細、WBS編集、学習記録登録から。",
+      "textPreview": "優先順はダッシュボード、プロジェクト一覧、詳細、WBS編集、学習記録登録から。",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 4,
+        "lines": [
+          {
+            "index": 1,
+            "text": "優先順はダッシュボード"
+          },
+          {
+            "index": 2,
+            "text": "、プロジェクト一覧、詳"
+          },
+          {
+            "index": 3,
+            "text": "細、WBS編集、学習記"
+          },
+          {
+            "index": 4,
+            "text": "録登録から。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "優先順はダッシュボード、プロジェクト一覧、詳細、WBS編集、学習記録登録から。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "優先順はダッシュボード、プロジェクト一覧、詳細、WBS編集、学習記録登録から。",
+              "fontSize": 12,
+              "typeface": "Hiragino Sans",
+              "color": "#CBD5E1"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 30,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/25kb6xkf",
+      "id": "30",
+      "bbox": [
+        58,
+        682,
+        1110,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 31,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/rqd4vmtw",
+      "id": "31",
+      "bbox": [
+        58,
+        690,
+        820,
+        15
+      ],
+      "geometry": "rect",
+      "text": "Source: requirements.md phased release table, ui-mock screen plan",
+      "textPreview": "Source: requirements.md phased release table, ui-mock screen plan",
+      "resolvedFontSize": 7.8,
+      "resolvedTextStyle": {
+        "fontSize": 7.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Source: requirements.md phased release table, ui-mock screen plan"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Source: requirements.md phased release table, ui-mock screen plan",
+          "runs": [
+            {
+              "index": 1,
+              "text": "Source: requirements.md phased release table, ui-mock screen plan",
+              "fontSize": 7.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 32,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kb6xkf6d",
+      "id": "32",
+      "bbox": [
+        1176,
+        684,
+        48,
+        24
+      ],
+      "geometry": "rect",
+      "text": "05",
+      "textPreview": "05",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "right"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "05"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "05",
+          "runs": [
+            {
+              "index": 1,
+              "text": "05",
+              "fontSize": 12,
+              "typeface": "Hiragino Sans",
+              "color": "#687386",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

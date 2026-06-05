@@ -1,0 +1,26 @@
+Profile gates:
+- product-platform: pass
+  - Product system map uses concrete Study PM modules rather than generic feature boxes.
+  - Workflow and metrics connect WBS, logs, questions, AI plan, and project-control outcomes.
+- brand authenticity: pass
+  - No official or pseudo-official logo/icon was fabricated.
+- engineering-platform secondary gate: pass with limitation
+  - Platform direction is shown as a future validation path, not as a completed backend architecture.
+
+Rubric:
+- story: 4/5
+- specificity: 5/5
+- rhythm: 4/5
+- whitespace: 4/5
+- chart clarity: 4/5
+- typography: 4/5
+- restraint: 5/5
+- precision: 5/5
+- coherence: 5/5
+- reference delta: n/a
+
+Total: 40/45
+
+Delivery note:
+- The deck is concise and source-grounded, but it is an overview deck rather than a fully polished investor-grade reference-beating deck.
+- Layout checker warnings remain for background/container false positives and conservative Japanese text bounding boxes. Contact sheet review shows no blocking visual overlap after title and system-map adjustments.

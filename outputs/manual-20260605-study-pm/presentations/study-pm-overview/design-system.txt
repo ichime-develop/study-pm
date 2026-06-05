@@ -1,0 +1,60 @@
+Slide size:
+- 1280x720
+
+Background system:
+- Warm paper base #F7F2EA with dark ink chapter moments #111827.
+- Pale blue panels #EAF1FF for app workspace references.
+
+Typography:
+- Japanese sans: Hiragino Sans / Yu Gothic fallback through artifact runtime.
+- Claim titles use large bold sans, not decorative serif, because Japanese readability is more important than display flourish.
+
+Palette:
+- Ink #111827 for primary text.
+- Soft text #687386.
+- Blue #2563EB as app accent and action path.
+- Amber #D08A22 as warning / delay / decision accent.
+- Green #14A76C as completion / positive progress.
+- Line #D9D6CE for quiet structure.
+- Paper #F7F2EA and white #FFFFFF.
+
+Chart grammar:
+- Direct labels; no heavy legends.
+- Use horizontal bars and compact rails for sample metrics.
+- Metrics are grounded in mock data and labeled as sample state.
+
+Diagram grammar:
+- Nodes represent concrete app objects: Project, WBS, Study Log, EVM, Questions, AI Plan.
+- Blue connectors represent primary workflow; amber connectors represent warnings/feedback.
+- Avoid decorative arrows unless direction matters.
+
+Container grammar:
+- Use thin lines and subtle fills; no repeated generic card grid.
+- Equal-role nodes share sizes and alignment.
+
+Footer/page marker:
+- Quiet source footer at bottom-left.
+- Two-digit page marker bottom-right.
+
+Title/kicker:
+- Kicker uses small marker square plus letter-spaced English label.
+- Claim title states a conclusion, not a topic name.
+
+Brand asset policy:
+- No official logo is present; no pseudo-logo or app icon will be created.
+- Allowed brand cues are app name text, blue accent, dark sidebar-like background, and product vocabulary.
+
+Layout families:
+- Cover with outcome rail.
+- Fragmentation map.
+- Product system map.
+- Journey flow.
+- Roadmap with screen coverage rail.
+- Metric proof slide.
+- Platform direction map.
+- Decision stack.
+
+Banned motifs:
+- Generic SaaS feature-card grids.
+- Fake logos, mascots, app icons, or official-looking marks.
+- Decorative boxes around prose.

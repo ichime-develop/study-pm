@@ -1,0 +1,46 @@
+Thesis:
+Study PM turns independent study into a small, measurable project: goals become WBS tasks, daily logs become progress evidence, and EVM/questions/AI support expose what to do next.
+
+Audience:
+Project owner / developer reviewing the app concept, MVP scope, and implementation direction.
+
+One-line arc:
+Show why self-study needs project controls, how Study PM structures the learning loop, what the current PC Web mock proves, and what should be decided next.
+
+Slides:
+1. Kicker: OVERVIEW
+   Claim: Study PM turns self-study into a measurable project.
+   Proof object: cover thesis with three outcome rails.
+   Source: requirements.md sections 2-3.
+2. Kicker: USER PROBLEM
+   Claim: The pain is not motivation; it is fragmented control of plan, effort, delay, and questions.
+   Proof object: fragmentation map.
+   Source: requirements.md sections 2-3.
+3. Kicker: PRODUCT SYSTEM
+   Claim: One dashboard links every learning signal back to the project.
+   Proof object: product system map.
+   Source: App.tsx dashboard, requirements.md scope.
+4. Kicker: CORE LOOP
+   Claim: The learner moves from goal to WBS to logs to evidence without leaving the workflow.
+   Proof object: six-step journey flow.
+   Source: requirements.md basic cycle.
+5. Kicker: MVP SHAPE
+   Claim: The MVP is staged so planning works first, then control, knowledge capture, and AI support.
+   Proof object: four-release roadmap plus screen coverage.
+   Source: requirements.md phased release, ui-mock screen plan.
+6. Kicker: PROJECT CONTROL
+   Claim: The mock already models the control signals needed to spot drift early.
+   Proof object: sample Java Silver metric composition.
+   Source: mockData.ts and calculations.ts.
+7. Kicker: PLATFORM DIRECTION
+   Claim: The PC mock is the validation layer for a shared backend and future mobile app.
+   Proof object: architecture direction map.
+   Source: ui-mock screen plan and requirements.md utilization assumptions.
+8. Kicker: DECISIONS
+   Claim: The next milestone is to lock the behavioral contract before building the backend.
+   Proof object: decision stack and next output checklist.
+   Source: repo docs and current mock implementation.
+
+Omission notes:
+- No production metrics, real users, backend endpoints, database schema, or brand assets are available yet.
+- EVM formulas are specified in requirements but not fully implemented in the mock calculation module; slide 6 describes current mock control signals rather than claiming full EVM completion.

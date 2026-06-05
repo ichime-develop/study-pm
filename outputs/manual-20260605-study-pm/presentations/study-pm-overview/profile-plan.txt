@@ -1,0 +1,21 @@
+task mode: create
+primary deck-profile: product-platform
+secondary profile gates: light engineering-platform gate for PC Web mock / shared API direction
+required proof objects:
+- product system map connecting projects, WBS, logs, EVM, questions, and AI planning
+- learner journey from goal to measurable progress
+- adoption / usage proof represented by MVP screen coverage and sample project data
+- product-to-outcome linkage: self-study visibility, delay detection, reusable question knowledge
+- roadmap / strategic direction for backend, API, AI, and mobile extension
+source/asset requirements:
+- Source facts from docs/requirements.md, docs/ui-mock/mvp1-screen-plan.md, mock/src/App.tsx, mock/src/data/mockData.ts, mock/src/domain/calculations.ts
+- No external source metrics required
+brand authenticity constraints:
+- Do not fabricate official app logo or identity mark; use text-only "Study PM" and abstract project-control visuals
+- Use app color cues from mock CSS: dark sidebar navy, blue accent, light gray workspace
+profile-specific QA gates:
+- Avoid generic feature cards; every capability must connect to a learning-management outcome
+- Diagrams must use concrete labels from this app: WBS, 学習記録, EVM, 質問, AI学習計画
+- Show product system and user workflow, not only a function list
+known missing inputs:
+- No backend architecture, production metrics, or final branding assets are available in the repo

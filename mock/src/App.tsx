@@ -954,53 +954,39 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
         <div>
           <p className="eyebrow">SCR-13</p>
           <h2>教材入力</h2>
-          <p>教材名と目次を入力します。</p>
+          <p>ChatGPTやGeminiのような入力欄で、目次テキストと添付ファイルをまとめて送信します。</p>
         </div>
       </div>
       <label>
         教材名
         <input defaultValue="徹底攻略 Java SE 17 Silver 問題集" maxLength={100} />
       </label>
-      <div className="ocr-workflow">
-        <section className="ocr-step-card">
-          <div className="step-badge">1</div>
-          <div className="ocr-step-body">
-            <div className="ocr-step-header">
-              <h3>目次を取り込む</h3>
-              <span className="badge neutral">画像選択 / 貼り付け</span>
-            </div>
-            <div className="upload-zone compact-upload">
-              <label className="capture-card primary-capture">
-                <span>画像を選ぶ</span>
-                <small>PCでは保存済みの目次写真を選択</small>
-                <input aria-label="保存済みの目次画像を選択" type="file" accept="image/*" />
-              </label>
-              <div className="capture-card">
-                <span>テキストを貼る</span>
-                <small>コピーした目次を下の修正欄へ貼り付け</small>
-              </div>
-              <div className="paste-hint">テキスト貼り付けは下の読み取り結果欄へ</div>
+      <div className="composer-shell">
+        <div className="attachment-chip-row">
+          <span className="attachment-chip">目次画像 2枚</span>
+          <span className="attachment-chip">OCR結果は入力欄で修正</span>
+        </div>
+        <textarea
+          aria-label="教材目次とAIへの指示"
+          className="composer-textarea"
+          defaultValue={`この教材の目次から、Java Silver合格に向けたWBSと学習計画を作ってください。\n\n${tocSampleText}`}
+        />
+        <div className="composer-footer">
+          <div className="composer-left">
+            <button className="icon-button active" aria-label="添付メニューを開く" type="button">＋</button>
+            <div className="attachment-menu">
+              <button type="button">ファイルをアップロードする</button>
+              <button type="button">写真をアップロードする</button>
+              <button type="button">OCR結果テキストを貼り付ける</button>
             </div>
           </div>
-        </section>
-
-        <div className="workflow-arrow" aria-hidden="true">↓</div>
-
-        <section className="ocr-step-card active-card">
-          <div className="step-badge active">2</div>
-          <div className="ocr-step-body">
-            <div className="ocr-step-header">
-              <h3>読み取り結果を直す</h3>
-              <span className="badge warning">送信前チェック</span>
-            </div>
-            <textarea aria-label="OCR結果の確認・修正" className="toc-textarea" defaultValue={tocSampleText} />
+          <div className="composer-actions">
+            <button className="stop-button" aria-label="実行を停止" type="button">■</button>
+            <button className="run-button" onClick={() => onMove("aiPlanSettings")} aria-label="実行" type="button">↑</button>
           </div>
-        </section>
+        </div>
       </div>
       <div className="button-group">
-        <button className="primary-button" onClick={() => onMove("aiPlanSettings")} type="button">
-          修正した目次で生成条件へ
-        </button>
         <button className="secondary-button" onClick={() => onMove("projects")} type="button">
           プロジェクト一覧へ戻る
         </button>
@@ -1010,8 +996,9 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
     <aside className="panel">
       <h2>確認ポイント</h2>
       <ul className="check-list">
-        <li>OCR結果を修正する欄が、AI送信前の確認ステップとして伝わるか</li>
-        <li>画像入力なしでテキスト貼り付けだけでも同じ導線を使えるか</li>
+        <li>テキスト入力、画像添付、ファイル添付を1つの入力欄にまとめても迷わないか</li>
+        <li>+ メニューの項目が、写真・ファイル・貼り付け入力の導線として自然か</li>
+        <li>実行ボタンと停止ボタンの配置が分かりやすいか</li>
         <li>外部送信への同意をAI回答と共通化するか、計画生成でも個別に確認するか</li>
       </ul>
       <div className="consent-card">

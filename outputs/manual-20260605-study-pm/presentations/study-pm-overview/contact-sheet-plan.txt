@@ -1,0 +1,14 @@
+Slide macro layouts:
+1. Cover with dark thesis block and vertical outcome rail.
+2. Fragmentation map with four broken signals converging into the need for control.
+3. Central product system map with dashboard hub and concrete modules.
+4. Horizontal learner journey flow with evidence feedback.
+5. Four-step MVP roadmap with screen count and release gates.
+6. Sample metric composition with progress bar, hours bridge, and warning strip.
+7. Platform direction map from PC mock to shared backend/API/mobile.
+8. Decision stack with three immediate locks and final artifact checklist.
+
+Rhythm gates:
+- No three consecutive slides share a macro layout.
+- No generic title/subtitle/card-grid cadence.
+- Every slide has one dominant proof object.

@@ -1,0 +1,8 @@
+No reference deck supplied.
+
+Task mode is create. Quality target is a concise product overview deck with:
+- a visible product system rather than a feature-card list
+- claim-led slide titles
+- varied macro-layouts visible in contact sheet
+- source-grounded app scope and sample data
+- no fabricated identity assets

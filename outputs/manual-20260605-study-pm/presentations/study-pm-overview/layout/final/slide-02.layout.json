@@ -1,0 +1,1093 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/tpnp2i",
+    "id": "tpnp2i",
+    "slide": 2,
+    "layoutId": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+    "masterLayoutName": "Master",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Hiragino Sans"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "ad511a27-1d89-46c2-9084-96e17b749e5a",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "56633501-35de-41cf-939f-698a4c51cb1f",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fepkzupw",
+      "id": "1",
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "geometry": "rect",
+      "fillColor": "#F7F2EA",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4zidonyd",
+      "id": "2",
+      "name": "kicker-user problem-marker",
+      "bbox": [
+        58,
+        52,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#2563EB",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xkf6dcbu",
+      "id": "3",
+      "name": "kicker-user problem-label",
+      "bbox": [
+        80,
+        46,
+        440,
+        22
+      ],
+      "geometry": "rect",
+      "text": "U S E R   P R O B L E M",
+      "textPreview": "U S E R   P R O B L E M",
+      "resolvedFontSize": 9.51,
+      "resolvedTextStyle": {
+        "fontSize": 9.51,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "U S E R   P R O B L E M"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "U S E R   P R O B L E M",
+          "runs": [
+            {
+              "index": 1,
+              "text": "U S E R   P R O B L E M",
+              "fontSize": 9.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mlkjm1cf",
+      "id": "4",
+      "bbox": [
+        58,
+        82,
+        1000,
+        92
+      ],
+      "geometry": "rect",
+      "text": "課題は「やる気」ではなく、\n計画・実績・遅延・疑問の分断。",
+      "textPreview": "課題は「やる気」ではなく、 | 計画・実績・遅延・疑問の分断。",
+      "resolvedFontSize": 32,
+      "resolvedTextStyle": {
+        "fontSize": 32,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "課題は「やる気」ではなく、"
+          },
+          {
+            "index": 2,
+            "text": "計画・実績・遅延・疑問の分断。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "課題は「やる気」ではなく、",
+          "runs": [
+            {
+              "index": 1,
+              "text": "課題は「やる気」ではなく、",
+              "fontSize": 32,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "text": "計画・実績・遅延・疑問の分断。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "計画・実績・遅延・疑問の分断。",
+              "fontSize": 32,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/f6dcbulw",
+      "id": "5",
+      "bbox": [
+        58,
+        176,
+        740,
+        52
+      ],
+      "geometry": "rect",
+      "text": "独学では教材や目標を決めても、学習範囲の分解、予定と実績の比較、遅延の把握、疑問点の管理が別々になりやすい。",
+      "textPreview": "独学では教材や目標を決めても、学習範囲の分解、予定と実績の比較、遅延の把握、疑問点の管理が別々になりやすい。",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "fontSize": 15,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "独学では教材や目標を決めても、学習範囲の分解、予定と実績の比較、遅延の把握、疑問点の管理が別々にな"
+          },
+          {
+            "index": 2,
+            "text": "りやすい。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "独学では教材や目標を決めても、学習範囲の分解、予定と実績の比較、遅延の把握、疑問点の管理が別々になりやすい。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "独学では教材や目標を決めても、学習範囲の分解、予定と実績の比較、遅延の把握、疑問点の管理が別々になりやすい。",
+              "fontSize": 15,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4r65wjud",
+      "id": "6",
+      "bbox": [
+        98,
+        292,
+        210,
+        120
+      ],
+      "geometry": "rect",
+      "fillColor": "#DCE8FF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xc3ylc7u",
+      "id": "7",
+      "bbox": [
+        114,
+        306,
+        178,
+        24
+      ],
+      "geometry": "rect",
+      "text": "教材・目標",
+      "textPreview": "教材・目標",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "fontSize": 16,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "教材・目標"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "教材・目標",
+          "runs": [
+            {
+              "index": 1,
+              "text": "教材・目標",
+              "fontSize": 16,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/m94fu18j",
+      "id": "8",
+      "bbox": [
+        114,
+        334,
+        178,
+        68
+      ],
+      "geometry": "rect",
+      "text": "何をどこまで学ぶかはあるが、粒度が大きい",
+      "textPreview": "何をどこまで学ぶかはあるが、粒度が大きい",
+      "resolvedFontSize": 11.51,
+      "resolvedTextStyle": {
+        "fontSize": 11.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "何をどこまで学ぶかはあるが、粒"
+          },
+          {
+            "index": 2,
+            "text": "度が大きい"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "何をどこまで学ぶかはあるが、粒度が大きい",
+          "runs": [
+            {
+              "index": 1,
+              "text": "何をどこまで学ぶかはあるが、粒度が大きい",
+              "fontSize": 11.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fu18jqh0",
+      "id": "9",
+      "bbox": [
+        378,
+        246,
+        210,
+        120
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/r65wjudg",
+      "id": "10",
+      "bbox": [
+        394,
+        260,
+        178,
+        24
+      ],
+      "geometry": "rect",
+      "text": "予定・期限",
+      "textPreview": "予定・期限",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "fontSize": 16,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "予定・期限"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "予定・期限",
+          "runs": [
+            {
+              "index": 1,
+              "text": "予定・期限",
+              "fontSize": 16,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ylc7u54z",
+      "id": "11",
+      "bbox": [
+        394,
+        288,
+        178,
+        68
+      ],
+      "geometry": "rect",
+      "text": "日付は決めても、タスク別の予定工数が弱い",
+      "textPreview": "日付は決めても、タスク別の予定工数が弱い",
+      "resolvedFontSize": 11.51,
+      "resolvedTextStyle": {
+        "fontSize": 11.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "日付は決めても、タスク別の予定"
+          },
+          {
+            "index": 2,
+            "text": "工数が弱い"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "日付は決めても、タスク別の予定工数が弱い",
+          "runs": [
+            {
+              "index": 1,
+              "text": "日付は決めても、タスク別の予定工数が弱い",
+              "fontSize": 11.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/9cvixcze",
+      "id": "12",
+      "bbox": [
+        660,
+        292,
+        210,
+        120
+      ],
+      "geometry": "rect",
+      "fillColor": "#FFFFFF",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gr2p8nqx",
+      "id": "13",
+      "bbox": [
+        676,
+        306,
+        178,
+        24
+      ],
+      "geometry": "rect",
+      "text": "実績・進捗",
+      "textPreview": "実績・進捗",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "fontSize": 16,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "実績・進捗"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "実績・進捗",
+          "runs": [
+            {
+              "index": 1,
+              "text": "実績・進捗",
+              "fontSize": 16,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/nih4byhg",
+      "id": "14",
+      "bbox": [
+        676,
+        334,
+        178,
+        68
+      ],
+      "geometry": "rect",
+      "text": "学習時間と進捗率が後から突き合わせにくい",
+      "textPreview": "学習時間と進捗率が後から突き合わせにくい",
+      "resolvedFontSize": 11.51,
+      "resolvedTextStyle": {
+        "fontSize": 11.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "学習時間と進捗率が後から突き合"
+          },
+          {
+            "index": 2,
+            "text": "わせにくい"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "学習時間と進捗率が後から突き合わせにくい",
+          "runs": [
+            {
+              "index": 1,
+              "text": "学習時間と進捗率が後から突き合わせにくい",
+              "fontSize": 11.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/yxobm58z",
+      "id": "15",
+      "bbox": [
+        930,
+        246,
+        210,
+        120
+      ],
+      "geometry": "rect",
+      "fillColor": "#F3DFC1",
+      "lineColor": "#D9D6CE",
+      "lineWidth": 1
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5o7qpg3e",
+      "id": "16",
+      "bbox": [
+        946,
+        260,
+        178,
+        24
+      ],
+      "geometry": "rect",
+      "text": "疑問・回答",
+      "textPreview": "疑問・回答",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "fontSize": 16,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "疑問・回答"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "疑問・回答",
+          "runs": [
+            {
+              "index": 1,
+              "text": "疑問・回答",
+              "fontSize": 16,
+              "typeface": "Hiragino Sans",
+              "color": "#111827",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/g3ex0nux",
+      "id": "17",
+      "bbox": [
+        946,
+        288,
+        178,
+        68
+      ],
+      "geometry": "rect",
+      "text": "調べた内容がタスクや履歴から切り離される",
+      "textPreview": "調べた内容がタスクや履歴から切り離される",
+      "resolvedFontSize": 11.51,
+      "resolvedTextStyle": {
+        "fontSize": 11.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "調べた内容がタスクや履歴から切"
+          },
+          {
+            "index": 2,
+            "text": "り離される"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "調べた内容がタスクや履歴から切り離される",
+          "runs": [
+            {
+              "index": 1,
+              "text": "調べた内容がタスクや履歴から切り離される",
+              "fontSize": 11.51,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 18,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/rmhk3q5o",
+      "id": "18",
+      "bbox": [
+        306,
+        351,
+        64,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 19,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/y1kre1w7",
+      "id": "19",
+      "bbox": [
+        370,
+        313,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 20,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6dcbulwv",
+      "id": "20",
+      "bbox": [
+        586,
+        305,
+        66,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 21,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vy90je9c",
+      "id": "21",
+      "bbox": [
+        652,
+        345,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 22,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/oj2t83it",
+      "id": "22",
+      "bbox": [
+        868,
+        351,
+        54,
+        2
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 23,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/d4vmtwra",
+      "id": "23",
+      "bbox": [
+        922,
+        311,
+        10,
+        10
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 24,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/61032lsz",
+      "id": "24",
+      "bbox": [
+        298,
+        508,
+        680,
+        72
+      ],
+      "geometry": "rect",
+      "fillColor": "#0F172A",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 25,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vmtwra5g",
+      "id": "25",
+      "bbox": [
+        330,
+        529,
+        620,
+        28
+      ],
+      "geometry": "rect",
+      "text": "必要なのは、学習行動をプロジェクト管理の観点で束ねる共通面",
+      "textPreview": "必要なのは、学習行動をプロジェクト管理の観点で束ねる共通面",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "center"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "必要なのは、学習行動をプロジェクト管理の観点で束ねる共通面"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "必要なのは、学習行動をプロジェクト管理の観点で束ねる共通面",
+          "runs": [
+            {
+              "index": 1,
+              "text": "必要なのは、学習行動をプロジェクト管理の観点で束ねる共通面",
+              "fontSize": 18,
+              "typeface": "Hiragino Sans",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 26,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/o7qpg3ex",
+      "id": "26",
+      "bbox": [
+        330,
+        558,
+        620,
+        22
+      ],
+      "geometry": "rect",
+      "text": "WBS、予定工数、実績工数、進捗率、EVM、質問管理を同じ学習プロジェクトに接続する。",
+      "textPreview": "WBS、予定工数、実績工数、進捗率、EVM、質問管理を同じ学習プロジェクトに接続する。",
+      "resolvedFontSize": 11.51,
+      "resolvedTextStyle": {
+        "fontSize": 11.51,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "WBS、予定工数、実績工数、進捗率、EVM、質問管理を同じ学習プロジェクトに接続する。"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "WBS、予定工数、実績工数、進捗率、EVM、質問管理を同じ学習プロジェクトに接続する。",
+          "runs": [
+            {
+              "index": 1,
+              "text": "WBS、予定工数、実績工数、進捗率、EVM、質問管理を同じ学習プロジェクトに接続する。",
+              "fontSize": 11.51,
+              "typeface": "Hiragino Sans",
+              "color": "#CBD5E1"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 27,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/dsji5sne",
+      "id": "27",
+      "bbox": [
+        58,
+        682,
+        1110,
+        1
+      ],
+      "geometry": "rect",
+      "fillColor": "#D9D6CE",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 28,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6tovahoz",
+      "id": "28",
+      "bbox": [
+        58,
+        690,
+        820,
+        15
+      ],
+      "geometry": "rect",
+      "text": "Source: requirements.md background and app objectives",
+      "textPreview": "Source: requirements.md background and app objectives",
+      "resolvedFontSize": 7.8,
+      "resolvedTextStyle": {
+        "fontSize": 7.8,
+        "typeface": "Hiragino Sans",
+        "alignment": "left"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Source: requirements.md background and app objectives"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Source: requirements.md background and app objectives",
+          "runs": [
+            {
+              "index": 1,
+              "text": "Source: requirements.md background and app objectives",
+              "fontSize": 7.8,
+              "typeface": "Hiragino Sans",
+              "color": "#687386"
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    },
+    {
+      "order": 29,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vahoza1g",
+      "id": "29",
+      "bbox": [
+        1176,
+        684,
+        48,
+        24
+      ],
+      "geometry": "rect",
+      "text": "02",
+      "textPreview": "02",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "Hiragino Sans",
+        "bold": true,
+        "alignment": "right"
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "02"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "02",
+          "runs": [
+            {
+              "index": 1,
+              "text": "02",
+              "fontSize": 12,
+              "typeface": "Hiragino Sans",
+              "color": "#687386",
+              "bold": true
+            }
+          ]
+        }
+      ],
+      "fillColor": "rgba(0, 0, 0, 0)",
+      "lineColor": "rgba(0, 0, 0, 0)",
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}
