@@ -55,7 +55,7 @@ const screenLabels: Record<Screen, string> = {
   questionForm: "質問登録・編集",
   aiContext: "AI送信情報選択",
   aiPlanInput: "教材入力",
-  aiPlanSettings: "AI生成条件",
+  aiPlanSettings: "AI計画チャット",
   aiPlanResult: "AI計画確認",
 };
 
@@ -944,8 +944,8 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
           貼り付け入力の場合も、同じ確認欄で内容を整えます。
         </p>
       </div>
-      <button className="primary-button light-button" onClick={() => onMove("aiPlanSettings")} type="button">
-        生成条件へ進む
+      <button className="primary-button light-button" onClick={() => onMove("aiPlanResult")} type="button">
+        AIに依頼する
       </button>
     </div>
 
@@ -963,7 +963,8 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       </label>
       <div className="composer-shell">
         <div className="attachment-chip-row">
-          <span className="attachment-chip">目次画像 2枚</span>
+          <span className="attachment-chip">目次画像 2/10枚</span>
+          <span className="attachment-chip">合計 18MB / 50MB</span>
           <span className="attachment-chip">OCR結果は入力欄で修正</span>
         </div>
         <textarea
@@ -975,14 +976,14 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
           <div className="composer-left">
             <button className="icon-button active" aria-label="添付メニューを開く" type="button">＋</button>
             <div className="attachment-menu">
-              <button type="button">ファイルをアップロードする</button>
-              <button type="button">写真をアップロードする</button>
+              <button type="button">画像ファイルをアップロードする</button>
+              <button type="button">写真をアップロードする（jpg/png/webp）</button>
               <button type="button">OCR結果テキストを貼り付ける</button>
             </div>
           </div>
           <div className="composer-actions">
             <button className="stop-button" aria-label="実行を停止" type="button">■</button>
-            <button className="run-button" onClick={() => onMove("aiPlanSettings")} aria-label="実行" type="button">↑</button>
+            <button className="run-button" onClick={() => onMove("aiPlanResult")} aria-label="実行" type="button">↑</button>
           </div>
         </div>
       </div>
@@ -996,7 +997,7 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
     <aside className="panel">
       <h2>確認ポイント</h2>
       <ul className="check-list">
-        <li>テキスト入力、画像添付、ファイル添付を1つの入力欄にまとめても迷わないか</li>
+        <li>テキスト入力、写真、画像ファイル添付を1つの入力欄にまとめても迷わないか</li>
         <li>+ メニューの項目が、写真・ファイル・貼り付け入力の導線として自然か</li>
         <li>実行ボタンと停止ボタンの配置が分かりやすいか</li>
         <li>外部送信への同意をAI回答と共通化するか、計画生成でも個別に確認するか</li>
@@ -1017,8 +1018,8 @@ const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
     <div className="panel wide">
       <div className="stepper">
         <span className="step-item done">1 教材入力</span>
-        <span className="step-item active">2 生成条件</span>
-        <span className="step-item">3 結果確認</span>
+        <span className="step-item done">2 結果確認</span>
+        <span className="step-item active">3 チャットで調整</span>
       </div>
     </div>
 
@@ -1026,73 +1027,56 @@ const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       <div className="panel-header">
         <div>
           <p className="eyebrow">SCR-14</p>
-          <h2>AI生成条件</h2>
-          <p>AIに任せる範囲と、ユーザーが指定すべき条件を確認します。</p>
+          <h2>AI計画チャット</h2>
+          <p>生成後も自然文でスケジュールやWBSの修正を依頼します。</p>
+        </div>
+      </div>
+      <div className="chat-thread">
+        <article className="chat-message user-message">
+          <strong>ユーザー</strong>
+          <p>6月20日と6月21日は勉強できなくなった。期限はそのままでスケジュールを修正して。</p>
+        </article>
+        <article className="chat-message ai-message">
+          <strong>AI</strong>
+          <p>第2章の演習を6月22日から6月24日に移動し、模擬問題の復習時間を0.5時間短縮する案です。</p>
+        </article>
+      </div>
+      <div className="change-preview">
+        <h3>変更差分</h3>
+        <div className="diff-row">
+          <span>継承とポリモーフィズムを演習する</span>
+          <strong>6/20-6/23 → 6/22-6/25</strong>
+        </div>
+        <div className="diff-row">
+          <span>模擬問題と弱点復習</span>
+          <strong>6h → 5.5h</strong>
         </div>
       </div>
       <label>
-        学習目的
-        <textarea defaultValue="Java Silverに合格するため、章ごとの理解と問題演習を計画的に進めたい。" />
+        追加依頼
+        <textarea defaultValue="この修正案で、1日の学習時間が2時間を超えないように再調整して。" />
       </label>
-      <div className="form-row">
-        <label>
-          学習開始日
-          <input type="date" defaultValue="2026-06-08" />
-        </label>
-        <label>
-          目標終了日
-          <input type="date" defaultValue="2026-07-12" />
-        </label>
-      </div>
-      <div className="form-row">
-        <label>
-          週あたり学習可能時間
-          <input type="number" min="0.25" step="0.25" defaultValue="8" />
-        </label>
-        <label>
-          1日の上限時間
-          <input type="number" min="0.25" step="0.25" defaultValue="2" />
-        </label>
-      </div>
-      <div className="option-grid">
-        <label className="checkbox-label option-card">
-          <input type="checkbox" defaultChecked />
-          <span>WBSを章単位で親タスク化する</span>
-        </label>
-        <label className="checkbox-label option-card">
-          <input type="checkbox" defaultChecked />
-          <span>問題演習と復習タスクを追加する</span>
-        </label>
-        <label className="checkbox-label option-card">
-          <input type="checkbox" />
-          <span>土日にも学習予定を入れる</span>
-        </label>
-        <label className="checkbox-label option-card">
-          <input type="checkbox" defaultChecked />
-          <span>期限に収まらない場合は警告する</span>
-        </label>
-      </div>
       <div className="button-group">
         <button className="primary-button" onClick={() => onMove("aiPlanResult")} type="button">
-          AIで計画案を生成
+          修正案を反映
         </button>
-        <button className="secondary-button" onClick={() => onMove("aiPlanInput")} type="button">
-          教材入力へ戻る
+        <button className="secondary-button" onClick={() => onMove("aiPlanResult")} type="button">
+          反映せず戻る
         </button>
       </div>
     </div>
 
     <aside className="panel">
-      <h2>この画面で詰める要件</h2>
+      <h2>確認ポイント</h2>
       <ul className="check-list">
-        <li>学習可能時間を週単位で聞くか、曜日ごとに聞くか</li>
-        <li>AIが作る予定工数をユーザーがどこまで調整できるようにするか</li>
-        <li>WBS生成だけにするか、プロジェクト作成まで一括で行うか</li>
+        <li>フォーム入力より自然文依頼の方が使いやすいか</li>
+        <li>保存済み計画にも同じチャット修正を使えるか</li>
+        <li>AI修正案を直接反映せず、差分確認後に承認できるか</li>
       </ul>
       <div className="constraint-box neutral-box">
-        <strong>要件候補</strong>
+        <strong>反映ルール</strong>
         <p>
-          AI生成結果は直接保存せず、ユーザーが確認してからプロジェクトとWBSを作成します。
+          AIの修正案は直接保存しません。ユーザーが差分を確認し、反映を選んだ場合だけWBSと予定へ適用します。
         </p>
       </div>
     </aside>
@@ -1119,7 +1103,7 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
             この計画で作成
           </button>
           <button className="secondary-button" onClick={() => onMove("aiPlanSettings")} type="button">
-            条件を修正
+            チャットで修正
           </button>
         </div>
       </div>
@@ -1157,17 +1141,20 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
       </section>
 
       <section className="panel">
-        <h2>AI生成メモ</h2>
+        <h2>AI計画チャット</h2>
         <div className="ai-note-list">
           <div className="ai-note-card">
-            <strong>根拠</strong>
-            <p>目次の章立てを親タスク、節と演習をリーフタスクとして分解しました。</p>
+            <strong>例: 追加依頼</strong>
+            <p>6月20日は勉強できなくなった。期限は変えずにスケジュールを修正して。</p>
           </div>
           <div className="ai-note-card">
-            <strong>調整案</strong>
-            <p>第2章は範囲が広いため、演習時間を多めに配分しています。</p>
+            <strong>反映方法</strong>
+            <p>AIが変更差分を提示し、ユーザーが承認した場合だけWBSと予定へ反映します。</p>
           </div>
         </div>
+        <button className="secondary-button full-width-button" onClick={() => onMove("aiPlanSettings")} type="button">
+          チャットで計画を調整
+        </button>
       </section>
 
       <section className="panel">

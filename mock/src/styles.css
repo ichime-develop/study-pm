@@ -1021,6 +1021,70 @@ textarea {
   margin: 8px 0 0;
 }
 
+.chat-thread {
+  display: grid;
+  gap: 12px;
+}
+
+.chat-message {
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.7;
+  padding: 16px;
+}
+
+.chat-message p {
+  margin: 0;
+}
+
+.user-message {
+  background: #dbeafe;
+  color: #1e3a8a;
+  justify-self: end;
+  max-width: 86%;
+}
+
+.ai-message {
+  background: #f8fafc;
+  border: 1px solid #dbe4ef;
+  color: #334155;
+  justify-self: start;
+  max-width: 86%;
+}
+
+.change-preview {
+  background: #fff;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.change-preview h3 {
+  margin: 0;
+}
+
+.diff-row {
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.diff-row strong {
+  color: #2563eb;
+}
+
+.full-width-button {
+  margin-top: 14px;
+  width: 100%;
+}
+
 .check-list {
   color: #4b5563;
   line-height: 1.8;
