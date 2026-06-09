@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象文書 | `docs/requirements.md` |
+| 対象文書 | `docs/requirements/summary/README.md`, `docs/requirements/details/*.md` |
 | 初回レビュー日 | 2026-06-03 |
 | 最終更新日 | 2026-06-03 |
 | 目的 | 基本設計へ進む前に、要件定義の矛盾、不足、未決事項の対応状況を管理する |
