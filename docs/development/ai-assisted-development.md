@@ -15,11 +15,13 @@ AI出力は正式成果物ではなく、レビュー対象のたたき台とし
 
 ## 当面使うSkill
 
-| Skill | 用途 |
-| --- | --- |
-| 要件定義Skill | ユーザー要望やユーザーストーリーを要件へ整理する |
-| 基本設計Skill | 要件から画面、API、DB、構成を整理する |
-| コードレビューSkill | 実装差分を要件・設計に照らしてレビューする |
+Agent Skillは `.agents/skills/` 配下に配置する。
+
+| Skill | 配置 | 用途 |
+| --- | --- | --- |
+| 要件定義Skill | `.agents/skills/requirements/SKILL.md` | ユーザー要望やユーザーストーリーを要件へ整理する |
+| 基本設計Skill | `.agents/skills/basic-design/SKILL.md` | 要件から画面、API、DB、構成を整理する |
+| コードレビューSkill | `.agents/skills/code-review/SKILL.md` | 実装差分を要件・設計に照らしてレビューする |
 
 ## 現時点では作らないSkill
 
