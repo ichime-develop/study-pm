@@ -359,7 +359,8 @@ button {
   gap: 6px;
 }
 
-.metric-card .metric-help {
+.metric-card .metric-help,
+.info-help {
   align-items: center;
   background: #eef2ff;
   border: 1px solid #c7d2fe;
@@ -378,7 +379,8 @@ button {
   width: 18px;
 }
 
-.metric-card .metric-tooltip {
+.metric-card .metric-tooltip,
+.info-tooltip {
   background: #111827;
   border-radius: 8px;
   bottom: calc(100% + 10px);
@@ -397,13 +399,15 @@ button {
   z-index: 20;
 }
 
-.metric-card .metric-tooltip span {
+.metric-card .metric-tooltip span,
+.info-tooltip span {
   color: inherit;
   display: block;
   margin: 0;
 }
 
-.metric-card .metric-tooltip::after {
+.metric-card .metric-tooltip::after,
+.info-tooltip::after {
   border: 6px solid transparent;
   border-top-color: #111827;
   content: "";
@@ -413,7 +417,9 @@ button {
 }
 
 .metric-card .metric-help:hover .metric-tooltip,
-.metric-card .metric-help:focus .metric-tooltip {
+.metric-card .metric-help:focus .metric-tooltip,
+.info-help:hover .info-tooltip,
+.info-help:focus .info-tooltip {
   display: grid;
 }
 
@@ -1238,6 +1244,23 @@ textarea {
   overflow: hidden;
   padding: 18px;
   position: relative;
+}
+
+.chart-card-header {
+  align-items: center;
+  color: #111827;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  left: 18px;
+  position: absolute;
+  top: 16px;
+  z-index: 3;
+}
+
+.chart-card-header .info-tooltip {
+  min-width: 300px;
 }
 
 .chart-line {

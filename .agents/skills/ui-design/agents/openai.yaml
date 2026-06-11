@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Design"
+  short_description: "UI mock design for study-pm"
+  default_prompt: "Use $ui-design to guide or review this study-pm UI mock change."

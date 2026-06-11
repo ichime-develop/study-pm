@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requirements"
+  short_description: "Requirement updates for study-pm"
+  default_prompt: "Use $requirements to organize this request into study-pm requirement changes."

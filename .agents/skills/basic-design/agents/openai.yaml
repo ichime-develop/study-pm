@@ -1,0 +1,4 @@
+interface:
+  display_name: "Basic Design"
+  short_description: "Basic design planning for study-pm"
+  default_prompt: "Use $basic-design to turn requirements and UI mocks into a study-pm basic design plan."

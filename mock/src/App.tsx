@@ -480,10 +480,6 @@ const ProgressAnalysis = ({ project }: { project: Project }) => {
         <div>
           <p className="eyebrow">EVM / Burndown</p>
           <h2>{project.name} の進捗分析</h2>
-          <p>
-            EVM、バーンダウン、SPI/CPIなど、学習計画の遅延や工数超過を確認する画面です。
-            日々の更新はプロジェクト詳細のWBSで行います。
-          </p>
         </div>
       </div>
 
@@ -491,13 +487,12 @@ const ProgressAnalysis = ({ project }: { project: Project }) => {
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
         <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
         <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
-        <Metric label="期間外タスク" value={`${summary.outOfRangeCount}件`} tone={summary.outOfRangeCount > 0 ? "warning" : "normal"} />
+        <Metric label="期間" value={`${formatDate(project.startDate)} - ${formatDate(project.targetEndDate)}`} />
       </div>
 
       <section className="panel wide">
         <div className="panel-header">
           <h2>EVM・バーンダウン</h2>
-          <p>PV、EV、AC、SPI、CPIを確認し、遅延や工数超過の兆候を見ます。</p>
         </div>
         <EvmPanel project={project} />
       </section>
@@ -533,6 +528,54 @@ const svHelp = [
   "SV < 0: 予定より遅れています。",
   "SV > 0: 予定より先行しています。",
   "SV = 0: 予定どおりです。",
+];
+
+const evmHelp: Record<string, string[]> = {
+  BAC: [
+    "Budget at Completion。プロジェクト全体の予定工数です。",
+    "計算式: 全リーフタスクの予定工数合計",
+    "最終的に必要と見積もった学習時間を表します。",
+  ],
+  PV: [
+    "Planned Value。基準日までに完了している予定だった作業量です。",
+    "計算式: 予定工数を予定期間へ日割り配分し、基準日までを合計",
+    "PVがEVより大きい場合、計画より遅れている可能性があります。",
+  ],
+  EV: [
+    "Earned Value。進捗率から見た完了済み作業量です。",
+    "計算式: 予定工数 × 進捗率",
+    "実際に使った時間ではなく、完了したとみなす予定工数です。",
+  ],
+  AC: [
+    "Actual Cost。本アプリでは実績工数です。",
+    "計算式: 基準日までに記録された実績時間の合計",
+    "学習に実際に使った時間を表します。",
+  ],
+  CV: [
+    "Cost Variance。予定工数に対する効率差を時間で表します。",
+    "計算式: CV = EV - AC",
+    "CV < 0: 予定より時間を使っています。",
+    "CV > 0: 予定より少ない時間で進んでいます。",
+  ],
+  SPI: [
+    "Schedule Performance Index。スケジュール効率です。",
+    "計算式: SPI = EV / PV",
+    "SPI < 1: 予定より遅れています。",
+    "SPI > 1: 予定より先行しています。",
+  ],
+  CPI: [
+    "Cost Performance Index。本アプリでは工数効率です。",
+    "計算式: CPI = EV / AC",
+    "CPI < 1: 予定より時間を使っています。",
+    "CPI > 1: 予定より効率よく進んでいます。",
+  ],
+};
+
+const burndownHelp = [
+  "残予定工数の減り方を日付ごとに確認するグラフです。",
+  "理想線: プロジェクト開始日から目標終了日まで、BACが0へ減る想定線",
+  "実績線: BACから日ごとのEVを差し引いた残量",
+  "実績線が理想線より上にある場合、消化が遅い可能性があります。",
 ];
 
 const buildTimeline = (start: string, end: string) =>
@@ -774,16 +817,20 @@ const EvmPanel = ({ project }: { project: Project }) => {
   return (
     <div className="evm-layout">
       <div className="evm-metrics">
-        <Metric label="BAC" value={formatHours(summary.plannedHours)} />
-        <Metric label="PV" value={formatHours(pv)} />
-        <Metric label="EV" value={formatHours(ev)} />
-        <Metric label="AC" value={formatHours(ac)} />
+        <Metric label="BAC" value={formatHours(summary.plannedHours)} help={evmHelp.BAC} />
+        <Metric label="PV" value={formatHours(pv)} help={evmHelp.PV} />
+        <Metric label="EV" value={formatHours(ev)} help={evmHelp.EV} />
+        <Metric label="AC" value={formatHours(ac)} help={evmHelp.AC} />
         <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} help={svHelp} />
-        <Metric label="CV" value={formatHours(cv)} tone={cv < 0 ? "warning" : "normal"} />
-        <Metric label="SPI" value={spi ? spi.toFixed(2) : "算出不可"} />
-        <Metric label="CPI" value={cpi ? cpi.toFixed(2) : "算出不可"} />
+        <Metric label="CV" value={formatHours(cv)} tone={cv < 0 ? "warning" : "normal"} help={evmHelp.CV} />
+        <Metric label="SPI" value={spi ? spi.toFixed(2) : "算出不可"} help={evmHelp.SPI} />
+        <Metric label="CPI" value={cpi ? cpi.toFixed(2) : "算出不可"} help={evmHelp.CPI} />
       </div>
       <div className="chart-card">
+        <div className="chart-card-header">
+          <strong>バーンダウン</strong>
+          <InfoHelp label="バーンダウン" help={burndownHelp} />
+        </div>
         <div className="chart-line ideal" />
         <div className="chart-line actual" />
         <span className="chart-label start">BAC</span>
@@ -1470,6 +1517,17 @@ const Metric = ({
     </span>
     <strong>{value}</strong>
   </div>
+);
+
+const InfoHelp = ({ label, help }: { label: string; help: string[] }) => (
+  <span className="info-help" tabIndex={0} aria-label={`${label}の説明`}>
+    ?
+    <span className="info-tooltip" role="tooltip">
+      {help.map((line) => (
+        <span key={line}>{line}</span>
+      ))}
+    </span>
+  </span>
 );
 
 const StatusPill = ({ status }: { status: Project["status"] | TaskStatus }) => (

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Review study-pm diffs against specs"
+  default_prompt: "Use $code-review to review this study-pm implementation diff."
