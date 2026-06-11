@@ -33,7 +33,6 @@ type Screen =
   | "progressAnalysis"
   | "projectForm"
   | "wbs"
-  | "studyLog"
   | "questions"
   | "questionForm"
   | "aiContext"
@@ -50,7 +49,6 @@ const screenLabels: Record<Screen, string> = {
   progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS編集",
-  studyLog: "学習記録登録",
   questions: "質問一覧",
   questionForm: "質問登録・編集",
   aiContext: "AI送信情報選択",
@@ -134,7 +132,6 @@ export const App = () => {
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} />}
-        {screen === "studyLog" && <StudyLogForm project={selectedProject} />}
         {screen === "questions" && <QuestionList onMove={setScreen} />}
         {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
         {screen === "aiContext" && <AiContextSelector onMove={setScreen} />}
@@ -180,8 +177,8 @@ const Dashboard = ({ onOpenProject }: { onOpenProject: (projectId: string, scree
           </p>
         </div>
         <div className="button-group">
-          <button className="primary-button" onClick={() => onOpenProject("java-silver", "studyLog")} type="button">
-            学習記録を追加
+          <button className="primary-button" onClick={() => onOpenProject("java-silver")} type="button">
+            プロジェクト詳細へ
           </button>
           <button className="secondary-button" onClick={() => onOpenProject("java-silver", "aiPlanInput")} type="button">
             目次から計画作成
@@ -432,23 +429,18 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
     <section className="screen-grid project-detail-grid">
       <div className="hero-card compact-hero">
         <div>
-          <p className="eyebrow">{project.field}</p>
           <h2>{project.name}</h2>
           <p>{project.summary}</p>
-          <div className="project-period-chip">
-            <span>期間</span>
-            <strong>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</strong>
-          </div>
         </div>
         <div className="button-group">
           <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
-          <button className="primary-button" onClick={() => onMove("studyLog")} type="button">学習記録を追加</button>
         </div>
       </div>
 
       <div className="metric-row compact-metrics">
+        <Metric label="期間" value={`${formatDate(project.startDate)} - ${formatDate(project.targetEndDate)}`} />
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
         <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
         <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
@@ -751,8 +743,10 @@ const TaskSidePanel = ({
       </div>
 
       <div className="side-panel-section">
-        <strong>学習記録</strong>
-        <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件の記録があります。` : "まだ記録はありません。"}</p>
+        <strong>学習メモ</strong>
+        <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件のメモがあります。` : "まだメモはありません。"}</p>
+        <textarea className="memo-inline-input" defaultValue="" placeholder="学習中に気づいたことを残す" />
+        <button className="secondary-button" type="button">学習メモ追加</button>
       </div>
       <div className="side-panel-section">
         <strong>質問</strong>
@@ -911,68 +905,6 @@ const WbsEditor = ({ project }: { project: Project }) => {
           関連質問があるタスクは削除できません。
         </p>
       </div>
-    </section>
-  );
-};
-
-const StudyLogForm = ({ project }: { project: Project }) => {
-  const leafTasks = getLeafTasks(project.id, tasks);
-  const completedTask = leafTasks.find((task) => task.progress === 100);
-
-  return (
-    <section className="screen-grid">
-      <div className="panel form-panel">
-        <div className="panel-header">
-          <div>
-            <h2>学習記録登録</h2>
-            <p>リーフタスクだけを選択できます。未来日は登録できません。</p>
-          </div>
-        </div>
-        <label>
-          プロジェクト
-          <input value={project.name} readOnly />
-        </label>
-        <label>
-          対象リーフタスク
-          <select defaultValue="java-ch1-ex">
-            {leafTasks.map((task) => (
-              <option key={task.id} value={task.id}>
-                {task.name}{task.progress === 100 ? "（完了済み）" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="form-row">
-          <label>
-            学習日
-            <input type="date" defaultValue={today} max={today} />
-          </label>
-          <label>
-            学習時間
-            <input type="number" min="0.25" step="0.25" defaultValue="1.25" />
-          </label>
-        </div>
-        <label>
-          メモ
-          <textarea defaultValue="章末問題を解いた。switch式の条件分岐を再確認する。" />
-        </label>
-        <button className="primary-button" type="button">登録する</button>
-      </div>
-
-      <aside className="panel">
-        <h2>確認ポイント</h2>
-        <ul className="check-list">
-          <li>0.25時間単位の入力が分かるか</li>
-          <li>完了済みタスクにも記録できることが伝わるか</li>
-          <li>少ない操作で登録できるか</li>
-        </ul>
-        {completedTask && (
-          <div className="constraint-box">
-            <strong>完了済みタスク例</strong>
-            <p>{completedTask.name} にも追加学習の記録を登録できます。</p>
-          </div>
-        )}
-      </aside>
     </section>
   );
 };
