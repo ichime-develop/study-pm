@@ -273,6 +273,28 @@ button {
   white-space: nowrap;
 }
 
+.project-period-chip {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.project-period-chip span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.project-period-chip strong {
+  background: #f8fafc;
+  border: 1px solid #dbe4ef;
+  border-radius: 999px;
+  color: #1f2937;
+  font-size: 13px;
+  padding: 5px 10px;
+}
+
 .compact-hero .button-group {
   gap: 10px;
 }
@@ -682,11 +704,6 @@ button {
   width: 100%;
 }
 
-.log-table-head,
-.log-table-row {
-  grid-template-columns: 0.7fr 1fr 1.2fr 0.5fr 2fr;
-}
-
 .table-head {
   background: transparent;
   border: 0;
@@ -734,7 +751,29 @@ button {
   background: #fff;
   border: 1px solid #dbe4ef;
   border-radius: 18px;
-  overflow: auto;
+  display: grid;
+  grid-template-columns: 492px minmax(0, 1fr);
+  max-height: min(560px, calc(100vh - 210px));
+  overflow-x: visible;
+  overflow-y: auto;
+}
+
+.gantt-fixed-pane {
+  background: #fff;
+  border-radius: 18px 0 0 18px;
+  position: relative;
+  z-index: 3;
+}
+
+.gantt-timeline-pane {
+  border-radius: 0 18px 18px 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: clip;
+}
+
+.gantt-timeline-content {
+  min-width: 100%;
 }
 
 .gantt-row {
@@ -742,6 +781,10 @@ button {
   border-bottom: 1px solid #edf0f4;
   display: grid;
   min-height: 52px;
+}
+
+.gantt-timeline-row {
+  grid-template-columns: 1fr;
 }
 
 .gantt-row:last-child {
@@ -871,7 +914,7 @@ button {
   min-height: 44px;
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 6;
 }
 
 .gantt-date-axis {
@@ -1650,8 +1693,6 @@ textarea {
   .task-row,
   .plan-task-row,
   .task-list.compact .task-row,
-  .log-table-head,
-  .log-table-row,
   .filter-bar,
   .evm-layout,
   .evm-metrics,

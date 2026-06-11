@@ -33,7 +33,6 @@ type Screen =
   | "progressAnalysis"
   | "projectForm"
   | "wbs"
-  | "studyLogs"
   | "studyLog"
   | "questions"
   | "questionForm"
@@ -51,7 +50,6 @@ const screenLabels: Record<Screen, string> = {
   progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS編集",
-  studyLogs: "学習記録一覧",
   studyLog: "学習記録登録",
   questions: "質問一覧",
   questionForm: "質問登録・編集",
@@ -136,7 +134,6 @@ export const App = () => {
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} />}
-        {screen === "studyLogs" && <StudyLogList />}
         {screen === "studyLog" && <StudyLogForm project={selectedProject} />}
         {screen === "questions" && <QuestionList onMove={setScreen} />}
         {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
@@ -438,11 +435,14 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
           <p className="eyebrow">{project.field}</p>
           <h2>{project.name}</h2>
           <p>{project.summary}</p>
+          <div className="project-period-chip">
+            <span>期間</span>
+            <strong>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</strong>
+          </div>
         </div>
         <div className="button-group">
           <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
-          <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録一覧</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
           <button className="primary-button" onClick={() => onMove("studyLog")} type="button">学習記録を追加</button>
         </div>
@@ -570,7 +570,7 @@ const GanttWbsTable = ({
   const timelineEnd = timelineEndCandidates[timelineEndCandidates.length - 1] ?? project.targetEndDate;
   const timelineDays = buildTimeline(timelineStart, timelineEnd);
   const timelineWidth = timelineDays.length * dayWidth;
-  const gridColumns = `280px 64px 64px 84px ${timelineWidth}px`;
+  const fixedColumns = "280px 64px 64px 84px";
   const todayOffset = Math.round((toDate(today).getTime() - toDate(timelineStart).getTime()) / dayMs);
   const showToday = todayOffset >= 0 && todayOffset < timelineDays.length;
   const getHourKey = (taskId: string, field: HourField) => `${taskId}:${field}`;
@@ -579,48 +579,45 @@ const GanttWbsTable = ({
   const updateHourValue = (taskId: string, field: HourField, value: string) => {
     setHourValues((current) => ({ ...current, [getHourKey(taskId, field)]: value }));
   };
+  const rows = summaries.map(({ task, summary }) => {
+    const level = getTaskLevel(task, tasks);
+    const offset = Math.round((toDate(summary.plannedStartDate).getTime() - toDate(timelineStart).getTime()) / dayMs);
+    const duration = getInclusiveDays(summary.plannedStartDate, summary.plannedEndDate);
+    const barLeft = offset * dayWidth + 4;
+    const barWidth = Math.max(dayWidth - 8, duration * dayWidth - 8);
+
+    return {
+      task,
+      summary,
+      level,
+      barLeft,
+      barWidth,
+      plannedHours: getHourValue(task.id, "planned", summary.plannedHours),
+      actualHours: getHourValue(task.id, "actual", summary.actualHours),
+    };
+  });
 
   return (
     <div className="gantt-board">
-      <div className="gantt-row gantt-head" style={{ gridTemplateColumns: gridColumns }}>
-        <span>件名</span>
-        <span>予定(h)</span>
-        <span>実績(h)</span>
-        <span>進捗</span>
-        <div className="gantt-date-axis" style={{ gridTemplateColumns: `repeat(${timelineDays.length}, ${dayWidth}px)` }}>
-          {timelineDays.map((date) => (
-            <span className={date === today ? "today-axis" : ""} key={date}>
-              {formatDate(date)}
-            </span>
-          ))}
+      <div className="gantt-fixed-pane">
+        <div className="gantt-row gantt-head gantt-fixed-row" style={{ gridTemplateColumns: fixedColumns }}>
+          <span>件名</span>
+          <span>予定(h)</span>
+          <span>実績(h)</span>
+          <span>進捗</span>
         </div>
-      </div>
-
-      {summaries.map(({ task, summary }) => {
-        const level = getTaskLevel(task, tasks);
-        const offset = Math.round((toDate(summary.plannedStartDate).getTime() - toDate(timelineStart).getTime()) / dayMs);
-        const duration = getInclusiveDays(summary.plannedStartDate, summary.plannedEndDate);
-        const barLeft = offset * dayWidth + 4;
-        const barWidth = Math.max(dayWidth - 8, duration * dayWidth - 8);
-        const plannedHours = getHourValue(task.id, "planned", summary.plannedHours);
-        const actualHours = getHourValue(task.id, "actual", summary.actualHours);
-
-        return (
+        {rows.map(({ task, summary, level, plannedHours, actualHours }) => (
           <div
-            className={selectedTaskId === task.id ? "gantt-row selected" : "gantt-row"}
+            className={selectedTaskId === task.id ? "gantt-row gantt-fixed-row selected" : "gantt-row gantt-fixed-row"}
             key={task.id}
-            style={{ gridTemplateColumns: gridColumns }}
+            style={{ gridTemplateColumns: fixedColumns }}
           >
             <button className="gantt-task-name" onClick={() => onSelectTask(task.id)} style={{ paddingLeft: `${level * 22 + 12}px` }} type="button">
               <span className="task-icon">{summary.isLeaf ? "□" : "▾"}</span>
               <span>{task.name}</span>
             </button>
             <div className="gantt-hour-cell">
-              <button
-                className="gantt-hour-value"
-                onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })}
-                type="button"
-              >
+              <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })} type="button">
                 {plannedHours}
               </button>
               {openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
@@ -628,14 +625,7 @@ const GanttWbsTable = ({
                   <label>
                     予定
                     <span className="hour-input-row">
-                      <input
-                        autoFocus
-                        min="0"
-                        onChange={(event) => updateHourValue(task.id, "planned", event.target.value)}
-                        step="0.25"
-                        type="number"
-                        value={plannedHours}
-                      />
+                      <input autoFocus min="0" onChange={(event) => updateHourValue(task.id, "planned", event.target.value)} step="0.25" type="number" value={plannedHours} />
                       <span>時間</span>
                     </span>
                   </label>
@@ -644,11 +634,7 @@ const GanttWbsTable = ({
               )}
             </div>
             <div className="gantt-hour-cell">
-              <button
-                className="gantt-hour-value"
-                onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })}
-                type="button"
-              >
+              <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })} type="button">
                 {actualHours}
               </button>
               {openHourEditor?.taskId === task.id && openHourEditor.field === "actual" && (
@@ -656,14 +642,7 @@ const GanttWbsTable = ({
                   <label>
                     実績
                     <span className="hour-input-row">
-                      <input
-                        autoFocus
-                        min="0"
-                        onChange={(event) => updateHourValue(task.id, "actual", event.target.value)}
-                        step="0.25"
-                        type="number"
-                        value={actualHours}
-                      />
+                      <input autoFocus min="0" onChange={(event) => updateHourValue(task.id, "actual", event.target.value)} step="0.25" type="number" value={actualHours} />
                       <span>時間</span>
                     </span>
                   </label>
@@ -676,18 +655,35 @@ const GanttWbsTable = ({
                 <option key={progress} value={progress}>{progress}%</option>
               ))}
             </select>
-            <div className="gantt-chart-cell" style={{ backgroundSize: `${dayWidth}px 100%`, width: `${timelineWidth}px` }}>
-              {showToday && <span className="today-marker" style={{ left: `${todayOffset * dayWidth}px` }} />}
-              <span
-                className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}${summary.isLeaf ? "" : " parent"}`}
-                style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
-              >
-                {formatIntegerProgress(summary.progress)}
-              </span>
+          </div>
+        ))}
+      </div>
+      <div className="gantt-timeline-pane">
+        <div className="gantt-timeline-content" style={{ width: `${timelineWidth}px` }}>
+          <div className="gantt-row gantt-head gantt-timeline-row">
+            <div className="gantt-date-axis" style={{ gridTemplateColumns: `repeat(${timelineDays.length}, ${dayWidth}px)` }}>
+              {timelineDays.map((date) => (
+                <span className={date === today ? "today-axis" : ""} key={date}>
+                  {formatDate(date)}
+                </span>
+              ))}
             </div>
           </div>
-        );
-      })}
+          {rows.map(({ task, summary, barLeft, barWidth }) => (
+            <div className={selectedTaskId === task.id ? "gantt-row gantt-timeline-row selected" : "gantt-row gantt-timeline-row"} key={task.id}>
+              <div className="gantt-chart-cell" style={{ backgroundSize: `${dayWidth}px 100%`, width: `${timelineWidth}px` }}>
+                {showToday && <span className="today-marker" style={{ left: `${todayOffset * dayWidth}px` }} />}
+                <span
+                  className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}${summary.isLeaf ? "" : " parent"}`}
+                  style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
+                >
+                  {formatIntegerProgress(summary.progress)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
@@ -980,62 +976,6 @@ const StudyLogForm = ({ project }: { project: Project }) => {
     </section>
   );
 };
-
-const StudyLogList = () => (
-  <section className="panel wide">
-    <div className="panel-header">
-      <div>
-        <p className="eyebrow">SCR-08</p>
-        <h2>学習記録一覧</h2>
-        <p>日付範囲、プロジェクト、WBSタスクでの絞り込み確認画面です。</p>
-      </div>
-      <button className="primary-button" type="button">学習記録を追加</button>
-    </div>
-    <div className="filter-bar">
-      <input type="date" defaultValue="2026-06-01" />
-      <input type="date" defaultValue={today} />
-      <select defaultValue="java-silver">
-        {projects.filter((project) => !project.archived).map((project) => (
-          <option key={project.id} value={project.id}>{project.name}</option>
-        ))}
-      </select>
-      <select defaultValue="">
-        <option value="">すべてのリーフタスク</option>
-        {getLeafTasks("java-silver", tasks).map((task) => (
-          <option key={task.id} value={task.id}>{task.name}</option>
-        ))}
-      </select>
-    </div>
-    <div className="table">
-      <div className="table-row log-table-head">
-        <span>学習日</span>
-        <span>プロジェクト</span>
-        <span>タスク</span>
-        <span>時間</span>
-        <span>メモ</span>
-      </div>
-      {[...studyLogs]
-        .sort((a, b) =>
-          b.studyDate === a.studyDate
-            ? b.updatedAt.localeCompare(a.updatedAt)
-            : b.studyDate.localeCompare(a.studyDate),
-        )
-        .map((log) => {
-          const project = projects.find((item) => item.id === log.projectId);
-          const task = tasks.find((item) => item.id === log.taskId);
-          return (
-            <article className="table-row log-table-row" key={log.id}>
-              <span>{formatDate(log.studyDate)}</span>
-              <span>{project?.name}</span>
-              <span>{task?.name}</span>
-              <span>{formatHours(log.hours)}</span>
-              <span>{log.memo}</span>
-            </article>
-          );
-        })}
-    </div>
-  </section>
-);
 
 const QuestionList = ({ onMove }: { onMove: (screen: Screen) => void }) => (
   <section className="panel wide">
