@@ -472,22 +472,12 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
 };
 
 const ProgressAnalysis = ({ project }: { project: Project }) => {
-  const summary = buildProjectSummary(project, tasks, studyLogs);
-
   return (
     <section className="screen-grid">
       <div className="hero-card">
         <div>
-          <p className="eyebrow">EVM / Burndown</p>
           <h2>{project.name} の進捗分析</h2>
         </div>
-      </div>
-
-      <div className="metric-row">
-        <Metric label="進捗率" value={formatProgress(summary.progress)} />
-        <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
-        <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
-        <Metric label="期間" value={`${formatDate(project.startDate)} - ${formatDate(project.targetEndDate)}`} />
       </div>
 
       <section className="panel wide">
@@ -577,6 +567,91 @@ const burndownHelp = [
   "実績線: BACから日ごとのEVを差し引いた残量",
   "実績線が理想線より上にある場合、消化が遅い可能性があります。",
 ];
+
+type MetricTone = "normal" | "good" | "warning" | "danger";
+type BurndownEvaluation = {
+  tone: MetricTone;
+  statusLabel: string;
+  message: string;
+  help: string[];
+};
+
+const getVarianceEvaluation = (
+  value: number,
+  negativeLabel: string,
+): { tone: MetricTone; statusLabel: string } =>
+  value >= 0 ? { tone: "good", statusLabel: "良好" } : { tone: "danger", statusLabel: negativeLabel };
+
+const getIndexEvaluation = (
+  value: number | null,
+  negativeLabel: string,
+): { tone: MetricTone; statusLabel: string } => {
+  if (value === null) return { tone: "warning", statusLabel: "算出不可" };
+  if (value >= 1) return { tone: "good", statusLabel: "良好" };
+  if (value >= 0.9) return { tone: "warning", statusLabel: "注意" };
+  return { tone: "danger", statusLabel: negativeLabel };
+};
+
+const formatSignedHours = (value: number) => {
+  const absoluteValue = Math.abs(value);
+  const formatted = formatHours(absoluteValue);
+  if (value > 0) return `+${formatted}`;
+  if (value < 0) return `-${formatted}`;
+  return formatted;
+};
+
+const formatDayDifference = (value: number) => `${Math.abs(Math.round(value * 10) / 10).toFixed(1)}日`;
+
+const getBurndownEvaluation = (
+  project: Project,
+  bac: number,
+  pv: number,
+  ev: number,
+): BurndownEvaluation => {
+  const projectDays = getInclusiveDays(project.startDate, project.targetEndDate);
+  const plannedHoursPerDay = projectDays === 0 ? 0 : bac / projectDays;
+  const idealRemaining = Math.max(0, bac - pv);
+  const actualRemaining = Math.max(0, bac - ev);
+  const hourDifference = actualRemaining - idealRemaining;
+  const dayDifference = plannedHoursPerDay === 0 ? null : hourDifference / plannedHoursPerDay;
+  const help = [
+    `理想残: ${formatHours(idealRemaining)}`,
+    `実績残: ${formatHours(actualRemaining)}`,
+    `差分: ${formatSignedHours(hourDifference)}`,
+    `日数換算: ${dayDifference === null ? "算出不可" : formatDayDifference(dayDifference)}`,
+  ];
+
+  if (dayDifference === null) {
+    return {
+      tone: "warning",
+      statusLabel: "算出不可",
+      message: "基準日時点の進み遅れを算出できません。",
+      help,
+    };
+  }
+  if (dayDifference > 0.5) {
+    return {
+      tone: "danger",
+      statusLabel: "遅れ",
+      message: `基準日時点で予定より${formatDayDifference(dayDifference)}遅れています。`,
+      help,
+    };
+  }
+  if (dayDifference < -0.5) {
+    return {
+      tone: "good",
+      statusLabel: "前倒し",
+      message: `基準日時点で予定より${formatDayDifference(dayDifference)}進んでいます。`,
+      help,
+    };
+  }
+  return {
+    tone: "good",
+    statusLabel: "予定どおり",
+    message: "基準日時点で予定どおりです。",
+    help,
+  };
+};
 
 const buildTimeline = (start: string, end: string) =>
   Array.from({ length: getInclusiveDays(start, end) }, (_, index) =>
@@ -813,6 +888,11 @@ const EvmPanel = ({ project }: { project: Project }) => {
   const cv = ev - ac;
   const spi = pv === 0 ? null : ev / pv;
   const cpi = ac === 0 ? null : ev / ac;
+  const svEvaluation = getVarianceEvaluation(sv, "遅れ");
+  const cvEvaluation = getVarianceEvaluation(cv, "効率低下");
+  const spiEvaluation = getIndexEvaluation(spi, "遅れ");
+  const cpiEvaluation = getIndexEvaluation(cpi, "超過");
+  const burndownEvaluation = getBurndownEvaluation(project, summary.plannedHours, pv, ev);
 
   return (
     <div className="evm-layout">
@@ -821,15 +901,20 @@ const EvmPanel = ({ project }: { project: Project }) => {
         <Metric label="PV" value={formatHours(pv)} help={evmHelp.PV} />
         <Metric label="EV" value={formatHours(ev)} help={evmHelp.EV} />
         <Metric label="AC" value={formatHours(ac)} help={evmHelp.AC} />
-        <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} help={svHelp} />
-        <Metric label="CV" value={formatHours(cv)} tone={cv < 0 ? "warning" : "normal"} help={evmHelp.CV} />
-        <Metric label="SPI" value={spi ? spi.toFixed(2) : "算出不可"} help={evmHelp.SPI} />
-        <Metric label="CPI" value={cpi ? cpi.toFixed(2) : "算出不可"} help={evmHelp.CPI} />
+        <Metric label="SV" value={formatHours(sv)} tone={svEvaluation.tone} statusLabel={svEvaluation.statusLabel} help={svHelp} />
+        <Metric label="CV" value={formatHours(cv)} tone={cvEvaluation.tone} statusLabel={cvEvaluation.statusLabel} help={evmHelp.CV} />
+        <Metric label="SPI" value={spi ? spi.toFixed(2) : "算出不可"} tone={spiEvaluation.tone} statusLabel={spiEvaluation.statusLabel} help={evmHelp.SPI} />
+        <Metric label="CPI" value={cpi ? cpi.toFixed(2) : "算出不可"} tone={cpiEvaluation.tone} statusLabel={cpiEvaluation.statusLabel} help={evmHelp.CPI} />
       </div>
       <div className="chart-card">
         <div className="chart-card-header">
           <strong>バーンダウン</strong>
+          <span className={`burndown-status ${burndownEvaluation.tone}`}>{burndownEvaluation.statusLabel}</span>
           <InfoHelp label="バーンダウン" help={burndownHelp} />
+        </div>
+        <div className={`burndown-message ${burndownEvaluation.tone}`}>
+          <strong>{burndownEvaluation.message}</strong>
+          <InfoHelp label="バーンダウン判定" help={burndownEvaluation.help} />
         </div>
         <div className="chart-line ideal" />
         <div className="chart-line actual" />
@@ -1495,11 +1580,13 @@ const Metric = ({
   value,
   tone = "normal",
   help,
+  statusLabel,
 }: {
   label: string;
   value: string;
-  tone?: "normal" | "warning" | "danger";
+  tone?: MetricTone;
   help?: string[];
+  statusLabel?: string;
 }) => (
   <div className={`metric-card ${tone}`}>
     <span className="metric-label">
@@ -1516,6 +1603,7 @@ const Metric = ({
       )}
     </span>
     <strong>{value}</strong>
+    {statusLabel && <span className="metric-status-label">{statusLabel}</span>}
   </div>
 );
 

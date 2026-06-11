@@ -427,12 +427,53 @@ button {
   font-size: 28px;
 }
 
+.metric-status-label {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 10px;
+  padding: 4px 9px;
+  width: fit-content;
+}
+
+.metric-card.good {
+  border-color: #93c5fd;
+}
+
+.metric-card.good strong {
+  color: #1d4ed8;
+}
+
+.metric-card.good .metric-status-label {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .metric-card.warning {
   border-color: #f59e0b;
 }
 
+.metric-card.warning strong {
+  color: #b45309;
+}
+
+.metric-card.warning .metric-status-label {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .metric-card.danger {
   border-color: #ef4444;
+}
+
+.metric-card.danger strong {
+  color: #b91c1c;
+}
+
+.metric-card.danger .metric-status-label {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .panel {
@@ -1218,7 +1259,7 @@ textarea {
 .evm-layout {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+  grid-template-columns: 1fr;
 }
 
 .evm-metrics {
@@ -1240,7 +1281,7 @@ textarea {
   background: linear-gradient(180deg, #f8fafc, #eef2ff);
   border: 1px solid #dbe4ef;
   border-radius: 18px;
-  min-height: 260px;
+  min-height: 320px;
   overflow: hidden;
   padding: 18px;
   position: relative;
@@ -1263,6 +1304,62 @@ textarea {
   min-width: 300px;
 }
 
+.burndown-status,
+.burndown-message {
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.burndown-status {
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+.burndown-status.good {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.burndown-status.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.burndown-status.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.burndown-message {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  left: 36px;
+  padding: 10px 14px;
+  position: absolute;
+  top: 58px;
+  z-index: 3;
+}
+
+.burndown-message.good {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.burndown-message.warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.burndown-message.danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.burndown-message .info-tooltip {
+  min-width: 260px;
+}
+
 .chart-line {
   border-radius: 999px;
   height: 4px;
@@ -1274,14 +1371,14 @@ textarea {
 
 .chart-line.ideal {
   background: #94a3b8;
-  top: 70px;
-  transform: rotate(25deg);
+  top: 120px;
+  transform: rotate(14deg);
 }
 
 .chart-line.actual {
   background: #2563eb;
-  top: 135px;
-  transform: rotate(12deg);
+  top: 190px;
+  transform: rotate(6deg);
 }
 
 .chart-label {
