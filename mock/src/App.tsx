@@ -353,54 +353,77 @@ const ProjectList = ({
   projects: Project[];
   onMove: (screen: Screen) => void;
   onOpenProject: (projectId: string, screen?: Screen) => void;
-}) => (
-  <section className="panel wide">
-    <div className="panel-header">
-      <div>
-        <h2>プロジェクト一覧</h2>
-        <p>初期表示はアーカイブを除外し、更新日時の降順です。</p>
-      </div>
-      <div className="button-group">
-        <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">
-          手動で作成
-        </button>
-        <button className="primary-button" onClick={() => onMove("aiPlanInput")} type="button">
-          目次からAIで作成
-        </button>
-      </div>
-    </div>
-    <div className="table">
-      <div className="table-row table-head">
-        <span>プロジェクト</span>
-        <span>状態</span>
-        <span>期間</span>
-        <span>進捗</span>
-        <span>工数</span>
-        <span>警告</span>
-      </div>
-      {list.map((project) => {
-        const summary = buildProjectSummary(project, tasks, studyLogs);
-        return (
-          <button className="table-row clickable" key={project.id} onClick={() => onOpenProject(project.id)} type="button">
-            <span>
-              <strong>{project.name}</strong>
-              <small>{project.field}</small>
-            </span>
-            <span><StatusPill status={project.status} /></span>
-            <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
-            <span><ProgressBar value={summary.progress} /></span>
-            <span>{formatHours(summary.actualHours)} / {formatHours(summary.plannedHours)}</span>
-            <span>{summary.delayedCount > 0 ? `${summary.delayedCount}件遅延` : "なし"}</span>
+}) => {
+  const [showCreateOptions, setShowCreateOptions] = useState(false);
+
+  return (
+    <section className="panel wide">
+      <div className="panel-header">
+        <div>
+          <h2>プロジェクト一覧</h2>
+          <p>初期表示はアーカイブを除外し、更新日時の降順です。</p>
+        </div>
+        <div className="create-action">
+          <button
+            aria-expanded={showCreateOptions}
+            aria-haspopup="dialog"
+            className="primary-button"
+            onClick={() => setShowCreateOptions((current) => !current)}
+            type="button"
+          >
+            新規作成
           </button>
-        );
-      })}
-    </div>
-  </section>
-);
+          {showCreateOptions && (
+            <div className="create-menu" aria-label="プロジェクト作成方法" role="dialog">
+              <div className="create-menu-header">
+                <strong>作成方法を選択</strong>
+                <span>AIで計画案を作るか、手動でWBSを作ります。</span>
+              </div>
+              <button className="create-menu-item" onClick={() => onMove("aiPlanInput")} type="button">
+                AIで作成
+              </button>
+              <button className="create-menu-item" onClick={() => onMove("projectDetail")} type="button">
+                手動で作成
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="table">
+        <div className="table-row table-head">
+          <span>プロジェクト</span>
+          <span>状態</span>
+          <span>期間</span>
+          <span>進捗</span>
+          <span>工数</span>
+          <span>警告</span>
+        </div>
+        {list.map((project) => {
+          const summary = buildProjectSummary(project, tasks, studyLogs);
+          return (
+            <button className="table-row clickable" key={project.id} onClick={() => onOpenProject(project.id)} type="button">
+              <span>
+                <strong>{project.name}</strong>
+                <small>{project.field}</small>
+              </span>
+              <span><StatusPill status={project.status} /></span>
+              <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
+              <span><ProgressBar value={summary.progress} /></span>
+              <span>{formatHours(summary.actualHours)} / {formatHours(summary.plannedHours)}</span>
+              <span>{summary.delayedCount > 0 ? `${summary.delayedCount}件遅延` : "なし"}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
 
 const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
 
   return (
     <section className="screen-grid">
@@ -411,7 +434,6 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
           <p>{project.summary}</p>
         </div>
         <div className="button-group">
-          <button className="secondary-button" onClick={() => onMove("wbs")} type="button">WBSを編集</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
           <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録一覧</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
@@ -435,12 +457,209 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
 
       <section className="panel wide">
         <div className="panel-header">
-          <h2>WBSサマリー</h2>
-          <p>親タスクは配下リーフタスクから自動集計されます。</p>
+          <div>
+            <h2>WBS・ガントチャート</h2>
+            <p>タスク名と予定日を表で入力し、右側のガントに自動反映します。</p>
+          </div>
+          <div className="button-group">
+            <button className="primary-button" type="button">タスク追加</button>
+            <button className="secondary-button" type="button">表示期間</button>
+          </div>
         </div>
-        <TaskList tasks={projectTasks} project={project} />
+        <div className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}>
+          <GanttWbsTable
+            project={project}
+            selectedTaskId={selectedTask?.id ?? null}
+            taskList={projectTasks}
+            onSelectTask={setSelectedTaskId}
+          />
+          {selectedTask && (
+            <TaskSidePanel task={selectedTask} project={project} onClose={() => setSelectedTaskId(null)} />
+          )}
+        </div>
       </section>
     </section>
+  );
+};
+
+const dayWidth = 34;
+const dayMs = 24 * 60 * 60 * 1000;
+
+const toDate = (value: string) => new Date(`${value}T00:00:00+09:00`);
+
+const toDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getInclusiveDays = (start: string, end: string) =>
+  Math.max(1, Math.round((toDate(end).getTime() - toDate(start).getTime()) / dayMs) + 1);
+
+const buildTimeline = (start: string, end: string) =>
+  Array.from({ length: getInclusiveDays(start, end) }, (_, index) =>
+    toDateInputValue(new Date(toDate(start).getTime() + index * dayMs)),
+  );
+
+const GanttWbsTable = ({
+  project,
+  taskList,
+  selectedTaskId,
+  onSelectTask,
+}: {
+  project: Project;
+  taskList: WbsTask[];
+  selectedTaskId: string | null;
+  onSelectTask: (taskId: string) => void;
+}) => {
+  const summaries = taskList.map((task) => ({
+    task,
+    summary: buildTaskSummary(task, project, tasks, studyLogs),
+  }));
+  const timelineStart = [project.startDate, ...summaries.map(({ summary }) => summary.plannedStartDate)].sort()[0];
+  const timelineEndCandidates = [project.targetEndDate, ...summaries.map(({ summary }) => summary.plannedEndDate)].sort();
+  const timelineEnd = timelineEndCandidates[timelineEndCandidates.length - 1] ?? project.targetEndDate;
+  const timelineDays = buildTimeline(timelineStart, timelineEnd);
+  const timelineWidth = timelineDays.length * dayWidth;
+  const gridColumns = `340px 126px 126px 92px 100px ${timelineWidth}px`;
+  const todayOffset = Math.round((toDate(today).getTime() - toDate(timelineStart).getTime()) / dayMs);
+  const showToday = todayOffset >= 0 && todayOffset < timelineDays.length;
+
+  return (
+    <div className="gantt-board">
+      <div className="gantt-row gantt-head" style={{ gridTemplateColumns: gridColumns }}>
+        <span>件名</span>
+        <span>予定開始日</span>
+        <span>予定終了日</span>
+        <span>予定工数</span>
+        <span>進捗</span>
+        <div className="gantt-date-axis" style={{ gridTemplateColumns: `repeat(${timelineDays.length}, ${dayWidth}px)` }}>
+          {timelineDays.map((date) => (
+            <span className={date === today ? "today-axis" : ""} key={date}>
+              {formatDate(date)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {summaries.map(({ task, summary }) => {
+        const level = getTaskLevel(task, tasks);
+        const offset = Math.round((toDate(summary.plannedStartDate).getTime() - toDate(timelineStart).getTime()) / dayMs);
+        const duration = getInclusiveDays(summary.plannedStartDate, summary.plannedEndDate);
+        const barLeft = offset * dayWidth + 4;
+        const barWidth = Math.max(dayWidth - 8, duration * dayWidth - 8);
+
+        return (
+          <div
+            className={selectedTaskId === task.id ? "gantt-row selected" : "gantt-row"}
+            key={task.id}
+            style={{ gridTemplateColumns: gridColumns }}
+          >
+            <button className="gantt-task-name" onClick={() => onSelectTask(task.id)} style={{ paddingLeft: `${level * 22 + 12}px` }} type="button">
+              <span className="task-icon">{summary.isLeaf ? "□" : "▾"}</span>
+              <span>{task.name}</span>
+            </button>
+            <input defaultValue={summary.plannedStartDate} type="date" />
+            <input defaultValue={summary.plannedEndDate} type="date" />
+            <input defaultValue={summary.plannedHours} min="0" step="0.25" type="number" />
+            <select defaultValue={Math.round(summary.progress / 10) * 10}>
+              {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+                <option key={progress} value={progress}>{progress}%</option>
+              ))}
+            </select>
+            <div className="gantt-chart-cell" style={{ backgroundSize: `${dayWidth}px 100%`, width: `${timelineWidth}px` }}>
+              {showToday && <span className="today-marker" style={{ left: `${todayOffset * dayWidth}px` }} />}
+              <span
+                className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}${summary.isLeaf ? "" : " parent"}`}
+                style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
+              >
+                {formatProgress(summary.progress)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const TaskSidePanel = ({
+  task,
+  project,
+  onClose,
+}: {
+  task: WbsTask;
+  project: Project;
+  onClose: () => void;
+}) => {
+  const summary = buildTaskSummary(task, project, tasks, studyLogs);
+  const relatedLogs = studyLogs.filter((log) => log.taskId === task.id);
+  const relatedQuestions = questions.filter((question) => question.taskId === task.id);
+
+  return (
+    <aside className="task-side-panel">
+      <div className="side-panel-header">
+        <div>
+          <p className="eyebrow">タスク詳細</p>
+          <h3>{task.name}</h3>
+        </div>
+        <button className="icon-button muted" onClick={onClose} aria-label="閉じる" type="button">×</button>
+      </div>
+
+      <div className="side-panel-status">
+        <StatusPill status={summary.status} />
+        {summary.isDelayed && <span className="badge danger">遅延</span>}
+        {summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
+      </div>
+
+      <label>
+        タスク名
+        <input defaultValue={task.name} maxLength={100} />
+      </label>
+      <label>
+        説明
+        <textarea defaultValue={task.description} maxLength={5000} />
+      </label>
+      <div className="form-row">
+        <label>
+          予定開始日
+          <input defaultValue={summary.plannedStartDate} type="date" />
+        </label>
+        <label>
+          予定終了日
+          <input defaultValue={summary.plannedEndDate} type="date" />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          予定工数
+          <input defaultValue={summary.plannedHours} min="0.25" step="0.25" type="number" />
+        </label>
+        <label>
+          進捗率
+          <select defaultValue={Math.round(summary.progress / 10) * 10}>
+            {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+              <option key={progress} value={progress}>{progress}%</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="side-panel-section">
+        <strong>学習記録</strong>
+        <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件の記録があります。` : "まだ記録はありません。"}</p>
+      </div>
+      <div className="side-panel-section">
+        <strong>質問</strong>
+        <p>{relatedQuestions.length > 0 ? `${relatedQuestions.length}件の質問があります。` : "関連する質問はありません。"}</p>
+      </div>
+
+      <div className="side-panel-actions">
+        <button className="primary-button" type="button">保存</button>
+        <button className="secondary-button" type="button">削除</button>
+      </div>
+    </aside>
   );
 };
 
@@ -938,10 +1157,10 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
     <div className="hero-card ai-hero">
       <div>
         <p className="eyebrow">AI計画作成</p>
-        <h2>教材の目次からWBSと学習計画を作る</h2>
+        <h2>教材情報からWBSと学習計画を作る</h2>
         <p>
-          目次写真をOCRでテキスト化し、ユーザーが結果を修正してからAI生成へ進みます。
-          貼り付け入力の場合も、同じ確認欄で内容を整えます。
+          スクリーンショット、PDF、手書きメモ、貼り付け文章を入力し、
+          ユーザーが内容を確認・修正してからAI生成へ進みます。
         </p>
       </div>
       <button className="primary-button light-button" onClick={() => onMove("aiPlanResult")} type="button">
@@ -954,7 +1173,7 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
         <div>
           <p className="eyebrow">SCR-13</p>
           <h2>教材入力</h2>
-          <p>ChatGPTやGeminiのような入力欄で、目次テキストと添付ファイルをまとめて送信します。</p>
+          <p>ChatGPTやGeminiのような入力欄で、教材情報と添付ファイルをまとめて送信します。</p>
         </div>
       </div>
       <label>
@@ -964,21 +1183,22 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       <div className="composer-shell">
         <div className="attachment-chip-row">
           <span className="attachment-chip">目次画像 2/10枚</span>
+          <span className="attachment-chip">PDF 1件</span>
           <span className="attachment-chip">合計 18MB / 50MB</span>
           <span className="attachment-chip">OCR結果は入力欄で修正</span>
         </div>
         <textarea
           aria-label="教材目次とAIへの指示"
           className="composer-textarea"
-          defaultValue={`この教材の目次から、Java Silver合格に向けたWBSと学習計画を作ってください。\n\n${tocSampleText}`}
+          defaultValue={`この教材情報から、Java Silver合格に向けたWBSと学習計画を作ってください。\nスクリーンショット・PDF・手書きメモのOCR結果は、ここで修正してから送信します。\n\n${tocSampleText}`}
         />
         <div className="composer-footer">
           <div className="composer-left">
             <button className="icon-button active" aria-label="添付メニューを開く" type="button">＋</button>
             <div className="attachment-menu">
-              <button type="button">画像ファイルをアップロードする</button>
-              <button type="button">写真をアップロードする（jpg/png/webp）</button>
-              <button type="button">OCR結果テキストを貼り付ける</button>
+              <button type="button">スクリーンショットをアップロードする</button>
+              <button type="button">PDFをアップロードする</button>
+              <button type="button">手書き文章・OCR結果を貼り付ける</button>
             </div>
           </div>
           <div className="composer-actions">
