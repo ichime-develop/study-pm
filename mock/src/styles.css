@@ -115,8 +115,8 @@ button {
 .main-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px;
+  gap: 16px;
+  padding: 20px 24px;
 }
 
 .topbar {
@@ -130,6 +130,15 @@ button {
 .panel h2,
 .project-card h3 {
   margin: 0;
+}
+
+.topbar h1 {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.topbar .eyebrow {
+  display: none;
 }
 
 .eyebrow {
@@ -156,7 +165,13 @@ button {
   border: 1px solid #e5e7eb;
   border-radius: 999px;
   color: #4b5563;
-  padding: 9px 14px;
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.topbar .secondary-button {
+  font-size: 13px;
+  padding: 8px 12px;
 }
 
 .screen-grid {
@@ -235,6 +250,75 @@ button {
   max-width: 680px;
 }
 
+.project-detail-grid {
+  gap: 10px;
+}
+
+.compact-hero {
+  padding: 12px 18px;
+}
+
+.compact-hero h2 {
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+.compact-hero p {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 6px;
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-hero .button-group {
+  gap: 10px;
+}
+
+.compact-hero .primary-button,
+.compact-hero .secondary-button {
+  font-size: 13px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.compact-metrics {
+  gap: 10px;
+}
+
+.compact-metrics .metric-card {
+  padding: 6px 12px;
+}
+
+.compact-metrics .metric-card span {
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.compact-metrics .metric-card strong {
+  font-size: 20px;
+}
+
+.project-detail-grid > .panel.wide {
+  padding: 14px 18px;
+}
+
+.project-detail-grid > .panel.wide .panel-header {
+  margin-bottom: 8px;
+}
+
+.project-detail-grid > .panel.wide .panel-header h2 {
+  font-size: 22px;
+}
+
+.project-detail-grid > .panel.wide .primary-button,
+.project-detail-grid > .panel.wide .secondary-button {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
 .ai-hero {
   background:
     radial-gradient(circle at top right, rgba(191, 219, 254, 0.42), transparent 34%),
@@ -260,12 +344,77 @@ button {
 .metric-card {
   flex: 1;
   padding: 20px;
+  position: relative;
 }
 
 .metric-card span {
   color: #6b7280;
   display: block;
   margin-bottom: 8px;
+}
+
+.metric-card .metric-label {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.metric-card .metric-help {
+  align-items: center;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  color: #4338ca;
+  cursor: help;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  margin-bottom: 0;
+  outline: none;
+  position: relative;
+  width: 18px;
+}
+
+.metric-card .metric-tooltip {
+  background: #111827;
+  border-radius: 8px;
+  bottom: calc(100% + 10px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.22);
+  color: #fff;
+  display: none;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 4px;
+  left: 0;
+  line-height: 1.55;
+  min-width: 260px;
+  padding: 10px 12px;
+  position: absolute;
+  text-align: left;
+  z-index: 20;
+}
+
+.metric-card .metric-tooltip span {
+  color: inherit;
+  display: block;
+  margin: 0;
+}
+
+.metric-card .metric-tooltip::after {
+  border: 6px solid transparent;
+  border-top-color: #111827;
+  content: "";
+  left: 12px;
+  position: absolute;
+  top: 100%;
+}
+
+.metric-card .metric-help:hover .metric-tooltip,
+.metric-card .metric-help:focus .metric-tooltip {
+  display: grid;
 }
 
 .metric-card strong {
@@ -578,7 +727,7 @@ button {
 
 .gantt-workspace.with-side-panel {
   align-items: start;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: 300px minmax(0, 1fr);
 }
 
 .gantt-board {
@@ -605,7 +754,8 @@ button {
 
 .gantt-row > span,
 .gantt-row > input,
-.gantt-row > select {
+.gantt-row > select,
+.gantt-row > .gantt-hour-cell {
   align-items: center;
   border-right: 1px solid #edf0f4;
   display: flex;
@@ -617,6 +767,7 @@ button {
   font-size: 12px;
   font-weight: 900;
   padding: 10px 12px;
+  white-space: nowrap;
 }
 
 .gantt-row > input,
@@ -628,6 +779,90 @@ button {
   border-top: 0;
   font-size: 13px;
   padding: 10px;
+}
+
+.gantt-hour-cell {
+  justify-content: center;
+  padding: 0 6px;
+  position: relative;
+}
+
+.gantt-hour-value {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 13px;
+  height: 30px;
+  min-width: 42px;
+  padding: 0 6px;
+}
+
+.gantt-hour-value:hover,
+.gantt-hour-value:focus {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.gantt-hour-popover {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+  display: grid;
+  gap: 10px;
+  left: 6px;
+  min-width: 180px;
+  padding: 12px;
+  position: absolute;
+  top: 42px;
+  z-index: 8;
+}
+
+.gantt-hour-popover::before {
+  background: #fff;
+  border-left: 1px solid #cbd5e1;
+  border-top: 1px solid #cbd5e1;
+  content: "";
+  height: 10px;
+  left: 18px;
+  position: absolute;
+  top: -6px;
+  transform: rotate(45deg);
+  width: 10px;
+}
+
+.gantt-hour-popover label {
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hour-input-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.hour-input-row input {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.hour-input-row span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.gantt-hour-popover .primary-button {
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 7px 10px;
 }
 
 .gantt-head {
@@ -673,6 +908,12 @@ button {
   gap: 8px;
   padding-right: 12px;
   text-align: left;
+}
+
+.gantt-task-name span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gantt-task-name:hover {
@@ -736,13 +977,27 @@ button {
 .task-side-panel {
   background: #fff;
   border: 1px solid #dbe4ef;
-  border-radius: 18px;
+  border-radius: 8px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
   display: grid;
   gap: 14px;
+  min-width: 0;
   padding: 18px;
   position: sticky;
   top: 18px;
+}
+
+.task-side-panel label,
+.task-side-panel input,
+.task-side-panel select,
+.task-side-panel textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+.task-side-panel .form-row {
+  grid-template-columns: 1fr;
 }
 
 .side-panel-header {

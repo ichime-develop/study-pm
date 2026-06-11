@@ -30,6 +30,7 @@ type Screen =
   | "dashboard"
   | "projects"
   | "projectDetail"
+  | "progressAnalysis"
   | "projectForm"
   | "wbs"
   | "studyLogs"
@@ -47,6 +48,7 @@ const screenLabels: Record<Screen, string> = {
   dashboard: "ダッシュボード",
   projects: "プロジェクト一覧",
   projectDetail: "プロジェクト詳細",
+  progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS編集",
   studyLogs: "学習記録一覧",
@@ -131,6 +133,7 @@ export const App = () => {
         {screen === "projectDetail" && (
           <ProjectDetail project={selectedProject} onMove={setScreen} />
         )}
+        {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} />}
         {screen === "studyLogs" && <StudyLogList />}
@@ -382,7 +385,7 @@ const ProjectList = ({
               <button className="create-menu-item" onClick={() => onMove("aiPlanInput")} type="button">
                 AIで作成
               </button>
-              <button className="create-menu-item" onClick={() => onMove("projectDetail")} type="button">
+              <button className="create-menu-item" onClick={() => onMove("projectForm")} type="button">
                 手動で作成
               </button>
             </div>
@@ -421,19 +424,23 @@ const ProjectList = ({
 
 const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
+  const pv = 8.4;
+  const ev = Math.round((summary.plannedHours * summary.progress) / 100 * 100) / 100;
+  const sv = ev - pv;
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
 
   return (
-    <section className="screen-grid">
-      <div className="hero-card">
+    <section className="screen-grid project-detail-grid">
+      <div className="hero-card compact-hero">
         <div>
           <p className="eyebrow">{project.field}</p>
           <h2>{project.name}</h2>
           <p>{project.summary}</p>
         </div>
         <div className="button-group">
+          <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
           <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録一覧</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
@@ -441,42 +448,66 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         </div>
       </div>
 
-      <div className="metric-row">
+      <div className="metric-row compact-metrics">
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
         <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
-        <Metric label="期間外タスク" value={`${summary.outOfRangeCount}件`} tone={summary.outOfRangeCount > 0 ? "warning" : "normal"} />
+        <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
+        <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} help={svHelp} />
       </div>
 
       <section className="panel wide">
         <div className="panel-header">
-          <h2>EVM・バーンダウン</h2>
-          <p>MVP 2で追加する進捗可視化の配置確認です。</p>
-        </div>
-        <EvmPanel project={project} />
-      </section>
-
-      <section className="panel wide">
-        <div className="panel-header">
-          <div>
-            <h2>WBS・ガントチャート</h2>
-            <p>タスク名と予定日を表で入力し、右側のガントに自動反映します。</p>
-          </div>
+          <h2>WBS・ガントチャート</h2>
           <div className="button-group">
             <button className="primary-button" type="button">タスク追加</button>
             <button className="secondary-button" type="button">表示期間</button>
           </div>
         </div>
         <div className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}>
+          {selectedTask && (
+            <TaskSidePanel task={selectedTask} project={project} onClose={() => setSelectedTaskId(null)} />
+          )}
           <GanttWbsTable
             project={project}
             selectedTaskId={selectedTask?.id ?? null}
             taskList={projectTasks}
             onSelectTask={setSelectedTaskId}
           />
-          {selectedTask && (
-            <TaskSidePanel task={selectedTask} project={project} onClose={() => setSelectedTaskId(null)} />
-          )}
         </div>
+      </section>
+    </section>
+  );
+};
+
+const ProgressAnalysis = ({ project }: { project: Project }) => {
+  const summary = buildProjectSummary(project, tasks, studyLogs);
+
+  return (
+    <section className="screen-grid">
+      <div className="hero-card">
+        <div>
+          <p className="eyebrow">EVM / Burndown</p>
+          <h2>{project.name} の進捗分析</h2>
+          <p>
+            EVM、バーンダウン、SPI/CPIなど、学習計画の遅延や工数超過を確認する画面です。
+            日々の更新はプロジェクト詳細のWBSで行います。
+          </p>
+        </div>
+      </div>
+
+      <div className="metric-row">
+        <Metric label="進捗率" value={formatProgress(summary.progress)} />
+        <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
+        <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
+        <Metric label="期間外タスク" value={`${summary.outOfRangeCount}件`} tone={summary.outOfRangeCount > 0 ? "warning" : "normal"} />
+      </div>
+
+      <section className="panel wide">
+        <div className="panel-header">
+          <h2>EVM・バーンダウン</h2>
+          <p>PV、EV、AC、SPI、CPIを確認し、遅延や工数超過の兆候を見ます。</p>
+        </div>
+        <EvmPanel project={project} />
       </section>
     </section>
   );
@@ -497,6 +528,21 @@ const toDateInputValue = (date: Date) => {
 const getInclusiveDays = (start: string, end: string) =>
   Math.max(1, Math.round((toDate(end).getTime() - toDate(start).getTime()) / dayMs) + 1);
 
+const formatHourNumber = (value: number) =>
+  Number.isInteger(value) ? `${value}` : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+
+const formatIntegerProgress = (value: number) => `${Math.round(value)}%`;
+
+type HourField = "planned" | "actual";
+
+const svHelp = [
+  "Schedule Variance。予定との差分を時間で表します。",
+  "計算式: SV = EV - PV",
+  "SV < 0: 予定より遅れています。",
+  "SV > 0: 予定より先行しています。",
+  "SV = 0: 予定どおりです。",
+];
+
 const buildTimeline = (start: string, end: string) =>
   Array.from({ length: getInclusiveDays(start, end) }, (_, index) =>
     toDateInputValue(new Date(toDate(start).getTime() + index * dayMs)),
@@ -513,6 +559,8 @@ const GanttWbsTable = ({
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
 }) => {
+  const [openHourEditor, setOpenHourEditor] = useState<{ taskId: string; field: HourField } | null>(null);
+  const [hourValues, setHourValues] = useState<Record<string, string>>({});
   const summaries = taskList.map((task) => ({
     task,
     summary: buildTaskSummary(task, project, tasks, studyLogs),
@@ -522,17 +570,22 @@ const GanttWbsTable = ({
   const timelineEnd = timelineEndCandidates[timelineEndCandidates.length - 1] ?? project.targetEndDate;
   const timelineDays = buildTimeline(timelineStart, timelineEnd);
   const timelineWidth = timelineDays.length * dayWidth;
-  const gridColumns = `340px 126px 126px 92px 100px ${timelineWidth}px`;
+  const gridColumns = `280px 64px 64px 84px ${timelineWidth}px`;
   const todayOffset = Math.round((toDate(today).getTime() - toDate(timelineStart).getTime()) / dayMs);
   const showToday = todayOffset >= 0 && todayOffset < timelineDays.length;
+  const getHourKey = (taskId: string, field: HourField) => `${taskId}:${field}`;
+  const getHourValue = (taskId: string, field: HourField, fallback: number) =>
+    hourValues[getHourKey(taskId, field)] ?? formatHourNumber(fallback);
+  const updateHourValue = (taskId: string, field: HourField, value: string) => {
+    setHourValues((current) => ({ ...current, [getHourKey(taskId, field)]: value }));
+  };
 
   return (
     <div className="gantt-board">
       <div className="gantt-row gantt-head" style={{ gridTemplateColumns: gridColumns }}>
         <span>件名</span>
-        <span>予定開始日</span>
-        <span>予定終了日</span>
-        <span>予定工数</span>
+        <span>予定(h)</span>
+        <span>実績(h)</span>
         <span>進捗</span>
         <div className="gantt-date-axis" style={{ gridTemplateColumns: `repeat(${timelineDays.length}, ${dayWidth}px)` }}>
           {timelineDays.map((date) => (
@@ -549,6 +602,8 @@ const GanttWbsTable = ({
         const duration = getInclusiveDays(summary.plannedStartDate, summary.plannedEndDate);
         const barLeft = offset * dayWidth + 4;
         const barWidth = Math.max(dayWidth - 8, duration * dayWidth - 8);
+        const plannedHours = getHourValue(task.id, "planned", summary.plannedHours);
+        const actualHours = getHourValue(task.id, "actual", summary.actualHours);
 
         return (
           <div
@@ -560,9 +615,62 @@ const GanttWbsTable = ({
               <span className="task-icon">{summary.isLeaf ? "□" : "▾"}</span>
               <span>{task.name}</span>
             </button>
-            <input defaultValue={summary.plannedStartDate} type="date" />
-            <input defaultValue={summary.plannedEndDate} type="date" />
-            <input defaultValue={summary.plannedHours} min="0" step="0.25" type="number" />
+            <div className="gantt-hour-cell">
+              <button
+                className="gantt-hour-value"
+                onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })}
+                type="button"
+              >
+                {plannedHours}
+              </button>
+              {openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
+                <div className="gantt-hour-popover" role="dialog" aria-label="予定工数を編集">
+                  <label>
+                    予定
+                    <span className="hour-input-row">
+                      <input
+                        autoFocus
+                        min="0"
+                        onChange={(event) => updateHourValue(task.id, "planned", event.target.value)}
+                        step="0.25"
+                        type="number"
+                        value={plannedHours}
+                      />
+                      <span>時間</span>
+                    </span>
+                  </label>
+                  <button className="primary-button" onClick={() => setOpenHourEditor(null)} type="button">保存</button>
+                </div>
+              )}
+            </div>
+            <div className="gantt-hour-cell">
+              <button
+                className="gantt-hour-value"
+                onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })}
+                type="button"
+              >
+                {actualHours}
+              </button>
+              {openHourEditor?.taskId === task.id && openHourEditor.field === "actual" && (
+                <div className="gantt-hour-popover" role="dialog" aria-label="実績時間を編集">
+                  <label>
+                    実績
+                    <span className="hour-input-row">
+                      <input
+                        autoFocus
+                        min="0"
+                        onChange={(event) => updateHourValue(task.id, "actual", event.target.value)}
+                        step="0.25"
+                        type="number"
+                        value={actualHours}
+                      />
+                      <span>時間</span>
+                    </span>
+                  </label>
+                  <button className="primary-button" onClick={() => setOpenHourEditor(null)} type="button">保存</button>
+                </div>
+              )}
+            </div>
             <select defaultValue={Math.round(summary.progress / 10) * 10}>
               {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
                 <option key={progress} value={progress}>{progress}%</option>
@@ -574,7 +682,7 @@ const GanttWbsTable = ({
                 className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}${summary.isLeaf ? "" : " parent"}`}
                 style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
               >
-                {formatProgress(summary.progress)}
+                {formatIntegerProgress(summary.progress)}
               </span>
             </div>
           </div>
@@ -680,7 +788,7 @@ const EvmPanel = ({ project }: { project: Project }) => {
         <Metric label="PV" value={formatHours(pv)} />
         <Metric label="EV" value={formatHours(ev)} />
         <Metric label="AC" value={formatHours(ac)} />
-        <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} />
+        <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} help={svHelp} />
         <Metric label="CV" value={formatHours(cv)} tone={cv < 0 ? "warning" : "normal"} />
         <Metric label="SPI" value={spi ? spi.toFixed(2) : "算出不可"} />
         <Metric label="CPI" value={cpi ? cpi.toFixed(2) : "算出不可"} />
@@ -1467,13 +1575,27 @@ const Metric = ({
   label,
   value,
   tone = "normal",
+  help,
 }: {
   label: string;
   value: string;
   tone?: "normal" | "warning" | "danger";
+  help?: string[];
 }) => (
   <div className={`metric-card ${tone}`}>
-    <span>{label}</span>
+    <span className="metric-label">
+      {label}
+      {help && (
+        <span className="metric-help" tabIndex={0} aria-label={`${label}の説明`}>
+          ?
+          <span className="metric-tooltip" role="tooltip">
+            {help.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </span>
+        </span>
+      )}
+    </span>
     <strong>{value}</strong>
   </div>
 );
