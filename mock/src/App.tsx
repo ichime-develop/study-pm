@@ -424,6 +424,17 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
+  const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
+  const selectedTaskParent = selectedTask?.parentId
+    ? projectTasks.find((task) => task.id === selectedTask.parentId)
+    : null;
+  const addTaskGuide = selectedTask
+    ? selectedTaskIsParent
+      ? `選択中の「${selectedTask.name}」配下にタスクを追加します。`
+      : selectedTaskParent
+        ? `選択中タスクと同じ「${selectedTaskParent.name}」配下に追加します。`
+        : "親なしタスクとして最上位に追加します。"
+    : "未選択時は親なしタスクとして最上位に追加します。";
 
   return (
     <section className="screen-grid project-detail-grid">
@@ -451,20 +462,30 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         <div className="panel-header">
           <h2>WBS・ガントチャート</h2>
           <div className="button-group">
-            <button className="primary-button" type="button">タスク追加</button>
+            <button className="secondary-button" type="button">親タスクを追加</button>
+            <button className="primary-button" type="button">タスクを追加</button>
             <button className="secondary-button" type="button">表示期間</button>
           </div>
         </div>
-        <div className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}>
-          {selectedTask && (
-            <TaskSidePanel task={selectedTask} project={project} onClose={() => setSelectedTaskId(null)} />
-          )}
+        <p className="panel-note">{addTaskGuide} 表示順は予定日と登録日時で自動並び替えされます。</p>
+        <div
+          className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
+          onClick={selectedTask ? () => setSelectedTaskId(null) : undefined}
+        >
           <GanttWbsTable
             project={project}
             selectedTaskId={selectedTask?.id ?? null}
             taskList={projectTasks}
             onSelectTask={setSelectedTaskId}
           />
+          {selectedTask && (
+            <TaskSidePanel
+              task={selectedTask}
+              project={project}
+              taskList={projectTasks}
+              onClose={() => setSelectedTaskId(null)}
+            />
+          )}
         </div>
       </section>
     </section>
@@ -512,6 +533,9 @@ const formatIntegerProgress = (value: number) => `${Math.round(value)}%`;
 
 type HourField = "planned" | "actual";
 
+const isWorkTask = (task: WbsTask, allTasks: WbsTask[]) =>
+  !allTasks.some((candidate) => candidate.parentId === task.id);
+
 const svHelp = [
   "Schedule Variance。予定との差分を時間で表します。",
   "計算式: SV = EV - PV",
@@ -523,7 +547,7 @@ const svHelp = [
 const evmHelp: Record<string, string[]> = {
   BAC: [
     "Budget at Completion。プロジェクト全体の予定工数です。",
-    "計算式: 全リーフタスクの予定工数合計",
+    "計算式: 親タスクを除く全タスクの予定工数合計",
     "最終的に必要と見積もった学習時間を表します。",
   ],
   PV: [
@@ -671,12 +695,32 @@ const GanttWbsTable = ({
 }) => {
   const [openHourEditor, setOpenHourEditor] = useState<{ taskId: string; field: HourField } | null>(null);
   const [hourValues, setHourValues] = useState<Record<string, string>>({});
-  const summaries = taskList.map((task) => ({
-    task,
-    summary: buildTaskSummary(task, project, tasks, studyLogs),
-  }));
-  const timelineStart = [project.startDate, ...summaries.map(({ summary }) => summary.plannedStartDate)].sort()[0];
-  const timelineEndCandidates = [project.targetEndDate, ...summaries.map(({ summary }) => summary.plannedEndDate)].sort();
+  const taskOrder = new Map(taskList.map((task, index) => [task.id, index]));
+  const taskSummaries = new Map(
+    taskList.map((task) => [task.id, buildTaskSummary(task, project, tasks, studyLogs)]),
+  );
+  const workTaskSummaries = taskList
+    .filter((task) => isWorkTask(task, taskList))
+    .map((task) => taskSummaries.get(task.id)!)
+    .filter(Boolean);
+  const compareTasks = (a: WbsTask, b: WbsTask) => {
+    const summaryA = taskSummaries.get(a.id)!;
+    const summaryB = taskSummaries.get(b.id)!;
+    const startCompare = summaryA.plannedStartDate.localeCompare(summaryB.plannedStartDate);
+    if (startCompare !== 0) return startCompare;
+    const endCompare = summaryA.plannedEndDate.localeCompare(summaryB.plannedEndDate);
+    if (endCompare !== 0) return endCompare;
+    return (taskOrder.get(a.id) ?? 0) - (taskOrder.get(b.id) ?? 0);
+  };
+  const topLevelRows = taskList
+    .filter((task) => task.parentId === null)
+    .sort(compareTasks)
+    .flatMap((task) => {
+      const children = taskList.filter((child) => child.parentId === task.id).sort(compareTasks);
+      return children.length > 0 ? [task, ...children] : [task];
+    });
+  const timelineStart = [project.startDate, ...workTaskSummaries.map((summary) => summary.plannedStartDate)].sort()[0];
+  const timelineEndCandidates = [project.targetEndDate, ...workTaskSummaries.map((summary) => summary.plannedEndDate)].sort();
   const timelineEnd = timelineEndCandidates[timelineEndCandidates.length - 1] ?? project.targetEndDate;
   const timelineDays = buildTimeline(timelineStart, timelineEnd);
   const timelineWidth = timelineDays.length * dayWidth;
@@ -689,8 +733,10 @@ const GanttWbsTable = ({
   const updateHourValue = (taskId: string, field: HourField, value: string) => {
     setHourValues((current) => ({ ...current, [getHourKey(taskId, field)]: value }));
   };
-  const rows = summaries.map(({ task, summary }) => {
+  const rows = topLevelRows.map((task) => {
+    const summary = taskSummaries.get(task.id)!;
     const level = getTaskLevel(task, tasks);
+    const isParent = !isWorkTask(task, taskList);
     const offset = Math.round((toDate(summary.plannedStartDate).getTime() - toDate(timelineStart).getTime()) / dayMs);
     const duration = getInclusiveDays(summary.plannedStartDate, summary.plannedEndDate);
     const barLeft = offset * dayWidth + 4;
@@ -700,6 +746,7 @@ const GanttWbsTable = ({
       task,
       summary,
       level,
+      isParent,
       barLeft,
       barWidth,
       plannedHours: getHourValue(task.id, "planned", summary.plannedHours),
@@ -716,21 +763,39 @@ const GanttWbsTable = ({
           <span>実績(h)</span>
           <span>進捗</span>
         </div>
-        {rows.map(({ task, summary, level, plannedHours, actualHours }) => (
+        {rows.map(({ task, summary, level, isParent, plannedHours, actualHours }) => (
           <div
-            className={selectedTaskId === task.id ? "gantt-row gantt-fixed-row selected" : "gantt-row gantt-fixed-row"}
+            className={[
+              "gantt-row",
+              "gantt-fixed-row",
+              isParent ? "parent-row" : "work-row",
+              selectedTaskId === task.id ? "selected" : "",
+            ].filter(Boolean).join(" ")}
             key={task.id}
             style={{ gridTemplateColumns: fixedColumns }}
           >
-            <button className="gantt-task-name" onClick={() => onSelectTask(task.id)} style={{ paddingLeft: `${level * 22 + 12}px` }} type="button">
-              <span className="task-icon">{summary.isLeaf ? "□" : "▾"}</span>
+            <button
+              className="gantt-task-name"
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectTask(task.id);
+              }}
+              style={{ paddingLeft: `${level * 22 + 12}px` }}
+              type="button"
+            >
+              <span className="task-icon">{isParent ? "▾" : "□"}</span>
               <span>{task.name}</span>
+              {isParent && <span className="gantt-task-type">親タスク</span>}
             </button>
             <div className="gantt-hour-cell">
-              <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })} type="button">
-                {plannedHours}
-              </button>
-              {openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
+              {isParent ? (
+                <span className="gantt-empty-value">—</span>
+              ) : (
+                <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })} type="button">
+                  {plannedHours}
+                </button>
+              )}
+              {!isParent && openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
                 <div className="gantt-hour-popover" role="dialog" aria-label="予定工数を編集">
                   <label>
                     予定
@@ -744,10 +809,14 @@ const GanttWbsTable = ({
               )}
             </div>
             <div className="gantt-hour-cell">
-              <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })} type="button">
-                {actualHours}
-              </button>
-              {openHourEditor?.taskId === task.id && openHourEditor.field === "actual" && (
+              {isParent ? (
+                <span className="gantt-empty-value">—</span>
+              ) : (
+                <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })} type="button">
+                  {actualHours}
+                </button>
+              )}
+              {!isParent && openHourEditor?.taskId === task.id && openHourEditor.field === "actual" && (
                 <div className="gantt-hour-popover" role="dialog" aria-label="実績時間を編集">
                   <label>
                     実績
@@ -760,11 +829,15 @@ const GanttWbsTable = ({
                 </div>
               )}
             </div>
-            <select defaultValue={Math.round(summary.progress / 10) * 10}>
-              {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
-                <option key={progress} value={progress}>{progress}%</option>
-              ))}
-            </select>
+            {isParent ? (
+              <span className="gantt-muted-cell">対象外</span>
+            ) : (
+              <select defaultValue={Math.round(summary.progress / 10) * 10}>
+                {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+                  <option key={progress} value={progress}>{progress}%</option>
+                ))}
+              </select>
+            )}
           </div>
         ))}
       </div>
@@ -779,16 +852,28 @@ const GanttWbsTable = ({
               ))}
             </div>
           </div>
-          {rows.map(({ task, summary, barLeft, barWidth }) => (
-            <div className={selectedTaskId === task.id ? "gantt-row gantt-timeline-row selected" : "gantt-row gantt-timeline-row"} key={task.id}>
+          {rows.map(({ task, summary, isParent, barLeft, barWidth }) => (
+            <div
+              className={[
+                "gantt-row",
+                "gantt-timeline-row",
+                isParent ? "parent-row" : "work-row",
+                selectedTaskId === task.id ? "selected" : "",
+              ].filter(Boolean).join(" ")}
+              key={task.id}
+            >
               <div className="gantt-chart-cell" style={{ backgroundSize: `${dayWidth}px 100%`, width: `${timelineWidth}px` }}>
                 {showToday && <span className="today-marker" style={{ left: `${todayOffset * dayWidth}px` }} />}
-                <span
-                  className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}${summary.isLeaf ? "" : " parent"}`}
-                  style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
-                >
-                  {formatIntegerProgress(summary.progress)}
-                </span>
+                {isParent ? (
+                  <span className="gantt-parent-note">配下タスクで管理</span>
+                ) : (
+                  <span
+                    className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}`}
+                    style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
+                  >
+                    {formatIntegerProgress(summary.progress)}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -801,75 +886,108 @@ const GanttWbsTable = ({
 const TaskSidePanel = ({
   task,
   project,
+  taskList,
   onClose,
 }: {
   task: WbsTask;
   project: Project;
+  taskList: WbsTask[];
   onClose: () => void;
 }) => {
   const summary = buildTaskSummary(task, project, tasks, studyLogs);
   const relatedLogs = studyLogs.filter((log) => log.taskId === task.id);
-  const relatedQuestions = questions.filter((question) => question.taskId === task.id);
+  const isParent = !isWorkTask(task, taskList);
+  const parentTasks = taskList.filter((candidate) => !isWorkTask(candidate, taskList));
 
   return (
-    <aside className="task-side-panel">
+    <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
       <div className="side-panel-header">
         <div>
-          <p className="eyebrow">タスク詳細</p>
+          <p className="eyebrow">{isParent ? "親タスク詳細" : "タスク詳細"}</p>
           <h3>{task.name}</h3>
         </div>
         <button className="icon-button muted" onClick={onClose} aria-label="閉じる" type="button">×</button>
       </div>
 
-      <div className="side-panel-status">
-        <StatusPill status={summary.status} />
-        {summary.isDelayed && <span className="badge danger">遅延</span>}
-        {summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
-      </div>
+      {isParent ? (
+        <div className="side-panel-status">
+          <span className="badge neutral">見出し</span>
+          <span className="badge neutral">計算対象外</span>
+        </div>
+      ) : (
+        <div className="side-panel-status">
+          <StatusPill status={summary.status} />
+          {summary.isDelayed && <span className="badge danger">遅延</span>}
+          {summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
+        </div>
+      )}
 
       <label>
-        タスク名
+        {isParent ? "親タスク名" : "タスク名"}
         <input defaultValue={task.name} maxLength={100} />
       </label>
-      <label>
-        説明
-        <textarea defaultValue={task.description} maxLength={5000} />
-      </label>
-      <div className="form-row">
-        <label>
-          予定開始日
-          <input defaultValue={summary.plannedStartDate} type="date" />
-        </label>
-        <label>
-          予定終了日
-          <input defaultValue={summary.plannedEndDate} type="date" />
-        </label>
-      </div>
-      <div className="form-row">
-        <label>
-          予定工数
-          <input defaultValue={summary.plannedHours} min="0.25" step="0.25" type="number" />
-        </label>
-        <label>
-          進捗率
-          <select defaultValue={Math.round(summary.progress / 10) * 10}>
-            {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
-              <option key={progress} value={progress}>{progress}%</option>
-            ))}
-          </select>
-        </label>
-      </div>
 
-      <div className="side-panel-section">
-        <strong>学習メモ</strong>
-        <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件のメモがあります。` : "まだメモはありません。"}</p>
-        <textarea className="memo-inline-input" defaultValue="" placeholder="学習中に気づいたことを残す" />
-        <button className="secondary-button" type="button">学習メモ追加</button>
-      </div>
-      <div className="side-panel-section">
-        <strong>質問</strong>
-        <p>{relatedQuestions.length > 0 ? `${relatedQuestions.length}件の質問があります。` : "関連する質問はありません。"}</p>
-      </div>
+      {isParent ? (
+        <label>
+          説明
+          <textarea defaultValue={task.description} maxLength={5000} />
+        </label>
+      ) : (
+        <>
+          <label>
+            親タスク
+            <select defaultValue={task.parentId ?? ""}>
+              <option value="">親なし</option>
+              {parentTasks.map((parentTask) => (
+                <option key={parentTask.id} value={parentTask.id}>{parentTask.name}</option>
+              ))}
+            </select>
+          </label>
+          <div className="form-row">
+            <label>
+              予定開始日
+              <input defaultValue={summary.plannedStartDate} type="date" />
+            </label>
+            <label>
+              予定終了日
+              <input defaultValue={summary.plannedEndDate} type="date" />
+            </label>
+          </div>
+          <div className="form-row">
+            <label>
+              予定工数
+              <input defaultValue={summary.plannedHours} min="0.25" step="0.25" type="number" />
+            </label>
+            <label>
+              実績工数
+              <input defaultValue={summary.actualHours} min="0" step="0.25" type="number" />
+            </label>
+          </div>
+          <label>
+            進捗率
+            <select defaultValue={Math.round(summary.progress / 10) * 10}>
+              {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+                <option key={progress} value={progress}>{progress}%</option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+
+      {isParent ? (
+        <div className="side-panel-section">
+          <strong>親タスクの扱い</strong>
+          <p>親タスクは章や単元をまとめる見出しです。予定、実績、進捗、学習メモは配下タスクで管理します。</p>
+          <p>削除時は確認後、配下タスクも削除対象になります。</p>
+        </div>
+      ) : (
+        <div className="side-panel-section">
+          <strong>学習メモ</strong>
+          <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件のメモがあります。` : "まだメモはありません。"}</p>
+          <textarea className="memo-inline-input" defaultValue="" placeholder="学習中に気づいたことを残す" />
+          <button className="secondary-button" type="button">学習メモ追加</button>
+        </div>
+      )}
 
       <div className="side-panel-actions">
         <button className="primary-button" type="button">保存</button>
@@ -999,7 +1117,7 @@ const ProjectForm = ({ project, onMove }: { project: Project; onMove: (screen: S
       <div className="constraint-box">
         <strong>完了条件</strong>
         <p>
-          プロジェクトを完了にできるのは、1件以上のリーフタスクが存在し、
+          プロジェクトを完了にできるのは、1件以上のタスクが存在し、
           すべて100%の場合だけです。
         </p>
       </div>
@@ -1019,21 +1137,23 @@ const WbsEditor = ({ project }: { project: Project }) => {
       <div className="panel-header">
         <div>
           <h2>{project.name} のWBS編集</h2>
-          <p>上下移動とインデント・アウトデントの操作感を確認する画面です。</p>
+          <p>親タスクとタスクを分け、表示順は予定日と登録日時で自動並び替えします。</p>
         </div>
-        <button className="primary-button" type="button">タスク追加</button>
+        <div className="button-group">
+          <button className="secondary-button" type="button">親タスクを追加</button>
+          <button className="primary-button" type="button">タスクを追加</button>
+        </div>
       </div>
       <div className="wbs-toolbar">
-        <button type="button">上へ</button>
-        <button type="button">下へ</button>
-        <button type="button">インデント</button>
-        <button type="button">アウトデント</button>
+        <button type="button">親なしにする</button>
+        <button type="button">親タスクを設定</button>
+        <span className="toolbar-note">手動並び替えは行わず、日付変更後に自動で並び替えます。</span>
       </div>
       <TaskList tasks={projectTasks} project={project} editable />
       <div className="constraint-box">
         <strong>制約の見せ方確認</strong>
         <p>
-          学習記録があるリーフタスクは親タスク化できません。子タスク、学習記録、
+          親タスクは見出しとして扱い、予定、実績、進捗、学習メモを持ちません。
           関連質問があるタスクは削除できません。
         </p>
       </div>
@@ -1416,8 +1536,8 @@ const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
 );
 
 const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
-  const leafTasks = aiPlanTasks.filter((task) => task.plannedHours > 0);
-  const totalHours = leafTasks.reduce((sum, task) => sum + task.plannedHours, 0);
+  const workTasks = aiPlanTasks.filter((task) => task.plannedHours > 0);
+  const totalHours = workTasks.reduce((sum, task) => sum + task.plannedHours, 0);
 
   return (
     <section className="screen-grid">
@@ -1441,8 +1561,8 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
       </div>
 
       <div className="metric-row">
-        <Metric label="生成タスク" value={`${aiPlanTasks.length}件`} />
-        <Metric label="リーフタスク" value={`${leafTasks.length}件`} />
+        <Metric label="生成WBS" value={`${aiPlanTasks.length}件`} />
+        <Metric label="タスク" value={`${workTasks.length}件`} />
         <Metric label="予定工数" value={formatHours(totalHours)} />
       </div>
 
@@ -1464,8 +1584,8 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
                   <small>{task.description}</small>
                 </div>
               </div>
-              <span>{formatDate(task.plannedStartDate)} - {formatDate(task.plannedEndDate)}</span>
-              <span>{task.plannedHours === 0 ? "自動集計" : formatHours(task.plannedHours)}</span>
+              <span>{task.plannedHours === 0 ? "親タスク" : `${formatDate(task.plannedStartDate)} - ${formatDate(task.plannedEndDate)}`}</span>
+              <span>{task.plannedHours === 0 ? "計算対象外" : formatHours(task.plannedHours)}</span>
               <button className="text-button" type="button">編集</button>
             </article>
           ))}
@@ -1551,23 +1671,24 @@ const TaskList = ({
     {taskList.map((task) => {
       const summary = buildTaskSummary(task, project, tasks, studyLogs);
       const level = getTaskLevel(task, tasks);
+      const isParent = !isWorkTask(task, tasks);
       return (
-        <article className={summary.isLeaf ? "task-row leaf" : "task-row parent"} key={task.id}>
+        <article className={isParent ? "task-row parent" : "task-row leaf"} key={task.id}>
           <div className="task-title" style={{ paddingLeft: `${level * 22}px` }}>
-            <span className="task-icon">{summary.isLeaf ? "□" : "▾"}</span>
+            <span className="task-icon">{isParent ? "▾" : "□"}</span>
             <div>
               <strong>{task.name}</strong>
-              {!compact && <small>{summary.isLeaf ? "リーフタスク" : "親タスク（自動集計）"}</small>}
+              {!compact && <small>{isParent ? "親タスク（見出し）" : "タスク"}</small>}
             </div>
           </div>
-          <span>{formatDate(summary.plannedStartDate)} - {formatDate(summary.plannedEndDate)}</span>
-          {!compact && <span>{formatHours(summary.actualHours)} / {formatHours(summary.plannedHours)}</span>}
-          <span><ProgressBar value={summary.progress} /></span>
-          {!compact && <StatusPill status={summary.status} />}
+          <span>{isParent ? "配下タスクで管理" : `${formatDate(summary.plannedStartDate)} - ${formatDate(summary.plannedEndDate)}`}</span>
+          {!compact && <span>{isParent ? "計算対象外" : `${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`}</span>}
+          <span>{isParent ? "—" : <ProgressBar value={summary.progress} />}</span>
+          {!compact && (isParent ? <span className="badge neutral">見出し</span> : <StatusPill status={summary.status} />)}
           <span className="badge-list">
-            {summary.isDelayed && <span className="badge danger">遅延</span>}
-            {summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
-            {editable && task.hasLogs && <span className="badge neutral">親化不可</span>}
+            {!isParent && summary.isDelayed && <span className="badge danger">遅延</span>}
+            {!isParent && summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
+            {editable && isParent && <span className="badge neutral">予定入力なし</span>}
           </span>
         </article>
       );
