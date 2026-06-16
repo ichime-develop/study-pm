@@ -890,6 +890,21 @@ button {
   color: #1d4ed8;
 }
 
+.gantt-readonly-value {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #475569;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  min-width: 42px;
+  padding: 0 6px;
+}
+
 .gantt-hour-popover {
   background: #fff;
   border: 1px solid #cbd5e1;
@@ -1166,6 +1181,17 @@ button {
 
 .memo-inline-input {
   min-height: 82px;
+}
+
+.learning-record-preview {
+  display: grid;
+  gap: 4px;
+}
+
+.learning-record-preview span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .task-title {

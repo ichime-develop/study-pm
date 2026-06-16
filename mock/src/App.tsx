@@ -145,14 +145,12 @@ export const App = () => {
 
 const Dashboard = ({ onOpenProject }: { onOpenProject: (projectId: string, screen?: Screen) => void }) => {
   const activeProjects = projects.filter((project) => !project.archived && project.status === "in_progress");
+  const totalStudyHours = studyLogs.reduce((sum, log) => sum + log.hours, 0);
+  const continuousStudyDays = getContinuousStudyDays(studyLogs.map((log) => log.studyDate), today);
   const upcomingTasks = getLeafTasks("java-silver", tasks)
     .filter((task) => task.progress < 100 && task.plannedEndDate >= today)
     .sort((a, b) => a.plannedEndDate.localeCompare(b.plannedEndDate))
     .slice(0, 5);
-  const delayedTasks = getLeafTasks("java-silver", tasks).filter((task) => {
-    const project = projects.find((item) => item.id === task.projectId)!;
-    return buildTaskSummary(task, project, tasks, studyLogs).isDelayed;
-  });
   const recentLogs = [...studyLogs]
     .sort((a, b) =>
       b.studyDate === a.studyDate
@@ -188,8 +186,8 @@ const Dashboard = ({ onOpenProject }: { onOpenProject: (projectId: string, scree
 
       <div className="metric-row">
         <Metric label="進行中" value={`${activeProjects.length}件`} />
-        <Metric label="今後7日の予定" value={`${upcomingTasks.length}件`} />
-        <Metric label="遅延タスク" value={`${delayedTasks.length}件`} tone={delayedTasks.length > 0 ? "danger" : "normal"} />
+        <Metric label="連続学習日数" value={`${continuousStudyDays}日`} tone={continuousStudyDays > 0 ? "good" : "normal"} />
+        <Metric label="総学習時間" value={formatHours(totalStudyHours)} />
       </div>
 
       <section className="panel wide">
@@ -446,6 +444,7 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         <div className="button-group">
           <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
+          <button className="secondary-button" type="button">学習記録登録</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
         </div>
       </div>
@@ -480,6 +479,7 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
           />
           {selectedTask && (
             <TaskSidePanel
+              key={selectedTask.id}
               task={selectedTask}
               project={project}
               taskList={projectTasks}
@@ -531,10 +531,23 @@ const formatHourNumber = (value: number) =>
 
 const formatIntegerProgress = (value: number) => `${Math.round(value)}%`;
 
-type HourField = "planned" | "actual";
+type HourField = "planned";
 
 const isWorkTask = (task: WbsTask, allTasks: WbsTask[]) =>
   !allTasks.some((candidate) => candidate.parentId === task.id);
+
+const getContinuousStudyDays = (studyDates: string[], baseDate: string) => {
+  const studiedDateSet = new Set(studyDates);
+  let count = 0;
+  let currentDate = toDate(baseDate);
+
+  while (studiedDateSet.has(toDateInputValue(currentDate))) {
+    count += 1;
+    currentDate = new Date(currentDate.getTime() - dayMs);
+  }
+
+  return count;
+};
 
 const svHelp = [
   "Schedule Variance。予定との差分を時間で表します。",
@@ -562,7 +575,7 @@ const evmHelp: Record<string, string[]> = {
   ],
   AC: [
     "Actual Cost。本アプリでは実績工数です。",
-    "計算式: 基準日までに記録された実績時間の合計",
+    "計算式: 基準日までに記録された学習記録の学習時間合計",
     "学習に実際に使った時間を表します。",
   ],
   CV: [
@@ -750,7 +763,7 @@ const GanttWbsTable = ({
       barLeft,
       barWidth,
       plannedHours: getHourValue(task.id, "planned", summary.plannedHours),
-      actualHours: getHourValue(task.id, "actual", summary.actualHours),
+      actualHours: formatHourNumber(summary.actualHours),
     };
   });
 
@@ -812,21 +825,9 @@ const GanttWbsTable = ({
               {isParent ? (
                 <span className="gantt-empty-value">—</span>
               ) : (
-                <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "actual" })} type="button">
+                <span className="gantt-readonly-value" title="学習記録から集計した実績工数です。">
                   {actualHours}
-                </button>
-              )}
-              {!isParent && openHourEditor?.taskId === task.id && openHourEditor.field === "actual" && (
-                <div className="gantt-hour-popover" role="dialog" aria-label="実績時間を編集">
-                  <label>
-                    実績
-                    <span className="hour-input-row">
-                      <input autoFocus min="0" onChange={(event) => updateHourValue(task.id, "actual", event.target.value)} step="0.25" type="number" value={actualHours} />
-                      <span>時間</span>
-                    </span>
-                  </label>
-                  <button className="primary-button" onClick={() => setOpenHourEditor(null)} type="button">保存</button>
-                </div>
+                </span>
               )}
             </div>
             {isParent ? (
@@ -895,9 +896,13 @@ const TaskSidePanel = ({
   onClose: () => void;
 }) => {
   const summary = buildTaskSummary(task, project, tasks, studyLogs);
-  const relatedLogs = studyLogs.filter((log) => log.taskId === task.id);
   const isParent = !isWorkTask(task, taskList);
   const parentTasks = taskList.filter((candidate) => !isWorkTask(candidate, taskList));
+  const childTaskIds = taskList.filter((candidate) => candidate.parentId === task.id).map((candidate) => candidate.id);
+  const relatedLogs = isParent
+    ? studyLogs.filter((log) => childTaskIds.includes(log.taskId))
+    : studyLogs.filter((log) => log.taskId === task.id);
+  const canDelete = relatedLogs.length === 0;
 
   return (
     <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
@@ -958,10 +963,6 @@ const TaskSidePanel = ({
               予定工数
               <input defaultValue={summary.plannedHours} min="0.25" step="0.25" type="number" />
             </label>
-            <label>
-              実績工数
-              <input defaultValue={summary.actualHours} min="0" step="0.25" type="number" />
-            </label>
           </div>
           <label>
             進捗率
@@ -977,21 +978,28 @@ const TaskSidePanel = ({
       {isParent ? (
         <div className="side-panel-section">
           <strong>親タスクの扱い</strong>
-          <p>親タスクは章や単元をまとめる見出しです。予定、実績、進捗、学習メモは配下タスクで管理します。</p>
-          <p>削除時は確認後、配下タスクも削除対象になります。</p>
+          <p>親タスクは章や単元をまとめる見出しです。予定、実績、進捗、学習記録は配下タスクで管理します。</p>
+          <p>{canDelete ? "削除時は確認後、配下タスクも削除対象になります。" : "配下タスクに学習記録があるため削除できません。"}</p>
         </div>
       ) : (
         <div className="side-panel-section">
-          <strong>学習メモ</strong>
-          <p>{relatedLogs.length > 0 ? `${relatedLogs.length}件のメモがあります。` : "まだメモはありません。"}</p>
-          <textarea className="memo-inline-input" defaultValue="" placeholder="学習中に気づいたことを残す" />
-          <button className="secondary-button" type="button">学習メモ追加</button>
+          <strong>実績工数</strong>
+          <p>{formatHours(summary.actualHours)} / 学習記録 {relatedLogs.length}件から集計</p>
+          <div className="learning-record-preview">
+            {relatedLogs.slice(0, 2).map((log) => (
+              <span key={log.id}>{formatDate(log.studyDate)} {formatHours(log.hours)}</span>
+            ))}
+            {relatedLogs.length === 0 && <span>まだ学習記録はありません。</span>}
+          </div>
+          <button className="secondary-button" type="button">学習記録を追加</button>
         </div>
       )}
 
       <div className="side-panel-actions">
         <button className="primary-button" type="button">保存</button>
-        <button className="secondary-button" type="button">削除</button>
+        <button className="secondary-button" disabled={!canDelete} type="button">
+          {canDelete ? "削除" : "削除不可"}
+        </button>
       </div>
     </aside>
   );
@@ -1153,8 +1161,8 @@ const WbsEditor = ({ project }: { project: Project }) => {
       <div className="constraint-box">
         <strong>制約の見せ方確認</strong>
         <p>
-          親タスクは見出しとして扱い、予定、実績、進捗、学習メモを持ちません。
-          関連質問があるタスクは削除できません。
+          親タスクは見出しとして扱い、予定、実績、進捗、学習記録を持ちません。
+          関連質問または学習記録があるタスクは削除できません。
         </p>
       </div>
     </section>
