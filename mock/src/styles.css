@@ -80,7 +80,22 @@ button {
 
 .nav-list {
   display: grid;
+  gap: 18px;
+}
+
+.nav-section {
+  display: grid;
   gap: 8px;
+}
+
+.nav-section-title {
+  color: #9ca3af;
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0 14px;
+  text-transform: uppercase;
 }
 
 .nav-item {
@@ -339,6 +354,10 @@ button {
 
 .metric-row {
   grid-column: 1 / -1;
+}
+
+.home-summary {
+  align-items: stretch;
 }
 
 .metric-card {
@@ -1242,6 +1261,29 @@ button {
   margin: 8px 0 0;
 }
 
+.study-log-workspace {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
+}
+
+.study-log-form {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  position: sticky;
+  top: 20px;
+}
+
+.study-log-rules {
+  display: grid;
+  gap: 10px;
+}
+
 .row-actions {
   display: flex;
   gap: 10px;
@@ -1250,27 +1292,6 @@ button {
 
 .danger-text {
   color: #dc2626;
-}
-
-.wbs-toolbar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.wbs-toolbar button {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 8px 12px;
-}
-
-.toolbar-note {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .constraint-box {
@@ -1873,6 +1894,16 @@ textarea {
 
 .check-list.light {
   color: #dbeafe;
+}
+
+@media (max-width: 1279px) {
+  .study-log-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .study-log-form {
+    position: static;
+  }
 }
 
 @media (max-width: 960px) {

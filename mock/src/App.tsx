@@ -27,14 +27,12 @@ import {
 type Screen =
   | "login"
   | "signup"
-  | "dashboard"
   | "projects"
   | "projectDetail"
   | "progressAnalysis"
   | "projectForm"
   | "wbs"
   | "studyLogs"
-  | "studyLogForm"
   | "questions"
   | "questionForm"
   | "aiContext"
@@ -45,15 +43,13 @@ type Screen =
 const screenLabels: Record<Screen, string> = {
   login: "ログイン",
   signup: "アカウント登録",
-  dashboard: "ダッシュボード",
   projects: "プロジェクト一覧",
   projectDetail: "プロジェクト詳細",
   progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
-  wbs: "WBS編集",
-  studyLogs: "学習記録一覧",
-  studyLogForm: "学習記録登録・編集",
-  questions: "質問一覧",
+  wbs: "WBS・ガント",
+  studyLogs: "学習記録",
+  questions: "質問",
   questionForm: "質問登録・編集",
   aiContext: "AI送信情報選択",
   aiPlanInput: "教材入力",
@@ -61,8 +57,22 @@ const screenLabels: Record<Screen, string> = {
   aiPlanResult: "AI計画確認",
 };
 
+const commonScreens: Screen[] = ["projects", "projectForm", "login", "signup"];
+const projectScreens: Screen[] = [
+  "projectDetail",
+  "wbs",
+  "studyLogs",
+  "progressAnalysis",
+  "questions",
+  "aiPlanInput",
+  "aiPlanSettings",
+  "aiPlanResult",
+  "questionForm",
+  "aiContext",
+];
+
 export const App = () => {
-  const [screen, setScreen] = useState<Screen>("dashboard");
+  const [screen, setScreen] = useState<Screen>("projects");
   const [selectedProjectId, setSelectedProjectId] = useState("java-silver");
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0];
 
@@ -90,16 +100,32 @@ export const App = () => {
           </div>
         </div>
         <nav className="nav-list" aria-label="画面切り替え">
-          {(Object.keys(screenLabels) as Screen[]).map((key) => (
-            <button
-              className={screen === key ? "nav-item active" : "nav-item"}
-              key={key}
-              onClick={() => setScreen(key)}
-              type="button"
-            >
-              {screenLabels[key]}
-            </button>
-          ))}
+          <div className="nav-section">
+            <span className="nav-section-title">共通</span>
+            {commonScreens.map((key) => (
+              <button
+                className={screen === key ? "nav-item active" : "nav-item"}
+                key={key}
+                onClick={() => setScreen(key)}
+                type="button"
+              >
+                {screenLabels[key]}
+              </button>
+            ))}
+          </div>
+          <div className="nav-section">
+            <span className="nav-section-title">選択中: {selectedProject.name}</span>
+            {projectScreens.map((key) => (
+              <button
+                className={screen === key ? "nav-item active" : "nav-item"}
+                key={key}
+                onClick={() => setScreen(key)}
+                type="button"
+              >
+                {screenLabels[key]}
+              </button>
+            ))}
+          </div>
         </nav>
         <div className="mock-note">
           <strong>要件検証用</strong>
@@ -124,7 +150,6 @@ export const App = () => {
           </div>
         </header>
 
-        {screen === "dashboard" && <Dashboard onOpenProject={openProject} />}
         {screen === "login" && <LoginScreen onMove={setScreen} />}
         {screen === "signup" && <SignupScreen onMove={setScreen} />}
         {screen === "projects" && (
@@ -135,10 +160,9 @@ export const App = () => {
         )}
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
-        {screen === "wbs" && <WbsEditor project={selectedProject} />}
-        {screen === "studyLogs" && <StudyLogList onMove={setScreen} />}
-        {screen === "studyLogForm" && <StudyLogForm />}
-        {screen === "questions" && <QuestionList onMove={setScreen} />}
+        {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
+        {screen === "studyLogs" && <StudyLogList project={selectedProject} />}
+        {screen === "questions" && <QuestionList project={selectedProject} onMove={setScreen} />}
         {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
         {screen === "aiContext" && <AiContextSelector onMove={setScreen} />}
         {screen === "aiPlanInput" && <AiPlanInput onMove={setScreen} />}
@@ -149,118 +173,14 @@ export const App = () => {
   );
 };
 
-const Dashboard = ({ onOpenProject }: { onOpenProject: (projectId: string, screen?: Screen) => void }) => {
-  const activeProjects = projects.filter((project) => !project.archived && project.status === "in_progress");
-  const totalStudyHours = studyLogs.reduce((sum, log) => sum + log.hours, 0);
-  const continuousStudyDays = getContinuousStudyDays(studyLogs.map((log) => log.studyDate), today);
-  const upcomingTasks = getLeafTasks("java-silver", tasks)
-    .filter((task) => task.progress < 100 && task.plannedEndDate >= today)
-    .sort((a, b) => a.plannedEndDate.localeCompare(b.plannedEndDate))
-    .slice(0, 5);
-  const recentLogs = [...studyLogs]
-    .sort((a, b) =>
-      b.studyDate === a.studyDate
-        ? b.updatedAt.localeCompare(a.updatedAt)
-        : b.studyDate.localeCompare(a.studyDate),
-    )
-    .slice(0, 5);
-  const unresolvedQuestions = questions
-    .filter((question) => question.status !== "resolved")
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 5);
-
-  return (
-    <section className="screen-grid">
-      <div className="hero-card">
-        <div>
-          <p className="eyebrow">今日の確認</p>
-          <h2>学習計画と実績を1画面で確認</h2>
-          <p>
-            PC Web版では、今日やるタスク、進行中プロジェクト、直近の学習記録、
-            質問、AI計画作成にすぐアクセスできることを確認します。
-          </p>
-        </div>
-        <div className="button-group">
-          <button className="primary-button" onClick={() => onOpenProject("java-silver")} type="button">
-            プロジェクト詳細へ
-          </button>
-          <button className="secondary-button" onClick={() => onOpenProject("java-silver", "aiPlanInput")} type="button">
-            目次から計画作成
-          </button>
-        </div>
-      </div>
-
-      <div className="metric-row">
-        <Metric label="進行中" value={`${activeProjects.length}件`} />
-        <Metric label="連続学習日数" value={`${continuousStudyDays}日`} tone={continuousStudyDays > 0 ? "good" : "normal"} />
-        <Metric label="総学習時間" value={formatHours(totalStudyHours)} />
-      </div>
-
-      <section className="panel wide">
-        <div className="panel-header">
-          <h2>進行中プロジェクト</h2>
-          <button className="text-button" onClick={() => onOpenProject("java-silver", "projects")} type="button">
-            一覧へ
-          </button>
-        </div>
-        <div className="project-card-list">
-          {activeProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} onOpenProject={onOpenProject} />
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2>今日から今後7日の予定</h2>
-        </div>
-        <TaskList tasks={upcomingTasks} project={projects[0]} compact />
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2>直近の学習記録</h2>
-        </div>
-        <div className="log-list">
-          {recentLogs.map((log) => {
-            const task = tasks.find((item) => item.id === log.taskId);
-            return (
-              <article className="log-item" key={log.id}>
-                <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
-                <span>{task?.name}</span>
-                <p>{log.memo}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2>未解決・調査中の質問</h2>
-        </div>
-        <div className="log-list">
-          {unresolvedQuestions.map((question) => (
-            <article className="log-item" key={question.id}>
-              <strong>{question.title}</strong>
-              <span>{getQuestionStatusLabel(question.status)} / {question.category}</span>
-              <p>{question.content}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </section>
-  );
-};
-
 const LoginScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
   <section className="auth-layout">
     <div className="auth-hero">
       <p className="eyebrow">SCR-02</p>
       <h2>学習をプロジェクトとして管理する</h2>
       <p>
-        ログイン後、進行中プロジェクト、今日から今後7日のタスク、直近の学習記録を
-        ダッシュボードで確認します。
+        ログイン後はプロジェクト一覧から現在取り組むプロジェクトを選び、
+        その中でWBS、学習記録、進捗分析、質問を確認します。
       </p>
       <div className="auth-preview">
         <Metric label="進行中" value="1件" />
@@ -283,7 +203,7 @@ const LoginScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       <div className="error-preview">
         メールアドレスまたはパスワードが正しくありません。
       </div>
-      <button className="primary-button" onClick={() => onMove("dashboard")} type="button">
+      <button className="primary-button" onClick={() => onMove("projects")} type="button">
         ログイン
       </button>
       <button className="text-button align-left" onClick={() => onMove("signup")} type="button">
@@ -336,7 +256,7 @@ const SignupScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
         <span className="rule-ok">英小文字</span>
         <span className="rule-ok">数字</span>
       </div>
-      <button className="primary-button" onClick={() => onMove("dashboard")} type="button">
+      <button className="primary-button" onClick={() => onMove("projects")} type="button">
         登録して開始
       </button>
       <button className="text-button align-left" onClick={() => onMove("login")} type="button">
@@ -356,13 +276,22 @@ const ProjectList = ({
   onOpenProject: (projectId: string, screen?: Screen) => void;
 }) => {
   const [showCreateOptions, setShowCreateOptions] = useState(false);
+  const totalStudyHours = studyLogs.reduce((sum, log) => sum + log.hours, 0);
+  const continuousStudyDays = getContinuousStudyDays(studyLogs.map((log) => log.studyDate), today);
 
   return (
-    <section className="panel wide">
+    <section className="screen-grid">
+      <div className="metric-row home-summary">
+        <Metric label="連続学習日数" value={`${continuousStudyDays}日`} tone={continuousStudyDays > 0 ? "good" : "normal"} />
+        <Metric label="総学習時間" value={formatHours(totalStudyHours)} />
+        <Metric label="進行中プロジェクト" value={`${list.filter((project) => project.status === "in_progress").length}件`} />
+      </div>
+
+      <section className="panel wide">
       <div className="panel-header">
         <div>
           <h2>プロジェクト一覧</h2>
-          <p>初期表示はアーカイブを除外し、更新日時の降順です。</p>
+          <p>ログイン後のホームです。初期表示はアーカイブを除外し、更新日時の降順です。</p>
         </div>
         <div className="create-action">
           <button
@@ -416,16 +345,16 @@ const ProjectList = ({
           );
         })}
       </div>
+      </section>
     </section>
   );
 };
 
 const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
-  const pv = 8.4;
-  const ev = Math.round((summary.plannedHours * summary.progress) / 100 * 100) / 100;
-  const sv = ev - pv;
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
+  const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
+  const lastStudyDate = [...projectLogs].sort((a, b) => b.studyDate.localeCompare(a.studyDate))[0]?.studyDate;
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
   const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
@@ -448,19 +377,22 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
           <p>{project.summary}</p>
         </div>
         <div className="button-group">
+          <button className="secondary-button" onClick={() => onMove("wbs")} type="button">WBS</button>
+          <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録</button>
           <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
-          <button className="secondary-button" onClick={() => onMove("studyLogForm")} type="button">学習記録登録</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
+          <button className="secondary-button" onClick={() => onMove("aiPlanInput")} type="button">AI計画</button>
         </div>
       </div>
 
       <div className="metric-row compact-metrics">
         <Metric label="期間" value={`${formatDate(project.startDate)} - ${formatDate(project.targetEndDate)}`} />
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
-        <Metric label="実績 / 予定" value={`${formatHours(summary.actualHours)} / ${formatHours(summary.plannedHours)}`} />
+        <Metric label="予定工数" value={formatHours(summary.plannedHours)} />
+        <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
+        <Metric label="最終学習日" value={lastStudyDate ? formatDate(lastStudyDate) : "未記録"} />
         <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
-        <Metric label="SV" value={formatHours(sv)} tone={sv < 0 ? "danger" : "normal"} help={svHelp} />
       </div>
 
       <section className="panel wide">
@@ -545,8 +477,17 @@ const isWorkTask = (task: WbsTask, allTasks: WbsTask[]) =>
 
 const getContinuousStudyDays = (studyDates: string[], baseDate: string) => {
   const studiedDateSet = new Set(studyDates);
+  const base = toDate(baseDate);
+  const startDate = studiedDateSet.has(baseDate)
+    ? base
+    : new Date(base.getTime() - dayMs);
+
+  if (!studiedDateSet.has(toDateInputValue(startDate))) {
+    return 0;
+  }
+
   let count = 0;
-  let currentDate = toDate(baseDate);
+  let currentDate = startDate;
 
   while (studiedDateSet.has(toDateInputValue(currentDate))) {
     count += 1;
@@ -911,7 +852,10 @@ const TaskSidePanel = ({
   const relatedLogs = isParent
     ? studyLogs.filter((log) => childTaskIds.includes(log.taskId))
     : studyLogs.filter((log) => log.taskId === task.id);
-  const canDelete = relatedLogs.length === 0;
+  const relatedQuestions = isParent
+    ? questions.filter((question) => question.taskId && childTaskIds.includes(question.taskId))
+    : questions.filter((question) => question.taskId === task.id);
+  const canDelete = relatedLogs.length === 0 && relatedQuestions.length === 0;
 
   return (
     <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
@@ -988,7 +932,7 @@ const TaskSidePanel = ({
         <div className="side-panel-section">
           <strong>親タスクの扱い</strong>
           <p>親タスクは章や単元をまとめる見出しです。予定、実績、進捗、学習記録は配下タスクで管理します。</p>
-          <p>{canDelete ? "削除時は確認後、配下タスクも削除対象になります。" : "配下タスクに学習記録があるため削除できません。"}</p>
+          <p>{canDelete ? "削除時は確認後、配下タスクも削除対象になります。" : "配下タスクに学習記録または関連質問があるため削除できません。"}</p>
         </div>
       ) : (
         <div className="side-panel-section">
@@ -1000,7 +944,14 @@ const TaskSidePanel = ({
             ))}
             {relatedLogs.length === 0 && <span>まだ学習記録はありません。</span>}
           </div>
-          <button className="secondary-button" onClick={() => onMove("studyLogForm")} type="button">学習記録を追加</button>
+          <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録を追加</button>
+        </div>
+      )}
+
+      {!canDelete && (
+        <div className="constraint-box">
+          <strong>削除できない理由</strong>
+          <p>学習記録 {relatedLogs.length}件 / 関連質問 {relatedQuestions.length}件があります。</p>
         </div>
       )}
 
@@ -1146,27 +1097,57 @@ const ProjectForm = ({ project, onMove }: { project: Project; onMove: (screen: S
   </section>
 );
 
-const WbsEditor = ({ project }: { project: Project }) => {
+const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
+  const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
+  const selectedTaskParent = selectedTask?.parentId
+    ? projectTasks.find((task) => task.id === selectedTask.parentId)
+    : null;
+  const addTaskGuide = selectedTask
+    ? selectedTaskIsParent
+      ? `選択中の「${selectedTask.name}」配下にタスクを追加します。`
+      : selectedTaskParent
+        ? `選択中タスクと同じ「${selectedTaskParent.name}」配下に追加します。`
+        : "親なしタスクとして最上位に追加します。"
+    : "未選択時は親なしタスクとして最上位に追加します。";
 
   return (
     <section className="panel wide">
       <div className="panel-header">
         <div>
-          <h2>{project.name} のWBS編集</h2>
-          <p>親タスクとタスクを分け、表示順は予定日と登録日時で自動並び替えします。</p>
+          <h2>{project.name} のWBS・ガントチャート</h2>
+          <p>親タスクは見出し、タスクは予定と進捗の入力対象です。実績は学習記録から集計します。</p>
         </div>
         <div className="button-group">
           <button className="secondary-button" type="button">親タスクを追加</button>
           <button className="primary-button" type="button">タスクを追加</button>
+          <button className="secondary-button" type="button">表示期間</button>
         </div>
       </div>
-      <div className="wbs-toolbar">
-        <button type="button">親なしにする</button>
-        <button type="button">親タスクを設定</button>
-        <span className="toolbar-note">手動並び替えは行わず、日付変更後に自動で並び替えます。</span>
+      <p className="panel-note">{addTaskGuide} 手動並び替えは行わず、予定日と登録日時で自動並び替えします。</p>
+      <div
+        className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
+        onClick={selectedTask ? () => setSelectedTaskId(null) : undefined}
+      >
+        <GanttWbsTable
+          project={project}
+          selectedTaskId={selectedTask?.id ?? null}
+          taskList={projectTasks}
+          onSelectTask={setSelectedTaskId}
+        />
+        {selectedTask && (
+          <TaskSidePanel
+            key={selectedTask.id}
+            task={selectedTask}
+            project={project}
+            taskList={projectTasks}
+            onMove={onMove}
+            onClose={() => setSelectedTaskId(null)}
+          />
+        )}
       </div>
-      <TaskList tasks={projectTasks} project={project} editable />
       <div className="constraint-box">
         <strong>制約の見せ方確認</strong>
         <p>
@@ -1178,63 +1159,65 @@ const WbsEditor = ({ project }: { project: Project }) => {
   );
 };
 
-const StudyLogList = ({ onMove }: { onMove: (screen: Screen) => void }) => (
-  <section className="panel wide">
-    <div className="panel-header">
-      <div>
-        <p className="eyebrow">SCR-07A</p>
-        <h2>学習記録一覧</h2>
-        <p>学習日、対象タスク、学習時間を中心に確認します。メモは任意です。</p>
-      </div>
-      <button className="primary-button" onClick={() => onMove("studyLogForm")} type="button">
-        学習記録を追加
-      </button>
-    </div>
-    <div className="log-list">
-      {[...studyLogs]
-        .sort((a, b) =>
-          b.studyDate === a.studyDate
-            ? b.updatedAt.localeCompare(a.updatedAt)
-            : b.studyDate.localeCompare(a.studyDate),
-        )
-        .map((log) => {
-          const project = projects.find((item) => item.id === log.projectId);
-          const task = tasks.find((item) => item.id === log.taskId);
-
-          return (
-            <article className="log-item" key={log.id}>
-              <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
-              <span>{project?.name} / {task?.name}</span>
-              <div className="badge-list">
-                <span className="badge neutral">{log.memo ? "メモあり" : "メモなし"}</span>
-                <span className="badge neutral">進捗率は任意更新</span>
-              </div>
-              <div className="row-actions">
-                <button className="text-button" onClick={() => onMove("studyLogForm")} type="button">
-                  編集
-                </button>
-                <button className="text-button danger-text" type="button">
-                  削除
-                </button>
-              </div>
-            </article>
-          );
-        })}
-    </div>
-  </section>
-);
-
-const StudyLogForm = () => {
-  const sampleLog = studyLogs[0];
+const StudyLogList = ({ project }: { project: Project }) => {
+  const projectLogs = [...studyLogs]
+    .filter((log) => log.projectId === project.id)
+    .sort((a, b) =>
+      b.studyDate === a.studyDate
+        ? b.updatedAt.localeCompare(a.updatedAt)
+        : b.studyDate.localeCompare(a.studyDate),
+    );
+  const sampleLog = projectLogs[0] ?? studyLogs[0];
+  const projectTasks = getLeafTasks(project.id, tasks);
+  const projectStudyHours = projectLogs.reduce((sum, log) => sum + log.hours, 0);
 
   return (
-    <section className="screen-grid">
-      <div className="panel form-panel">
+    <section className="panel wide">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">プロジェクト内機能</p>
+          <h2>{project.name} の学習記録</h2>
+          <p>アプリ外で実施した学習実績を、プロジェクト内で登録・確認・編集・削除します。</p>
+        </div>
+        <div className="badge-list">
+          <span className="badge neutral">プロジェクト横断一覧はMVP対象外</span>
+          <span className="badge neutral">合計 {formatHours(projectStudyHours)}</span>
+        </div>
+      </div>
+
+      <div className="study-log-workspace">
+        <div className="log-list">
+          {projectLogs.map((log) => {
+            const task = tasks.find((item) => item.id === log.taskId);
+
+            return (
+              <article className="log-item" key={log.id}>
+                <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
+                <span>{task?.name}</span>
+                <p>{log.memo}</p>
+                <div className="badge-list">
+                  <span className="badge neutral">{log.memo ? "メモあり" : "メモなし"}</span>
+                  <span className="badge neutral">進捗率は任意更新</span>
+                </div>
+                <div className="row-actions">
+                  <button className="text-button" type="button">
+                    編集
+                  </button>
+                  <button className="text-button danger-text" type="button">
+                    削除
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="form-panel study-log-form">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">SCR-07B</p>
-            <h2>学習記録登録・編集</h2>
-            <p>アプリ外で実施した学習実績を、学習日と対象タスクに紐づけて記録します。</p>
+            <p className="eyebrow">SCR-06B</p>
+            <h2>登録・編集フォーム</h2>
+            <p>同じタスクに複数件登録でき、既存記録は上書きしません。</p>
           </div>
         </div>
         <div className="form-row">
@@ -1250,7 +1233,7 @@ const StudyLogForm = () => {
         <label>
           対象タスク
           <select defaultValue={sampleLog.taskId}>
-            {getLeafTasks("java-silver", tasks).map((task) => (
+            {projectTasks.map((task) => (
               <option key={task.id} value={task.id}>{task.name}</option>
             ))}
           </select>
@@ -1272,9 +1255,7 @@ const StudyLogForm = () => {
           <button className="primary-button" type="button">保存する</button>
           <button className="secondary-button" type="button">削除</button>
         </div>
-      </div>
-      <aside className="panel">
-        <h2>登録ルール</h2>
+        <div className="study-log-rules">
         <div className="constraint-box neutral-box">
           <strong>必須入力は少なくする</strong>
           <p>学習日、対象タスク、学習時間だけで保存できます。進捗率とメモは任意です。</p>
@@ -1283,18 +1264,20 @@ const StudyLogForm = () => {
           <strong>未来日は不可</strong>
           <p>未来日の学習記録は保存できません。</p>
         </div>
-      </aside>
+        </div>
+        </div>
+      </div>
     </section>
   );
 };
 
-const QuestionList = ({ onMove }: { onMove: (screen: Screen) => void }) => (
+const QuestionList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => (
   <section className="panel wide">
     <div className="panel-header">
       <div>
-        <p className="eyebrow">SCR-10</p>
-        <h2>質問一覧</h2>
-        <p>状態、カテゴリ、プロジェクトで絞り込む想定です。</p>
+        <p className="eyebrow">SCR-08</p>
+        <h2>{project.name} の質問</h2>
+        <p>選択中プロジェクト内の質問を、状態とカテゴリで絞り込む想定です。</p>
       </div>
       <button className="primary-button" onClick={() => onMove("questionForm")} type="button">
         質問を追加
@@ -1316,7 +1299,7 @@ const QuestionList = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       </select>
     </div>
     <div className="question-grid">
-      {questions.map((question) => {
+      {questions.filter((question) => question.projectId === project.id).map((question) => {
         const task = tasks.find((item) => item.id === question.taskId);
         const answerCount = aiAnswers.filter((answer) => answer.questionId === question.id).length;
         return (
