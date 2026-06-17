@@ -158,10 +158,10 @@ export const App = () => {
         {screen === "projectDetail" && (
           <ProjectDetail project={selectedProject} onMove={setScreen} />
         )}
-        {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
+        {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} onMove={setScreen} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
-        {screen === "studyLogs" && <StudyLogList project={selectedProject} />}
+        {screen === "studyLogs" && <StudyLogList project={selectedProject} onMove={setScreen} />}
         {screen === "questions" && <QuestionList project={selectedProject} onMove={setScreen} />}
         {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
         {screen === "aiContext" && <AiContextSelector onMove={setScreen} />}
@@ -352,22 +352,26 @@ const ProjectList = ({
 
 const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
-  const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
-  const lastStudyDate = [...projectLogs].sort((a, b) => b.studyDate.localeCompare(a.studyDate))[0]?.studyDate;
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
-  const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
-  const selectedTaskParent = selectedTask?.parentId
-    ? projectTasks.find((task) => task.id === selectedTask.parentId)
-    : null;
-  const addTaskGuide = selectedTask
-    ? selectedTaskIsParent
-      ? `選択中の「${selectedTask.name}」配下にタスクを追加します。`
-      : selectedTaskParent
-        ? `選択中タスクと同じ「${selectedTaskParent.name}」配下に追加します。`
-        : "親なしタスクとして最上位に追加します。"
-    : "未選択時は親なしタスクとして最上位に追加します。";
+  const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
+  const remainingHours = Math.max(summary.plannedHours - summary.actualHours, 0);
+  const unresolvedQuestions = questions.filter(
+    (question) => question.projectId === project.id && question.status !== "resolved",
+  );
+  const incompleteTasks = getLeafTasks(project.id, tasks)
+    .map((task) => ({
+      task,
+      summary: buildTaskSummary(task, project, tasks, studyLogs),
+    }))
+    .filter((item) => item.summary.progress < 100)
+    .sort((a, b) => {
+      if (a.summary.isDelayed !== b.summary.isDelayed) {
+        return a.summary.isDelayed ? -1 : 1;
+      }
+      return a.summary.plannedEndDate.localeCompare(b.summary.plannedEndDate);
+    });
+  const hasCostOverrun = summary.actualHours > summary.plannedHours && summary.plannedHours > 0;
+  const delayedTasks = incompleteTasks.filter((item) => item.summary.isDelayed);
 
   return (
     <section className="screen-grid project-detail-grid">
@@ -375,70 +379,174 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         <div>
           <h2>{project.name}</h2>
           <p>{project.summary}</p>
-        </div>
-        <div className="button-group">
-          <button className="secondary-button" onClick={() => onMove("wbs")} type="button">WBS</button>
-          <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録</button>
-          <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
-          <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
-          <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
-          <button className="secondary-button" onClick={() => onMove("aiPlanInput")} type="button">AI計画</button>
-        </div>
-      </div>
-
-      <div className="metric-row compact-metrics">
-        <Metric label="期間" value={`${formatDate(project.startDate)} - ${formatDate(project.targetEndDate)}`} />
-        <Metric label="進捗率" value={formatProgress(summary.progress)} />
-        <Metric label="予定工数" value={formatHours(summary.plannedHours)} />
-        <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
-        <Metric label="最終学習日" value={lastStudyDate ? formatDate(lastStudyDate) : "未記録"} />
-        <Metric label="遅延タスク" value={`${summary.delayedCount}件`} tone={summary.delayedCount > 0 ? "danger" : "normal"} />
-      </div>
-
-      <section className="panel wide">
-        <div className="panel-header">
-          <h2>WBS・ガントチャート</h2>
-          <div className="button-group">
-            <button className="secondary-button" type="button">親タスクを追加</button>
-            <button className="primary-button" type="button">タスクを追加</button>
-            <button className="secondary-button" type="button">表示期間</button>
+          <div className="project-meta-row">
+            <span className="badge neutral">{getStatusLabel(project.status)}</span>
+            <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
+            <span>{project.archived ? "アーカイブ中" : "通常表示"}</span>
           </div>
         </div>
-        <p className="panel-note">{addTaskGuide} 表示順は予定日と登録日時で自動並び替えされます。</p>
-        <div
-          className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
-          onClick={selectedTask ? () => setSelectedTaskId(null) : undefined}
-        >
-          <GanttWbsTable
-            project={project}
-            selectedTaskId={selectedTask?.id ?? null}
-            taskList={projectTasks}
-            onSelectTask={setSelectedTaskId}
-          />
-          {selectedTask && (
-            <TaskSidePanel
-              key={selectedTask.id}
-              task={selectedTask}
-              project={project}
-              taskList={projectTasks}
-              onMove={onMove}
-              onClose={() => setSelectedTaskId(null)}
-            />
+      </div>
+
+      <ProjectSectionTabs active="projectDetail" onMove={onMove} />
+
+      <div className="metric-row compact-metrics">
+        <Metric label="進捗率" value={formatProgress(summary.progress)} />
+        <Metric
+          label="予定 / 実績（残）"
+          value={`${formatHours(summary.plannedHours)} / ${formatHours(summary.actualHours)}（残 ${formatHours(remainingHours)}）`}
+          tone={hasCostOverrun ? "danger" : "normal"}
+        />
+        <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
+        <Metric label="プロジェクト連続日数" value={`${projectContinuousDays}日`} tone={projectContinuousDays > 0 ? "good" : "normal"} />
+      </div>
+
+      <section className="panel wide project-overview-panel">
+        <div className="panel-header">
+          <h2>警告</h2>
+          <span className="badge neutral">概要</span>
+        </div>
+        <div className="warning-banner-list">
+          {delayedTasks.length > 0 && (
+            <div className="warning-banner danger">
+              <strong>進捗遅延</strong>
+              <span>{delayedTasks.length}件のタスクが終了予定日を過ぎています。</span>
+            </div>
           )}
+          {hasCostOverrun && (
+            <div className="warning-banner danger">
+              <strong>工数超過</strong>
+              <span>実績工数が予定工数を超えています。</span>
+            </div>
+          )}
+          {unresolvedQuestions.length > 0 && (
+            <div className="warning-banner warning">
+              <strong>未解決質問</strong>
+              <span>{unresolvedQuestions.length}件の未解決または調査中の質問があります。</span>
+            </div>
+          )}
+          {delayedTasks.length === 0 && !hasCostOverrun && unresolvedQuestions.length === 0 && (
+            <div className="warning-banner good">
+              <strong>警告なし</strong>
+              <span>進捗遅延、工数超過、未解決質問はありません。</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="panel wide project-overview-panel">
+        <div className="panel-header">
+          <h2>未完了タスク</h2>
+          <button className="text-button" onClick={() => onMove("wbs")} type="button">
+            WBSで確認
+          </button>
+        </div>
+        <div className="incomplete-task-list">
+          {incompleteTasks.slice(0, 8).map(({ task, summary: taskSummary }) => (
+            <button
+              className={taskSummary.isDelayed ? "incomplete-task-row delayed" : "incomplete-task-row"}
+              key={task.id}
+              onClick={() => onMove("wbs")}
+              type="button"
+            >
+              <span>
+                <strong>{task.name}</strong>
+                {taskSummary.isDelayed && <span className="badge warning">遅延</span>}
+              </span>
+              <span>終了予定 {formatDate(taskSummary.plannedEndDate)}</span>
+              <span>{formatProgress(taskSummary.progress)}</span>
+            </button>
+          ))}
+          {incompleteTasks.length === 0 && (
+            <div className="empty-state">未完了タスクはありません。</div>
+          )}
+        </div>
+      </section>
+
+      <section className="panel wide project-overview-panel">
+        <div className="panel-header">
+          <h2>クイックアクション</h2>
+        </div>
+        <div className="quick-action-grid">
+          <button className="quick-action-card" onClick={() => onMove("wbs")} type="button">
+            <strong>WBS・ガント</strong>
+            <span>タスクの予定、進捗、ガントを確認する</span>
+          </button>
+          <button className="quick-action-card" onClick={() => onMove("studyLogs")} type="button">
+            <strong>学習記録</strong>
+            <span>学習日、学習時間、メモを登録する</span>
+          </button>
+          <button className="quick-action-card" onClick={() => onMove("progressAnalysis")} type="button">
+            <strong>進捗分析</strong>
+            <span>EVMとバーンダウンで差分を見る</span>
+          </button>
+          <button className="quick-action-card" onClick={() => onMove("questions")} type="button">
+            <strong>質問</strong>
+            <span>疑問と回答メモを確認する</span>
+          </button>
+          <button className="quick-action-card" onClick={() => onMove("projectForm")} type="button">
+            <strong>プロジェクト編集</strong>
+            <span>名称、期間、状態を変更する</span>
+          </button>
+          <button className="quick-action-card" onClick={() => onMove("aiPlanInput")} type="button">
+            <strong>AI計画</strong>
+            <span>教材目次から計画案を作る</span>
+          </button>
         </div>
       </section>
     </section>
   );
 };
 
-const ProgressAnalysis = ({ project }: { project: Project }) => {
+const projectTabItems: Array<{
+  label: string;
+  screen: Screen;
+  mvp: 1 | 2 | 3;
+}> = [
+  { label: "概要", screen: "projectDetail", mvp: 1 },
+  { label: "WBS", screen: "wbs", mvp: 1 },
+  { label: "学習記録", screen: "studyLogs", mvp: 1 },
+  { label: "進捗分析", screen: "progressAnalysis", mvp: 2 },
+  { label: "質問", screen: "questions", mvp: 3 },
+];
+
+const ProjectSectionTabs = ({
+  active,
+  onMove,
+}: {
+  active: Screen;
+  onMove: (screen: Screen) => void;
+}) => (
+  <nav className="project-tabs" aria-label="プロジェクト内機能">
+    {projectTabItems.map((tab) => {
+      const isActive = active === tab.screen;
+      const isDisabled = tab.mvp !== 1 && !isActive;
+
+      return (
+        <button
+          aria-current={isActive ? "page" : undefined}
+          className={[
+            "project-tab",
+            isActive ? "active" : "",
+            isDisabled ? "disabled" : "",
+          ].filter(Boolean).join(" ")}
+          disabled={isDisabled}
+          key={tab.screen}
+          onClick={() => onMove(tab.screen)}
+          title={isDisabled ? `MVP ${tab.mvp} で提供予定` : undefined}
+          type="button"
+        >
+          <span>{tab.label}</span>
+          <small>MVP {tab.mvp}</small>
+        </button>
+      );
+    })}
+  </nav>
+);
+
+const ProgressAnalysis = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   return (
     <section className="screen-grid">
-      <div className="hero-card">
-        <div>
-          <h2>{project.name} の進捗分析</h2>
-        </div>
-      </div>
+      <ProjectSectionTabs active="progressAnalysis" onMove={onMove} />
 
       <section className="panel wide">
         <div className="panel-header">
@@ -1115,6 +1223,7 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
 
   return (
     <section className="panel wide">
+      <ProjectSectionTabs active="wbs" onMove={onMove} />
       <div className="panel-header">
         <div>
           <h2>{project.name} のWBS・ガントチャート</h2>
@@ -1159,7 +1268,7 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
   );
 };
 
-const StudyLogList = ({ project }: { project: Project }) => {
+const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const projectLogs = [...studyLogs]
     .filter((log) => log.projectId === project.id)
     .sort((a, b) =>
@@ -1173,6 +1282,7 @@ const StudyLogList = ({ project }: { project: Project }) => {
 
   return (
     <section className="panel wide">
+      <ProjectSectionTabs active="studyLogs" onMove={onMove} />
       <div className="panel-header">
         <div>
           <p className="eyebrow">プロジェクト内機能</p>
@@ -1273,6 +1383,7 @@ const StudyLogList = ({ project }: { project: Project }) => {
 
 const QuestionList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => (
   <section className="panel wide">
+    <ProjectSectionTabs active="questions" onMove={onMove} />
     <div className="panel-header">
       <div>
         <p className="eyebrow">SCR-08</p>

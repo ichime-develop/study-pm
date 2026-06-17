@@ -299,6 +299,78 @@ button {
   white-space: nowrap;
 }
 
+.project-meta-row {
+  align-items: center;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.project-tabs {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  display: flex;
+  gap: 6px;
+  grid-column: 1 / -1;
+  overflow-x: auto;
+  padding: 6px;
+}
+
+.panel > .project-tabs {
+  margin-bottom: 14px;
+}
+
+.project-tab {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #4b5563;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  padding: 9px 12px;
+}
+
+.project-tab:hover {
+  background: #f8fafc;
+  border-color: #dbe4ef;
+  color: #1d4ed8;
+}
+
+.project-tab.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.project-tab.disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.project-tab small {
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 6px;
+}
+
+.project-tab.active small {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .compact-metrics {
   gap: 10px;
 }
@@ -332,6 +404,138 @@ button {
 .project-detail-grid > .panel.wide .secondary-button {
   font-size: 13px;
   padding: 8px 10px;
+}
+
+.project-overview-panel {
+  align-self: start;
+}
+
+.warning-banner-list,
+.incomplete-task-list,
+.quick-action-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.warning-banner {
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.warning-banner span {
+  color: #4b5563;
+  font-size: 13px;
+  text-align: right;
+}
+
+.warning-banner.danger {
+  background: #fff7f7;
+  border-color: #fecaca;
+}
+
+.warning-banner.danger strong {
+  color: #b91c1c;
+}
+
+.warning-banner.warning {
+  background: #fffbeb;
+  border-color: #fed7aa;
+}
+
+.warning-banner.warning strong {
+  color: #b45309;
+}
+
+.warning-banner.good {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.warning-banner.good strong {
+  color: #1d4ed8;
+}
+
+.incomplete-task-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  color: #111827;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 130px 80px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.incomplete-task-row:hover {
+  border-color: #2563eb;
+}
+
+.incomplete-task-row.delayed {
+  background: #fff7f7;
+  border-color: #fecaca;
+}
+
+.incomplete-task-row > span:first-child {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.incomplete-task-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incomplete-task-row > span:not(:first-child) {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.quick-action-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.quick-action-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  color: #111827;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 6px;
+  padding: 14px;
+  text-align: left;
+}
+
+.quick-action-card:hover {
+  border-color: #2563eb;
+}
+
+.quick-action-card span {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.empty-state {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 14px;
+  color: #6b7280;
+  padding: 16px;
+  text-align: center;
 }
 
 .ai-hero {
@@ -1897,6 +2101,10 @@ textarea {
 }
 
 @media (max-width: 1279px) {
+  .quick-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .study-log-workspace {
     grid-template-columns: 1fr;
   }
@@ -1931,6 +2139,8 @@ textarea {
 
   .table-row,
   .task-row,
+  .incomplete-task-row,
+  .quick-action-grid,
   .plan-task-row,
   .task-list.compact .task-row,
   .filter-bar,
