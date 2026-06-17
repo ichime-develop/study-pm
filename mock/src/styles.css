@@ -1242,6 +1242,16 @@ button {
   margin: 8px 0 0;
 }
 
+.row-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.danger-text {
+  color: #dc2626;
+}
+
 .wbs-toolbar {
   align-items: center;
   display: flex;

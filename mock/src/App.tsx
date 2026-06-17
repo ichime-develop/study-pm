@@ -33,6 +33,8 @@ type Screen =
   | "progressAnalysis"
   | "projectForm"
   | "wbs"
+  | "studyLogs"
+  | "studyLogForm"
   | "questions"
   | "questionForm"
   | "aiContext"
@@ -49,6 +51,8 @@ const screenLabels: Record<Screen, string> = {
   progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS編集",
+  studyLogs: "学習記録一覧",
+  studyLogForm: "学習記録登録・編集",
   questions: "質問一覧",
   questionForm: "質問登録・編集",
   aiContext: "AI送信情報選択",
@@ -132,6 +136,8 @@ export const App = () => {
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} />}
+        {screen === "studyLogs" && <StudyLogList onMove={setScreen} />}
+        {screen === "studyLogForm" && <StudyLogForm />}
         {screen === "questions" && <QuestionList onMove={setScreen} />}
         {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
         {screen === "aiContext" && <AiContextSelector onMove={setScreen} />}
@@ -444,7 +450,7 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         <div className="button-group">
           <button className="secondary-button" onClick={() => onMove("progressAnalysis")} type="button">進捗分析</button>
           <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">プロジェクト編集</button>
-          <button className="secondary-button" type="button">学習記録登録</button>
+          <button className="secondary-button" onClick={() => onMove("studyLogForm")} type="button">学習記録登録</button>
           <button className="secondary-button" onClick={() => onMove("questions")} type="button">質問一覧</button>
         </div>
       </div>
@@ -483,6 +489,7 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
               task={selectedTask}
               project={project}
               taskList={projectTasks}
+              onMove={onMove}
               onClose={() => setSelectedTaskId(null)}
             />
           )}
@@ -888,11 +895,13 @@ const TaskSidePanel = ({
   task,
   project,
   taskList,
+  onMove,
   onClose,
 }: {
   task: WbsTask;
   project: Project;
   taskList: WbsTask[];
+  onMove: (screen: Screen) => void;
   onClose: () => void;
 }) => {
   const summary = buildTaskSummary(task, project, tasks, studyLogs);
@@ -991,7 +1000,7 @@ const TaskSidePanel = ({
             ))}
             {relatedLogs.length === 0 && <span>まだ学習記録はありません。</span>}
           </div>
-          <button className="secondary-button" type="button">学習記録を追加</button>
+          <button className="secondary-button" onClick={() => onMove("studyLogForm")} type="button">学習記録を追加</button>
         </div>
       )}
 
@@ -1165,6 +1174,116 @@ const WbsEditor = ({ project }: { project: Project }) => {
           関連質問または学習記録があるタスクは削除できません。
         </p>
       </div>
+    </section>
+  );
+};
+
+const StudyLogList = ({ onMove }: { onMove: (screen: Screen) => void }) => (
+  <section className="panel wide">
+    <div className="panel-header">
+      <div>
+        <p className="eyebrow">SCR-07A</p>
+        <h2>学習記録一覧</h2>
+        <p>学習日、対象タスク、学習時間を中心に確認します。メモは任意です。</p>
+      </div>
+      <button className="primary-button" onClick={() => onMove("studyLogForm")} type="button">
+        学習記録を追加
+      </button>
+    </div>
+    <div className="log-list">
+      {[...studyLogs]
+        .sort((a, b) =>
+          b.studyDate === a.studyDate
+            ? b.updatedAt.localeCompare(a.updatedAt)
+            : b.studyDate.localeCompare(a.studyDate),
+        )
+        .map((log) => {
+          const project = projects.find((item) => item.id === log.projectId);
+          const task = tasks.find((item) => item.id === log.taskId);
+
+          return (
+            <article className="log-item" key={log.id}>
+              <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
+              <span>{project?.name} / {task?.name}</span>
+              <div className="badge-list">
+                <span className="badge neutral">{log.memo ? "メモあり" : "メモなし"}</span>
+                <span className="badge neutral">進捗率は任意更新</span>
+              </div>
+              <div className="row-actions">
+                <button className="text-button" onClick={() => onMove("studyLogForm")} type="button">
+                  編集
+                </button>
+                <button className="text-button danger-text" type="button">
+                  削除
+                </button>
+              </div>
+            </article>
+          );
+        })}
+    </div>
+  </section>
+);
+
+const StudyLogForm = () => {
+  const sampleLog = studyLogs[0];
+
+  return (
+    <section className="screen-grid">
+      <div className="panel form-panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">SCR-07B</p>
+            <h2>学習記録登録・編集</h2>
+            <p>アプリ外で実施した学習実績を、学習日と対象タスクに紐づけて記録します。</p>
+          </div>
+        </div>
+        <div className="form-row">
+          <label>
+            学習日
+            <input defaultValue={sampleLog.studyDate} max={today} type="date" />
+          </label>
+          <label>
+            学習時間
+            <input defaultValue={sampleLog.hours} min="0.25" step="0.25" type="number" />
+          </label>
+        </div>
+        <label>
+          対象タスク
+          <select defaultValue={sampleLog.taskId}>
+            {getLeafTasks("java-silver", tasks).map((task) => (
+              <option key={task.id} value={task.id}>{task.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          進捗率（任意）
+          <select defaultValue="">
+            <option value="">更新しない</option>
+            {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+              <option key={progress} value={progress}>{progress}%</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          メモ（任意）
+          <textarea maxLength={5000} placeholder="必要な場合だけ補足を入力" />
+        </label>
+        <div className="button-group">
+          <button className="primary-button" type="button">保存する</button>
+          <button className="secondary-button" type="button">削除</button>
+        </div>
+      </div>
+      <aside className="panel">
+        <h2>登録ルール</h2>
+        <div className="constraint-box neutral-box">
+          <strong>必須入力は少なくする</strong>
+          <p>学習日、対象タスク、学習時間だけで保存できます。進捗率とメモは任意です。</p>
+        </div>
+        <div className="constraint-box">
+          <strong>未来日は不可</strong>
+          <p>未来日の学習記録は保存できません。</p>
+        </div>
+      </aside>
     </section>
   );
 };
