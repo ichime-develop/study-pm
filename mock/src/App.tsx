@@ -10,6 +10,7 @@ import {
   tocSampleText,
   type Project,
   type QuestionStatus,
+  type StudyLog,
   type TaskStatus,
   type WbsTask,
 } from "./data/mockData";
@@ -44,7 +45,7 @@ const screenLabels: Record<Screen, string> = {
   login: "ログイン",
   signup: "アカウント登録",
   projects: "プロジェクト一覧",
-  projectDetail: "プロジェクト詳細",
+  projectDetail: "プロジェクト概要",
   progressAnalysis: "進捗分析",
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS・ガント",
@@ -156,7 +157,7 @@ export const App = () => {
           <ProjectList projects={visibleProjects} onMove={setScreen} onOpenProject={openProject} />
         )}
         {screen === "projectDetail" && (
-          <ProjectDetail project={selectedProject} onMove={setScreen} />
+          <ProjectOverview project={selectedProject} onMove={setScreen} />
         )}
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} onMove={setScreen} />}
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
@@ -350,7 +351,7 @@ const ProjectList = ({
   );
 };
 
-const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
+const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
   const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
@@ -375,19 +376,7 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
 
   return (
     <section className="screen-grid project-detail-grid">
-      <div className="hero-card compact-hero">
-        <div>
-          <h2>{project.name}</h2>
-          <p>{project.summary}</p>
-          <div className="project-meta-row">
-            <span className="badge neutral">{getStatusLabel(project.status)}</span>
-            <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
-            <span>{project.archived ? "アーカイブ中" : "通常表示"}</span>
-          </div>
-        </div>
-      </div>
-
-      <ProjectSectionTabs active="projectDetail" onMove={onMove} />
+      <ProjectWorkspaceHeader active="projectDetail" onMove={onMove} project={project} />
 
       <div className="metric-row compact-metrics">
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
@@ -462,37 +451,6 @@ const ProjectDetail = ({ project, onMove }: { project: Project; onMove: (screen:
         </div>
       </section>
 
-      <section className="panel wide project-overview-panel">
-        <div className="panel-header">
-          <h2>クイックアクション</h2>
-        </div>
-        <div className="quick-action-grid">
-          <button className="quick-action-card" onClick={() => onMove("wbs")} type="button">
-            <strong>WBS・ガント</strong>
-            <span>タスクの予定、進捗、ガントを確認する</span>
-          </button>
-          <button className="quick-action-card" onClick={() => onMove("studyLogs")} type="button">
-            <strong>学習記録</strong>
-            <span>学習日、学習時間、メモを登録する</span>
-          </button>
-          <button className="quick-action-card" onClick={() => onMove("progressAnalysis")} type="button">
-            <strong>進捗分析</strong>
-            <span>EVMとバーンダウンで差分を見る</span>
-          </button>
-          <button className="quick-action-card" onClick={() => onMove("questions")} type="button">
-            <strong>質問</strong>
-            <span>疑問と回答メモを確認する</span>
-          </button>
-          <button className="quick-action-card" onClick={() => onMove("projectForm")} type="button">
-            <strong>プロジェクト編集</strong>
-            <span>名称、期間、状態を変更する</span>
-          </button>
-          <button className="quick-action-card" onClick={() => onMove("aiPlanInput")} type="button">
-            <strong>AI計画</strong>
-            <span>教材目次から計画案を作る</span>
-          </button>
-        </div>
-      </section>
     </section>
   );
 };
@@ -543,10 +501,38 @@ const ProjectSectionTabs = ({
   </nav>
 );
 
+const ProjectWorkspaceHeader = ({
+  active,
+  onMove,
+  project,
+}: {
+  active: Screen;
+  onMove: (screen: Screen) => void;
+  project: Project;
+}) => (
+  <header className="project-workspace-header">
+    <div className="project-workspace-identity">
+      <div className="project-workspace-copy">
+        <p className="eyebrow">選択中プロジェクト</p>
+        <div className="project-workspace-name-row">
+          <h2>{project.name}</h2>
+          <StatusPill status={project.status} />
+        </div>
+        <p>{project.summary}</p>
+      </div>
+      <div className="project-workspace-meta" aria-label="プロジェクト期間と表示状態">
+        <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
+        <span className="badge neutral">{project.archived ? "アーカイブ中" : "通常表示"}</span>
+      </div>
+    </div>
+    <ProjectSectionTabs active={active} onMove={onMove} />
+  </header>
+);
+
 const ProgressAnalysis = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   return (
     <section className="screen-grid">
-      <ProjectSectionTabs active="progressAnalysis" onMove={onMove} />
+      <ProjectWorkspaceHeader active="progressAnalysis" onMove={onMove} project={project} />
 
       <section className="panel wide">
         <div className="panel-header">
@@ -940,17 +926,92 @@ const GanttWbsTable = ({
   );
 };
 
+const StudyLogEditorPanel = ({
+  initialLog,
+  initialTaskId,
+  taskList,
+  onCancel,
+  onDelete,
+  onSave,
+}: {
+  initialLog?: StudyLog;
+  initialTaskId?: string;
+  taskList: WbsTask[];
+  onCancel: () => void;
+  onDelete?: () => void;
+  onSave: () => void;
+}) => {
+  const isEdit = Boolean(initialLog);
+  const defaultTaskId = initialLog?.taskId ?? initialTaskId ?? "";
+
+  return (
+    <aside className="task-side-panel study-log-side-panel" onClick={(event) => event.stopPropagation()}>
+      <div className="record-panel-header">
+        <div>
+          <p className="eyebrow">{isEdit ? "学習記録を編集" : "学習記録を追加"}</p>
+          <h3>{isEdit ? "登録済みの実績を修正" : "学習した実績を記録"}</h3>
+        </div>
+        <button className="icon-button muted" onClick={onCancel} aria-label="閉じる" type="button">×</button>
+      </div>
+
+      <div className="form-row">
+        <label>
+          学習日
+          <input defaultValue={initialLog?.studyDate ?? today} max={today} type="date" />
+        </label>
+        <label>
+          学習時間（実績）
+          <input defaultValue={initialLog?.hours ?? 1} min="0.25" step="0.25" type="number" />
+        </label>
+      </div>
+
+      <label>
+        対象タスク
+        <select defaultValue={defaultTaskId}>
+          {!defaultTaskId && <option value="">タスクを選択</option>}
+          {taskList.map((task) => (
+            <option key={task.id} value={task.id}>{task.name}</option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        メモ（任意）
+        <textarea defaultValue={initialLog?.memo ?? ""} maxLength={5000} placeholder="必要な場合だけ補足を入力" />
+      </label>
+
+      <p className="form-helper">学習日、対象タスク、学習時間（実績）だけで保存できます。</p>
+
+      <div className="side-panel-actions">
+        <button className="primary-button" onClick={onSave} type="button">保存する</button>
+        <button className="secondary-button" onClick={onCancel} type="button">キャンセル</button>
+        {isEdit && onDelete && (
+          <button
+            className="secondary-button danger-text"
+            onClick={() => {
+              if (window.confirm("この学習記録を削除しますか？")) onDelete();
+            }}
+            type="button"
+          >
+            削除
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+};
+
 const TaskSidePanel = ({
   task,
   project,
   taskList,
-  onMove,
+  onAddStudyLog,
   onClose,
 }: {
   task: WbsTask;
   project: Project;
   taskList: WbsTask[];
-  onMove: (screen: Screen) => void;
+  onAddStudyLog: (taskId: string) => void;
   onClose: () => void;
 }) => {
   const summary = buildTaskSummary(task, project, tasks, studyLogs);
@@ -967,11 +1028,11 @@ const TaskSidePanel = ({
 
   return (
     <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
-      <div className="side-panel-header">
-        <div>
-          <p className="eyebrow">{isParent ? "親タスク詳細" : "タスク詳細"}</p>
-          <h3>{task.name}</h3>
-        </div>
+      <div className="side-panel-title-row">
+        <label>
+          {isParent ? "親タスク名" : "タスク名"}
+          <input defaultValue={task.name} maxLength={100} />
+        </label>
         <button className="icon-button muted" onClick={onClose} aria-label="閉じる" type="button">×</button>
       </div>
 
@@ -987,11 +1048,6 @@ const TaskSidePanel = ({
           {summary.isOutOfProjectRange && <span className="badge warning">期間外</span>}
         </div>
       )}
-
-      <label>
-        {isParent ? "親タスク名" : "タスク名"}
-        <input defaultValue={task.name} maxLength={100} />
-      </label>
 
       {isParent ? (
         <label>
@@ -1019,20 +1075,6 @@ const TaskSidePanel = ({
               <input defaultValue={summary.plannedEndDate} type="date" />
             </label>
           </div>
-          <div className="form-row">
-            <label>
-              予定工数
-              <input defaultValue={summary.plannedHours} min="0.25" step="0.25" type="number" />
-            </label>
-          </div>
-          <label>
-            進捗率
-            <select defaultValue={Math.round(summary.progress / 10) * 10}>
-              {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
-                <option key={progress} value={progress}>{progress}%</option>
-              ))}
-            </select>
-          </label>
         </>
       )}
 
@@ -1052,7 +1094,7 @@ const TaskSidePanel = ({
             ))}
             {relatedLogs.length === 0 && <span>まだ学習記録はありません。</span>}
           </div>
-          <button className="secondary-button" onClick={() => onMove("studyLogs")} type="button">学習記録を追加</button>
+          <button className="secondary-button" onClick={() => onAddStudyLog(task.id)} type="button">学習記録を追加</button>
         </div>
       )}
 
@@ -1208,6 +1250,8 @@ const ProjectForm = ({ project, onMove }: { project: Project; onMove: (screen: S
 const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [studyLogTaskId, setStudyLogTaskId] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState("");
   const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
   const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
   const selectedTaskParent = selectedTask?.parentId
@@ -1222,51 +1266,76 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
     : "未選択時は親なしタスクとして最上位に追加します。";
 
   return (
-    <section className="panel wide">
-      <ProjectSectionTabs active="wbs" onMove={onMove} />
-      <div className="panel-header">
-        <div>
-          <h2>{project.name} のWBS・ガントチャート</h2>
-          <p>親タスクは見出し、タスクは予定と進捗の入力対象です。実績は学習記録から集計します。</p>
+    <section className="screen-grid project-workspace-screen">
+      <ProjectWorkspaceHeader active="wbs" onMove={onMove} project={project} />
+      <section className="panel wide">
+        <div className="panel-header">
+          <div>
+            <h2>WBS・ガントチャート</h2>
+            <p>親タスクは見出し、タスクは予定と進捗の入力対象です。実績は学習記録から集計します。</p>
+          </div>
+          <div className="button-group">
+            <button className="secondary-button" type="button">親タスクを追加</button>
+            <button className="primary-button" type="button">タスクを追加</button>
+            <button className="secondary-button" type="button">表示期間</button>
+          </div>
         </div>
-        <div className="button-group">
-          <button className="secondary-button" type="button">親タスクを追加</button>
-          <button className="primary-button" type="button">タスクを追加</button>
-          <button className="secondary-button" type="button">表示期間</button>
-        </div>
-      </div>
-      <p className="panel-note">{addTaskGuide} 手動並び替えは行わず、予定日と登録日時で自動並び替えします。</p>
-      <div
-        className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
-        onClick={selectedTask ? () => setSelectedTaskId(null) : undefined}
-      >
-        <GanttWbsTable
-          project={project}
-          selectedTaskId={selectedTask?.id ?? null}
-          taskList={projectTasks}
-          onSelectTask={setSelectedTaskId}
-        />
-        {selectedTask && (
-          <TaskSidePanel
-            key={selectedTask.id}
-            task={selectedTask}
+        <p className="panel-note">{addTaskGuide} 手動並び替えは行わず、予定日と登録日時で自動並び替えします。</p>
+        {saveNotice && <div className="save-notice" role="status">{saveNotice}</div>}
+        <div
+          className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
+          onClick={selectedTask ? () => {
+            setSelectedTaskId(null);
+            setStudyLogTaskId(null);
+          } : undefined}
+        >
+          <GanttWbsTable
             project={project}
+            selectedTaskId={selectedTask?.id ?? null}
             taskList={projectTasks}
-            onMove={onMove}
-            onClose={() => setSelectedTaskId(null)}
+            onSelectTask={(taskId) => {
+              setSelectedTaskId(taskId);
+              setStudyLogTaskId(null);
+              setSaveNotice("");
+            }}
           />
-        )}
-      </div>
-      <div className="constraint-box">
-        <strong>制約の見せ方確認</strong>
-        <p>
-          親タスクは見出しとして扱い、予定、実績、進捗、学習記録を持ちません。
-          関連質問または学習記録があるタスクは削除できません。
-        </p>
-      </div>
+          {selectedTask && studyLogTaskId ? (
+            <StudyLogEditorPanel
+              initialTaskId={studyLogTaskId}
+              key={`create-${studyLogTaskId}`}
+              taskList={getLeafTasks(project.id, tasks)}
+              onCancel={() => setStudyLogTaskId(null)}
+              onSave={() => {
+                setStudyLogTaskId(null);
+                setSaveNotice("学習記録を追加し、実績工数を再集計しました。");
+              }}
+            />
+          ) : selectedTask ? (
+            <TaskSidePanel
+              key={selectedTask.id}
+              task={selectedTask}
+              project={project}
+              taskList={projectTasks}
+              onAddStudyLog={setStudyLogTaskId}
+              onClose={() => setSelectedTaskId(null)}
+            />
+          ) : null}
+        </div>
+        <div className="constraint-box">
+          <strong>制約の見せ方確認</strong>
+          <p>
+            親タスクは見出しとして扱い、予定、実績、進捗、学習記録を持ちません。
+            関連質問または学習記録があるタスクは削除できません。
+          </p>
+        </div>
+      </section>
     </section>
   );
 };
+
+type StudyLogPanelState =
+  | { mode: "create" }
+  | { mode: "edit"; log: StudyLog };
 
 const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const projectLogs = [...studyLogs]
@@ -1276,162 +1345,150 @@ const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: 
         ? b.updatedAt.localeCompare(a.updatedAt)
         : b.studyDate.localeCompare(a.studyDate),
     );
-  const sampleLog = projectLogs[0] ?? studyLogs[0];
   const projectTasks = getLeafTasks(project.id, tasks);
   const projectStudyHours = projectLogs.reduce((sum, log) => sum + log.hours, 0);
+  const [panelState, setPanelState] = useState<StudyLogPanelState | null>(null);
+  const [saveNotice, setSaveNotice] = useState("");
 
   return (
-    <section className="panel wide">
-      <ProjectSectionTabs active="studyLogs" onMove={onMove} />
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">プロジェクト内機能</p>
-          <h2>{project.name} の学習記録</h2>
-          <p>アプリ外で実施した学習実績を、プロジェクト内で登録・確認・編集・削除します。</p>
-        </div>
-        <div className="badge-list">
-          <span className="badge neutral">プロジェクト横断一覧はMVP対象外</span>
-          <span className="badge neutral">合計 {formatHours(projectStudyHours)}</span>
-        </div>
-      </div>
-
-      <div className="study-log-workspace">
-        <div className="log-list">
-          {projectLogs.map((log) => {
-            const task = tasks.find((item) => item.id === log.taskId);
-
-            return (
-              <article className="log-item" key={log.id}>
-                <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
-                <span>{task?.name}</span>
-                <p>{log.memo}</p>
-                <div className="badge-list">
-                  <span className="badge neutral">{log.memo ? "メモあり" : "メモなし"}</span>
-                  <span className="badge neutral">進捗率は任意更新</span>
-                </div>
-                <div className="row-actions">
-                  <button className="text-button" type="button">
-                    編集
-                  </button>
-                  <button className="text-button danger-text" type="button">
-                    削除
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        <div className="form-panel study-log-form">
+    <section className="screen-grid project-workspace-screen">
+      <ProjectWorkspaceHeader active="studyLogs" onMove={onMove} project={project} />
+      <section className="panel wide">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">SCR-06B</p>
-            <h2>登録・編集フォーム</h2>
-            <p>同じタスクに複数件登録でき、既存記録は上書きしません。</p>
+            <h2>学習記録</h2>
+            <p>アプリ外で実施した学習実績を、プロジェクト内で登録・確認・編集・削除します。</p>
+          </div>
+          <div className="badge-list">
+            <span className="badge neutral">合計 {formatHours(projectStudyHours)}</span>
+            <button
+              className="primary-button"
+              onClick={() => {
+                setPanelState({ mode: "create" });
+                setSaveNotice("");
+              }}
+              type="button"
+            >
+              学習記録を追加
+            </button>
           </div>
         </div>
-        <div className="form-row">
-          <label>
-            学習日
-            <input defaultValue={sampleLog.studyDate} max={today} type="date" />
-          </label>
-          <label>
-            学習時間
-            <input defaultValue={sampleLog.hours} min="0.25" step="0.25" type="number" />
-          </label>
+
+        {saveNotice && <div className="save-notice" role="status">{saveNotice}</div>}
+
+        <div className="study-log-panel-host">
+          <div className="log-list">
+            {projectLogs.map((log) => {
+              const task = tasks.find((item) => item.id === log.taskId);
+
+              return (
+                <article
+                  aria-label={`${formatDate(log.studyDate)} ${task?.name ?? "タスク未設定"}の学習記録を編集`}
+                  className="log-item clickable-log-item"
+                  key={log.id}
+                  onClick={() => {
+                    setPanelState({ mode: "edit", log });
+                    setSaveNotice("");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setPanelState({ mode: "edit", log });
+                      setSaveNotice("");
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="log-item-main">
+                    <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
+                    <span>{task?.name}</span>
+                    <p>{log.memo}</p>
+                  </div>
+                  <div className="badge-list">
+                    <span className="text-button">編集</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {panelState && (
+            <StudyLogEditorPanel
+              initialLog={panelState.mode === "edit" ? panelState.log : undefined}
+              key={panelState.mode === "edit" ? panelState.log.id : "create"}
+              taskList={projectTasks}
+              onCancel={() => setPanelState(null)}
+              onDelete={panelState.mode === "edit" ? () => {
+                setPanelState(null);
+                setSaveNotice("学習記録を削除し、実績工数を再集計しました。");
+              } : undefined}
+              onSave={() => {
+                setPanelState(null);
+                setSaveNotice(panelState.mode === "edit"
+                  ? "学習記録を更新し、実績工数を再集計しました。"
+                  : "学習記録を追加し、実績工数を再集計しました。");
+              }}
+            />
+          )}
         </div>
-        <label>
-          対象タスク
-          <select defaultValue={sampleLog.taskId}>
-            {projectTasks.map((task) => (
-              <option key={task.id} value={task.id}>{task.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          進捗率（任意）
-          <select defaultValue="">
-            <option value="">更新しない</option>
-            {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
-              <option key={progress} value={progress}>{progress}%</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          メモ（任意）
-          <textarea maxLength={5000} placeholder="必要な場合だけ補足を入力" />
-        </label>
-        <div className="button-group">
-          <button className="primary-button" type="button">保存する</button>
-          <button className="secondary-button" type="button">削除</button>
-        </div>
-        <div className="study-log-rules">
-        <div className="constraint-box neutral-box">
-          <strong>必須入力は少なくする</strong>
-          <p>学習日、対象タスク、学習時間だけで保存できます。進捗率とメモは任意です。</p>
-        </div>
-        <div className="constraint-box">
-          <strong>未来日は不可</strong>
-          <p>未来日の学習記録は保存できません。</p>
-        </div>
-        </div>
-        </div>
-      </div>
+      </section>
     </section>
   );
 };
 
 const QuestionList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => (
-  <section className="panel wide">
-    <ProjectSectionTabs active="questions" onMove={onMove} />
-    <div className="panel-header">
-      <div>
-        <p className="eyebrow">SCR-08</p>
-        <h2>{project.name} の質問</h2>
-        <p>選択中プロジェクト内の質問を、状態とカテゴリで絞り込む想定です。</p>
+  <section className="screen-grid project-workspace-screen">
+    <ProjectWorkspaceHeader active="questions" onMove={onMove} project={project} />
+    <section className="panel wide">
+      <div className="panel-header">
+        <div>
+          <h2>質問</h2>
+          <p>選択中プロジェクト内の質問を、状態とカテゴリで絞り込む想定です。</p>
+        </div>
+        <button className="primary-button" onClick={() => onMove("questionForm")} type="button">
+          質問を追加
+        </button>
       </div>
-      <button className="primary-button" onClick={() => onMove("questionForm")} type="button">
-        質問を追加
-      </button>
-    </div>
-    <div className="filter-bar">
-      <input placeholder="キーワード検索" />
-      <select defaultValue="">
-        <option value="">すべての状態</option>
-        <option value="open">未解決</option>
-        <option value="investigating">調査中</option>
-        <option value="resolved">解決済み</option>
-      </select>
-      <select defaultValue="">
-        <option value="">すべてのカテゴリ</option>
-        <option>Java文法</option>
-        <option>オブジェクト指向</option>
-        <option>EVM</option>
-      </select>
-    </div>
-    <div className="question-grid">
-      {questions.filter((question) => question.projectId === project.id).map((question) => {
-        const task = tasks.find((item) => item.id === question.taskId);
-        const answerCount = aiAnswers.filter((answer) => answer.questionId === question.id).length;
-        return (
-          <article className="question-card" key={question.id}>
-            <div className="question-card-header">
-              <QuestionStatusPill status={question.status} />
-              <span>{question.category}</span>
-            </div>
-            <h3>{question.title}</h3>
-            <p>{question.content}</p>
-            <div className="question-meta">
-              <span>{task ? `関連: ${task.name}` : "プロジェクト全体"}</span>
-              <span>AI回答 {answerCount}件</span>
-            </div>
-            <button className="secondary-button" onClick={() => onMove("questionForm")} type="button">
-              詳細・編集
-            </button>
-          </article>
-        );
-      })}
-    </div>
+      <div className="filter-bar">
+        <input placeholder="キーワード検索" />
+        <select defaultValue="">
+          <option value="">すべての状態</option>
+          <option value="open">未解決</option>
+          <option value="investigating">調査中</option>
+          <option value="resolved">解決済み</option>
+        </select>
+        <select defaultValue="">
+          <option value="">すべてのカテゴリ</option>
+          <option>Java文法</option>
+          <option>オブジェクト指向</option>
+          <option>EVM</option>
+        </select>
+      </div>
+      <div className="question-grid">
+        {questions.filter((question) => question.projectId === project.id).map((question) => {
+          const task = tasks.find((item) => item.id === question.taskId);
+          const answerCount = aiAnswers.filter((answer) => answer.questionId === question.id).length;
+          return (
+            <article className="question-card" key={question.id}>
+              <div className="question-card-header">
+                <QuestionStatusPill status={question.status} />
+                <span>{question.category}</span>
+              </div>
+              <h3>{question.title}</h3>
+              <p>{question.content}</p>
+              <div className="question-meta">
+                <span>{task ? `関連: ${task.name}` : "プロジェクト全体"}</span>
+                <span>AI回答 {answerCount}件</span>
+              </div>
+              <button className="secondary-button" onClick={() => onMove("questionForm")} type="button">
+                詳細・編集
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   </section>
 );
 
