@@ -1639,30 +1639,9 @@ textarea {
   min-width: 300px;
 }
 
-.burndown-status,
 .burndown-message {
   border-radius: 999px;
   font-weight: 900;
-}
-
-.burndown-status {
-  font-size: 12px;
-  padding: 4px 9px;
-}
-
-.burndown-status.good {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.burndown-status.warning {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.burndown-status.danger {
-  background: #fee2e2;
-  color: #b91c1c;
 }
 
 .burndown-message {
