@@ -5,7 +5,6 @@ export type Project = {
   id: string;
   name: string;
   summary: string;
-  field: string;
   startDate: string;
   targetEndDate: string;
   status: ProjectStatus;
@@ -48,12 +47,22 @@ export type AiPlanTask = {
 
 export const today = "2026-06-05";
 
+export const manualProject: Project = {
+  id: "manual-java-study",
+  name: "Java基礎を学ぶ",
+  summary: "Javaの基礎を学び直し、簡単なプログラムを自力で作れるようにする。",
+  startDate: "2026-06-08",
+  targetEndDate: "2026-07-15",
+  status: "not_started",
+  archived: false,
+  updatedAt: "2026-06-05T10:00:00+09:00",
+};
+
 export const projects: Project[] = [
   {
     id: "java-silver",
     name: "Java Silver 合格",
     summary: "Javaの基礎文法、クラス設計、例外、コレクションを一通り確認する。",
-    field: "Java",
     startDate: "2026-06-01",
     targetEndDate: "2026-07-15",
     status: "in_progress",
@@ -64,7 +73,6 @@ export const projects: Project[] = [
     id: "sql-basic",
     name: "SQL基礎習得",
     summary: "SELECT、JOIN、集計、インデックスの基礎を学ぶ。",
-    field: "SQL",
     startDate: "2026-06-10",
     targetEndDate: "2026-07-05",
     status: "not_started",
@@ -75,7 +83,6 @@ export const projects: Project[] = [
     id: "pm-basic",
     name: "PMBOK概要理解",
     summary: "プロジェクト管理の基本用語とEVMの考え方を整理する。",
-    field: "プロジェクト管理",
     startDate: "2026-05-01",
     targetEndDate: "2026-05-31",
     status: "completed",
@@ -86,7 +93,6 @@ export const projects: Project[] = [
     id: "archived-design",
     name: "設計書入門 読破",
     summary: "アーカイブ表示確認用のプロジェクト。",
-    field: "設計",
     startDate: "2026-04-01",
     targetEndDate: "2026-04-30",
     status: "completed",

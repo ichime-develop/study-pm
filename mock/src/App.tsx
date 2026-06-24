@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   aiPlanTasks,
+  manualProject,
   projects,
   studyLogs,
   tasks,
@@ -41,11 +42,11 @@ const screenLabels: Record<Screen, string> = {
   projects: "プロジェクト一覧",
   projectDetail: "プロジェクト概要",
   progressAnalysis: "進捗分析",
-  projectForm: "プロジェクト作成・編集",
+  projectForm: "プロジェクト作成",
   wbs: "WBS・ガント",
   studyLogs: "学習記録",
-  aiPlanInput: "教材入力",
-  aiPlanSettings: "AI計画チャット",
+  aiPlanInput: "AI計画作成",
+  aiPlanSettings: "AI計画修正",
   aiPlanResult: "AI計画確認",
 };
 
@@ -56,21 +57,21 @@ const projectScreens: Screen[] = [
   "studyLogs",
   "progressAnalysis",
   "aiPlanInput",
-  "aiPlanSettings",
-  "aiPlanResult",
 ];
 
 export const App = () => {
   const [screen, setScreen] = useState<Screen>("projects");
   const [selectedProjectId, setSelectedProjectId] = useState("java-silver");
-  const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? projects[0];
+  const [manualProjectCreated, setManualProjectCreated] = useState(false);
+  const allProjects = manualProjectCreated ? [...projects, manualProject] : projects;
+  const selectedProject = allProjects.find((project) => project.id === selectedProjectId) ?? projects[0];
 
   const visibleProjects = useMemo(
     () =>
-      [...projects]
+      [...allProjects]
         .filter((project) => !project.archived)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-    [],
+    [manualProjectCreated],
   );
 
   const openProject = (projectId: string, nextScreen: Screen = "projectDetail") => {
@@ -148,7 +149,16 @@ export const App = () => {
           <ProjectOverview project={selectedProject} onMove={setScreen} />
         )}
         {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} onMove={setScreen} />}
-        {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
+        {screen === "projectForm" && (
+          <ProjectForm
+            onCancel={() => setScreen("projects")}
+            onCreate={() => {
+              setManualProjectCreated(true);
+              setSelectedProjectId(manualProject.id);
+              setScreen("projectDetail");
+            }}
+          />
+        )}
         {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
         {screen === "studyLogs" && <StudyLogList project={selectedProject} onMove={setScreen} />}
         {screen === "aiPlanInput" && <AiPlanInput onMove={setScreen} />}
@@ -293,10 +303,10 @@ const ProjectList = ({
             <div className="create-menu" aria-label="プロジェクト作成方法" role="dialog">
               <div className="create-menu-header">
                 <strong>作成方法を選択</strong>
-                <span>AIで計画案を作るか、手動でWBSを作ります。</span>
+                <span>手動で作るか、AIと計画案を作るかを選びます。</span>
               </div>
               <button className="create-menu-item" onClick={() => onMove("aiPlanInput")} type="button">
-                AIで作成
+                AIと作成
               </button>
               <button className="create-menu-item" onClick={() => onMove("projectForm")} type="button">
                 手動で作成
@@ -320,7 +330,6 @@ const ProjectList = ({
             <button className="table-row clickable" key={project.id} onClick={() => onOpenProject(project.id)} type="button">
               <span>
                 <strong>{project.name}</strong>
-                <small>{project.field}</small>
               </span>
               <span><StatusPill status={project.status} /></span>
               <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
@@ -337,6 +346,7 @@ const ProjectList = ({
 };
 
 const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
+  const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const summary = buildProjectSummary(project, tasks, studyLogs);
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
   const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
@@ -356,9 +366,13 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
   const hasCostOverrun = summary.actualHours > summary.plannedHours && summary.plannedHours > 0;
   const delayedTasks = incompleteTasks.filter((item) => item.summary.isDelayed);
 
+  if (projectTasks.length === 0) {
+    return <EmptyProjectOverview project={project} onMove={onMove} />;
+  }
+
   return (
     <section className="screen-grid project-detail-grid">
-      <ProjectWorkspaceHeader active="projectDetail" onMove={onMove} project={project} />
+      <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={false} onMove={onMove} project={project} />
 
       <div className="metric-row compact-metrics">
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
@@ -431,6 +445,68 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
   );
 };
 
+const EmptyProjectOverview = ({
+  project,
+  onMove,
+}: {
+  project: Project;
+  onMove: (screen: Screen) => void;
+}) => (
+  <section className="screen-grid project-detail-grid">
+    <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={true} onMove={onMove} project={project} />
+
+    <div className="metric-row compact-metrics">
+      <Metric label="進捗率" value="-" />
+      <Metric label="予定 / 実績" value="- / 0h" />
+      <Metric label="WBSタスク" value="0件" />
+      <Metric label="プロジェクト状態" value="未着手" />
+    </div>
+
+    <section className="panel wide empty-project-onboarding">
+      <div className="empty-project-copy">
+        <span className="empty-project-icon">WBS</span>
+        <div>
+          <p className="eyebrow">次に行うこと</p>
+          <h2>学習内容をWBSへ分解する</h2>
+          <p>
+            プロジェクトは作成されました。最初に章や学習テーマを親タスクとして登録し、
+            その配下へ実際に学習するタスクを追加します。
+          </p>
+        </div>
+      </div>
+      <button className="primary-button" onClick={() => onMove("wbs")} type="button">
+        WBSを作成する
+      </button>
+    </section>
+
+    <section className="panel wide">
+      <div className="panel-header">
+        <div>
+          <h2>手動作成の進め方</h2>
+          <p>学習範囲を大きなまとまりから具体的な作業へ分解します。</p>
+        </div>
+      </div>
+      <div className="wbs-start-guide">
+        <article>
+          <span>1</span>
+          <strong>親タスクを作る</strong>
+          <p>章、単元、学習テーマなどの見出しを登録します。</p>
+        </article>
+        <article>
+          <span>2</span>
+          <strong>タスクを追加する</strong>
+          <p>読む、問題を解く、復習するなどの作業へ分けます。</p>
+        </article>
+        <article>
+          <span>3</span>
+          <strong>予定を入力する</strong>
+          <p>予定開始日、予定終了日、予定工数を設定します。</p>
+        </article>
+      </div>
+    </section>
+  </section>
+);
+
 const projectTabItems: Array<{
   label: string;
   screen: Screen;
@@ -440,19 +516,24 @@ const projectTabItems: Array<{
   { label: "WBS", screen: "wbs", mvp: 1 },
   { label: "学習記録", screen: "studyLogs", mvp: 1 },
   { label: "進捗分析", screen: "progressAnalysis", mvp: 2 },
+  { label: "AI計画", screen: "aiPlanInput", mvp: 3 },
 ];
 
 const ProjectSectionTabs = ({
   active,
+  hasNoTasks,
   onMove,
 }: {
   active: Screen;
+  hasNoTasks: boolean;
   onMove: (screen: Screen) => void;
 }) => (
   <nav className="project-tabs" aria-label="プロジェクト内機能">
     {projectTabItems.map((tab) => {
       const isActive = active === tab.screen;
-      const isDisabled = tab.mvp !== 1 && !isActive;
+      const isMvpDisabled = tab.mvp !== 1 && !isActive;
+      const isTaskDisabled = hasNoTasks && (tab.screen === "studyLogs") && !isActive;
+      const isDisabled = isMvpDisabled || isTaskDisabled;
 
       return (
         <button
@@ -465,7 +546,7 @@ const ProjectSectionTabs = ({
           disabled={isDisabled}
           key={tab.screen}
           onClick={() => onMove(tab.screen)}
-          title={isDisabled ? `MVP ${tab.mvp} で提供予定` : undefined}
+          title={isMvpDisabled ? `MVP ${tab.mvp} で提供予定` : isTaskDisabled ? "WBSにタスクを追加すると利用できます" : undefined}
           type="button"
         >
           <span>{tab.label}</span>
@@ -478,10 +559,12 @@ const ProjectSectionTabs = ({
 
 const ProjectWorkspaceHeader = ({
   active,
+  hasNoTasks,
   onMove,
   project,
 }: {
   active: Screen;
+  hasNoTasks: boolean;
   onMove: (screen: Screen) => void;
   project: Project;
 }) => (
@@ -500,14 +583,14 @@ const ProjectWorkspaceHeader = ({
         <span className="badge neutral">{project.archived ? "アーカイブ中" : "通常表示"}</span>
       </div>
     </div>
-    <ProjectSectionTabs active={active} onMove={onMove} />
+    <ProjectSectionTabs active={active} hasNoTasks={hasNoTasks} onMove={onMove} />
   </header>
 );
 
 const ProgressAnalysis = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   return (
     <section className="screen-grid">
-      <ProjectWorkspaceHeader active="progressAnalysis" onMove={onMove} project={project} />
+      <ProjectWorkspaceHeader active="progressAnalysis" hasNoTasks={tasks.filter(t => t.projectId === project.id).length === 0} onMove={onMove} project={project} />
 
       <section className="panel wide">
         <div className="panel-header">
@@ -712,11 +795,13 @@ const GanttWbsTable = ({
   taskList,
   selectedTaskId,
   onSelectTask,
+  emptyContent,
 }: {
   project: Project;
   taskList: WbsTask[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
+  emptyContent?: React.ReactNode;
 }) => {
   const [openHourEditor, setOpenHourEditor] = useState<{ taskId: string; field: HourField } | null>(null);
   const [hourValues, setHourValues] = useState<Record<string, string>>({});
@@ -892,6 +977,9 @@ const GanttWbsTable = ({
           ))}
         </div>
       </div>
+      {rows.length === 0 && emptyContent && (
+        <div className="gantt-empty-body">{emptyContent}</div>
+      )}
     </div>
   );
 };
@@ -1126,86 +1214,70 @@ const EvmPanel = ({ project }: { project: Project }) => {
   );
 };
 
-const ProjectForm = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => (
-  <section className="screen-grid">
-    <div className="panel wide creation-choice">
-      <div>
-        <p className="eyebrow">作成方法</p>
-        <h2>プロジェクトをどう作るか</h2>
-        <p>実装時は、プロジェクト一覧の「新規作成」からこの選択に進む想定です。</p>
-      </div>
-      <div className="choice-grid">
-        <button className="choice-card active-choice" type="button">
-          <span>手動作成</span>
-          <strong>プロジェクト情報だけ先に登録</strong>
-          <small>WBSは後から自分で追加します。</small>
-        </button>
-        <button className="choice-card" onClick={() => onMove("aiPlanInput")} type="button">
-          <span>AI作成</span>
-          <strong>教材目次からWBSを生成</strong>
-          <small>目次写真または貼り付けテキストから計画案を作ります。</small>
-        </button>
-      </div>
-    </div>
-
-    <div className="panel form-panel">
+const ProjectForm = ({
+  onCancel,
+  onCreate,
+}: {
+  onCancel: () => void;
+  onCreate: () => void;
+}) => (
+  <section className="manual-project-form-layout">
+    <div className="panel form-panel manual-project-form">
       <div className="panel-header">
         <div>
           <p className="eyebrow">SCR-05</p>
-          <h2>プロジェクト作成・編集</h2>
-          <p>新規作成と編集で同じ入力項目を使う想定です。</p>
+          <h2>プロジェクトを手動で作成</h2>
+          <p>まずプロジェクトの目的と期間を登録します。WBSは作成後に1から追加します。</p>
         </div>
       </div>
       <label>
-        プロジェクト名
-        <input defaultValue={project.name} maxLength={100} />
-      </label>
-      <label>
-        学習分野
-        <input defaultValue={project.field} maxLength={100} />
+        プロジェクト名 <span className="required-label">必須</span>
+        <input defaultValue="Java基礎を学ぶ" maxLength={100} placeholder="例: Java Silver 合格" />
       </label>
       <label>
         概要
-        <textarea defaultValue={project.summary} maxLength={5000} />
+        <textarea
+          defaultValue="Javaの基礎を学び直し、簡単なプログラムを自力で作れるようにする。"
+          maxLength={5000}
+          placeholder="学習目的や到達したい状態を入力"
+        />
       </label>
       <div className="form-row">
         <label>
-          開始日
-          <input type="date" defaultValue={project.startDate} />
+          開始日 <span className="required-label">必須</span>
+          <input type="date" defaultValue="2026-06-08" />
         </label>
         <label>
-          目標終了日
-          <input type="date" defaultValue={project.targetEndDate} />
+          目標終了日 <span className="required-label">必須</span>
+          <input type="date" defaultValue="2026-07-15" />
         </label>
       </div>
-      <label>
-        状態
-        <select defaultValue={project.status}>
-          <option value="not_started">未着手</option>
-          <option value="in_progress">進行中</option>
-          <option value="completed">完了</option>
-        </select>
-      </label>
-      <button className="primary-button" type="button">保存する</button>
+      <p className="form-helper">新規プロジェクトは「未着手」で作成されます。</p>
+      <div className="button-group">
+        <button className="primary-button" onClick={onCreate} type="button">プロジェクトを作成</button>
+        <button className="secondary-button" onClick={onCancel} type="button">キャンセル</button>
+      </div>
     </div>
 
-    <aside className="panel">
-      <h2>確認ポイント</h2>
-      <ul className="check-list">
-        <li>名称と学習分野が100文字以内であることが分かるか</li>
-        <li>開始日と目標終了日の関係が自然に入力できるか</li>
-        <li>完了状態の条件をどこで説明すべきか</li>
-      </ul>
-      <div className="constraint-box">
-        <strong>完了条件</strong>
-        <p>
-          プロジェクトを完了にできるのは、1件以上のタスクが存在し、
-          すべて100%の場合だけです。
-        </p>
+    <aside className="panel manual-create-guide">
+      <h2>作成後の流れ</h2>
+      <div className="manual-flow-list">
+        <div className="manual-flow-step active">
+          <span>1</span>
+          <div><strong>プロジェクトを作成</strong><small>目的と期間を登録</small></div>
+        </div>
+        <div className="manual-flow-step">
+          <span>2</span>
+          <div><strong>WBSを作成</strong><small>親タスクとタスクを追加</small></div>
+        </div>
+        <div className="manual-flow-step">
+          <span>3</span>
+          <div><strong>予定を設定</strong><small>予定日と予定工数を入力</small></div>
+        </div>
       </div>
       <div className="constraint-box neutral-box">
-        <strong>アーカイブ</strong>
-        <p>アーカイブは状態とは別に管理します。アーカイブ中は閲覧のみです。</p>
+        <strong>この画面ではWBSを作成しません</strong>
+        <p>保存後のプロジェクト概要からWBS画面へ進み、学習内容を自分で分解します。</p>
       </div>
     </aside>
   </section>
@@ -1215,40 +1287,42 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [studyLogTaskId, setStudyLogTaskId] = useState<string | null>(null);
+  const [addType, setAddType] = useState<"parent" | "task" | null>(null);
   const [saveNotice, setSaveNotice] = useState("");
+  const isEmpty = projectTasks.length === 0;
   const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
-  const selectedTaskIsParent = selectedTask ? !isWorkTask(selectedTask, projectTasks) : false;
-  const selectedTaskParent = selectedTask?.parentId
-    ? projectTasks.find((task) => task.id === selectedTask.parentId)
-    : null;
-  const addTaskGuide = selectedTask
-    ? selectedTaskIsParent
-      ? `選択中の「${selectedTask.name}」配下にタスクを追加します。`
-      : selectedTaskParent
-        ? `選択中タスクと同じ「${selectedTaskParent.name}」配下に追加します。`
-        : "親なしタスクとして最上位に追加します。"
-    : "未選択時は親なしタスクとして最上位に追加します。";
+
+  const openAdd = (type: "parent" | "task") => {
+    setAddType(type);
+    setSelectedTaskId(null);
+    setStudyLogTaskId(null);
+  };
+
+  const closeAdd = () => setAddType(null);
 
   return (
     <section className="screen-grid project-workspace-screen">
-      <ProjectWorkspaceHeader active="wbs" onMove={onMove} project={project} />
+      <ProjectWorkspaceHeader active="wbs" hasNoTasks={isEmpty} onMove={onMove} project={project} />
       <section className="panel wide">
         <div className="panel-header">
           <div>
             <h2>WBS・ガントチャート</h2>
-            <p>親タスクは見出し、タスクは予定と進捗の入力対象です。実績は学習記録から集計します。</p>
+            <p>
+              {isEmpty
+                ? "まだWBSはありません。学習内容のまとまりから登録します。"
+                : "親タスクは見出し、タスクは予定と進捗の入力対象です。実績は学習記録から集計します。"}
+            </p>
           </div>
           <div className="button-group">
-            <button className="secondary-button" type="button">親タスクを追加</button>
-            <button className="primary-button" type="button">タスクを追加</button>
-            <button className="secondary-button" type="button">表示期間</button>
+            <button className="secondary-button" onClick={() => openAdd("parent")} type="button">親タスクを追加</button>
+            <button className="primary-button" onClick={() => openAdd("task")} type="button">タスクを追加</button>
+            <button className="secondary-button" disabled={isEmpty} type="button">表示期間</button>
           </div>
         </div>
-        <p className="panel-note">{addTaskGuide} 手動並び替えは行わず、予定日と登録日時で自動並び替えします。</p>
         {saveNotice && <div className="save-notice" role="status">{saveNotice}</div>}
         <div
-          className={selectedTask ? "gantt-workspace with-side-panel" : "gantt-workspace"}
-          onClick={selectedTask ? () => {
+          className={selectedTask && !addType ? "gantt-workspace with-side-panel" : "gantt-workspace"}
+          onClick={selectedTask && !addType ? () => {
             setSelectedTaskId(null);
             setStudyLogTaskId(null);
           } : undefined}
@@ -1262,8 +1336,18 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
               setStudyLogTaskId(null);
               setSaveNotice("");
             }}
+            emptyContent={!addType ? (
+              <div className="empty-gantt-message">
+                <strong>WBSタスクがありません</strong>
+                <p>親タスクで学習範囲をまとめるか、親なしタスクを直接追加してください。</p>
+                <div className="button-group">
+                  <button className="secondary-button" onClick={() => openAdd("parent")} type="button">最初の親タスクを追加</button>
+                  <button className="text-button" onClick={() => openAdd("task")} type="button">親なしタスクを追加</button>
+                </div>
+              </div>
+            ) : undefined}
           />
-          {selectedTask && studyLogTaskId ? (
+          {selectedTask && studyLogTaskId && !addType ? (
             <StudyLogEditorPanel
               initialTaskId={studyLogTaskId}
               key={`create-${studyLogTaskId}`}
@@ -1274,7 +1358,7 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
                 setSaveNotice("学習記録を追加し、実績工数を再集計しました。");
               }}
             />
-          ) : selectedTask ? (
+          ) : selectedTask && !addType ? (
             <TaskSidePanel
               key={selectedTask.id}
               task={selectedTask}
@@ -1284,13 +1368,66 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
               onClose={() => setSelectedTaskId(null)}
             />
           ) : null}
-        </div>
-        <div className="constraint-box">
-          <strong>制約の見せ方確認</strong>
-          <p>
-            親タスクは見出しとして扱い、予定、実績、進捗、学習記録を持ちません。
-            学習記録があるタスクは削除できません。
-          </p>
+          {addType && (
+            <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
+              <div className="record-panel-header">
+                <div>
+                  <p className="eyebrow">{addType === "parent" ? "親タスクを追加" : "タスクを追加"}</p>
+                  <h3>{addType === "parent" ? "学習範囲の見出しを作る" : "実際に学習する作業を作る"}</h3>
+                </div>
+                <button className="icon-button muted" onClick={closeAdd} aria-label="閉じる" type="button">×</button>
+              </div>
+              <label>
+                {addType === "parent" ? "親タスク名" : "タスク名"}
+                <input
+                  defaultValue={addType === "parent" ? "第1章 Javaの基本" : "第1章を読む"}
+                  maxLength={100}
+                />
+              </label>
+              <label>
+                説明（任意）
+                <textarea
+                  className="compact-textarea"
+                  defaultValue={addType === "parent" ? "Javaの基本文法を学ぶまとまり。" : "教材の第1章を読み、基本文法を確認する。"}
+                />
+              </label>
+              {addType === "parent" ? (
+                <div className="constraint-box neutral-box">
+                  <strong>親タスクは見出しです</strong>
+                  <p>予定日、予定工数、進捗率は持たず、配下タスクで管理します。</p>
+                </div>
+              ) : (
+                <>
+                  <label>
+                    親タスク
+                    <select defaultValue="">
+                      <option value="">親なしで追加</option>
+                    </select>
+                    <span className="field-note">親タスクを先に作成すると、ここから選択できます。</span>
+                  </label>
+                  <div className="form-row">
+                    <label>
+                      予定開始日
+                      <input type="date" defaultValue="2026-06-08" />
+                    </label>
+                    <label>
+                      予定終了日
+                      <input type="date" defaultValue="2026-06-10" />
+                    </label>
+                  </div>
+                  <label>
+                    予定工数
+                    <span className="input-with-unit"><input type="number" min="0.25" step="0.25" defaultValue="3" /><span>時間</span></span>
+                  </label>
+                  <p className="form-helper">進捗率は0%で作成されます。</p>
+                </>
+              )}
+              <div className="side-panel-actions">
+                <button className="primary-button" onClick={closeAdd} type="button">追加</button>
+                <button className="secondary-button" onClick={closeAdd} type="button">キャンセル</button>
+              </div>
+            </aside>
+          )}
         </div>
       </section>
     </section>
@@ -1316,7 +1453,7 @@ const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: 
 
   return (
     <section className="screen-grid project-workspace-screen">
-      <ProjectWorkspaceHeader active="studyLogs" onMove={onMove} project={project} />
+      <ProjectWorkspaceHeader active="studyLogs" hasNoTasks={tasks.filter(t => t.projectId === project.id).length === 0} onMove={onMove} project={project} />
       <section className="panel wide">
         <div className="panel-header">
           <div>
@@ -1401,94 +1538,198 @@ const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: 
   );
 };
 
-const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
-  <section className="screen-grid">
-    <div className="hero-card ai-hero">
-      <div>
-        <p className="eyebrow">AI計画作成</p>
-        <h2>教材情報からWBSと学習計画を作る</h2>
-        <p>
-          スクリーンショット、PDF、手書きメモ、貼り付け文章を入力し、
-          ユーザーが内容を確認・修正してからAI生成へ進みます。
-        </p>
-      </div>
-      <button className="primary-button light-button" onClick={() => onMove("aiPlanResult")} type="button">
-        AIに依頼する
-      </button>
-    </div>
+const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => {
+  const [materialMode, setMaterialMode] = useState<"text" | "image" | "summary">("text");
 
-    <div className="panel form-panel">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">SCR-13</p>
-          <h2>教材入力</h2>
-          <p>ChatGPTやGeminiのような入力欄で、教材情報と添付ファイルをまとめて送信します。</p>
+  return (
+    <section className="screen-grid ai-plan-flow">
+      <div className="panel wide">
+        <div className="stepper">
+          <span className="step-item active">1 条件・教材入力</span>
+          <span className="step-item">2 計画案を確認</span>
+          <span className="step-item">3 承認して作成</span>
         </div>
       </div>
-      <label>
-        教材名
-        <input defaultValue="徹底攻略 Java SE 17 Silver 問題集" maxLength={100} />
-      </label>
-      <div className="composer-shell">
-        <div className="attachment-chip-row">
-          <span className="attachment-chip">目次画像 2/10枚</span>
-          <span className="attachment-chip">PDF 1件</span>
-          <span className="attachment-chip">合計 18MB / 50MB</span>
-          <span className="attachment-chip">OCR結果は入力欄で修正</span>
+
+      <div className="hero-card ai-hero">
+        <div>
+          <p className="eyebrow">AIと作成</p>
+          <h2>学習条件と教材から、実行できる計画案を作る</h2>
+          <p>AIは下書きを作成します。プロジェクトとWBSは、内容を確認して承認するまで保存されません。</p>
         </div>
-        <textarea
-          aria-label="教材目次とAIへの指示"
-          className="composer-textarea"
-          defaultValue={`この教材情報から、Java Silver合格に向けたWBSと学習計画を作ってください。\nスクリーンショット・PDF・手書きメモのOCR結果は、ここで修正してから送信します。\n\n${tocSampleText}`}
-        />
-        <div className="composer-footer">
-          <div className="composer-left">
-            <button className="icon-button active" aria-label="添付メニューを開く" type="button">＋</button>
-            <div className="attachment-menu">
-              <button type="button">スクリーンショットをアップロードする</button>
-              <button type="button">PDFをアップロードする</button>
-              <button type="button">手書き文章・OCR結果を貼り付ける</button>
+        <span className="badge neutral">未保存</span>
+      </div>
+
+      <div className="panel form-panel ai-input-main">
+        <div className="section-heading">
+          <span className="section-number">1</span>
+          <div>
+            <h2>学習目標と期間</h2>
+            <p>計画のゴールと利用できる期間を指定します。</p>
+          </div>
+        </div>
+        <label>
+          学習目標 <span className="required-label">必須</span>
+          <input defaultValue="Java Silverに合格する" maxLength={100} />
+        </label>
+        <label>
+          プロジェクト名（任意）
+          <input defaultValue="Java Silver 合格" maxLength={100} />
+        </label>
+        <div className="form-row">
+          <label>
+            学習開始日 <span className="required-label">必須</span>
+            <input type="date" defaultValue="2026-06-08" />
+          </label>
+          <label>
+            目標終了日 <span className="required-label">必須</span>
+            <input type="date" defaultValue="2026-07-15" />
+          </label>
+        </div>
+
+        <div className="section-divider" />
+
+        <div className="section-heading">
+          <span className="section-number">2</span>
+          <div>
+            <h2>学習可能時間</h2>
+            <p>通常の1日あたり時間を入力し、例外だけ補足します。</p>
+          </div>
+        </div>
+        <div className="availability-grid">
+          <label>
+            平日
+            <span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="1" /><span>時間 / 日</span></span>
+          </label>
+          <label>
+            休日
+            <span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="2" /><span>時間 / 日</span></span>
+          </label>
+        </div>
+        <fieldset className="weekday-fieldset">
+          <legend>学習できない曜日（任意）</legend>
+          <div className="weekday-options">
+            {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
+              <label className={day === "水" ? "weekday-option selected" : "weekday-option"} key={day}>
+                <input defaultChecked={day === "水"} type="checkbox" />
+                {day}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <label>
+          日程の補足（任意）
+          <textarea className="compact-textarea" defaultValue="6月20日と21日は学習できない。試験前の1週間は平日も2時間確保できる。" />
+        </label>
+
+        <div className="section-divider" />
+
+        <div className="section-heading">
+          <span className="section-number">3</span>
+          <div>
+            <h2>教材情報</h2>
+            <p>最も入力しやすい方法を1つ選択します。</p>
+          </div>
+        </div>
+        <div className="material-mode-tabs" role="tablist" aria-label="教材入力方法">
+          <button className={materialMode === "text" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("text")} type="button">
+            目次テキスト
+          </button>
+          <button className={materialMode === "image" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("image")} type="button">
+            目次画像
+          </button>
+          <button className={materialMode === "summary" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("summary")} type="button">
+            教材名・概要のみ
+          </button>
+        </div>
+        <label>
+          教材名
+          <input defaultValue="徹底攻略 Java SE 17 Silver 問題集" maxLength={100} />
+        </label>
+        {materialMode === "text" && (
+          <label>
+            目次テキスト <span className="required-label">必須</span>
+            <textarea className="toc-textarea" defaultValue={tocSampleText} />
+          </label>
+        )}
+        {materialMode === "image" && (
+          <div className="upload-area">
+            <strong>目次画像を追加</strong>
+            <p>jpg、jpeg、png、webp / 最大10枚</p>
+            <button className="secondary-button" type="button">画像を選択</button>
+            <div className="upload-file-list">
+              <span>目次_01.png <small>2.4MB</small></span>
+              <span>目次_02.png <small>1.8MB</small></span>
+            </div>
+            <div className="ocr-preview">
+              <strong>OCR結果を確認・修正</strong>
+              <textarea defaultValue={tocSampleText} />
             </div>
           </div>
-          <div className="composer-actions">
-            <button className="stop-button" aria-label="実行を停止" type="button">■</button>
-            <button className="run-button" onClick={() => onMove("aiPlanResult")} aria-label="実行" type="button">↑</button>
+        )}
+        {materialMode === "summary" && (
+          <label>
+            教材の概要 <span className="required-label">必須</span>
+            <textarea defaultValue="Java SE 17 Silver向けの問題集。文法、クラス、継承、例外、コレクション、模擬問題を扱う。" />
+            <span className="field-note">目次がないため、生成されるWBSは大まかな案になります。</span>
+          </label>
+        )}
+
+        <div className="section-divider" />
+
+        <div className="section-heading">
+          <span className="section-number">4</span>
+          <div>
+            <h2>学習方針</h2>
+            <p>優先順位や除外条件がある場合だけ指定します。</p>
           </div>
         </div>
-      </div>
-      <div className="button-group">
-        <button className="secondary-button" onClick={() => onMove("projects")} type="button">
-          プロジェクト一覧へ戻る
-        </button>
-      </div>
-    </div>
+        <div className="form-row">
+          <label>
+            重点的に学ぶ範囲
+            <textarea className="compact-textarea" defaultValue="クラス、継承、例外処理は問題演習を多めにする。" />
+          </label>
+          <label>
+            軽く確認・除外する範囲
+            <textarea className="compact-textarea" defaultValue="Javaの実行環境の説明は理解済みなので短くする。" />
+          </label>
+        </div>
 
-    <aside className="panel">
-      <h2>確認ポイント</h2>
-      <ul className="check-list">
-        <li>テキスト入力、写真、画像ファイル添付を1つの入力欄にまとめても迷わないか</li>
-        <li>+ メニューの項目が、写真・ファイル・貼り付け入力の導線として自然か</li>
-        <li>実行ボタンと停止ボタンの配置が分かりやすいか</li>
-        <li>計画生成前に、外部送信する教材情報と依頼内容をどのように確認するか</li>
-      </ul>
-      <div className="consent-card">
-        <strong>送信される情報</strong>
-        <p>
-          教材名、ユーザーが修正したOCR結果、学習目標、期限、学習可能時間を
-          AI計画生成に利用します。
-        </p>
+        <div className="form-submit-bar">
+          <button className="secondary-button" onClick={() => onMove("projectForm")} type="button">作成方法へ戻る</button>
+          <button className="primary-button" onClick={() => onMove("aiPlanResult")} type="button">計画案を生成</button>
+        </div>
       </div>
-    </aside>
-  </section>
-);
+
+      <aside className="panel ai-input-summary">
+        <h2>AIへ送信する内容</h2>
+        <div className="send-summary-list">
+          <span><strong>目標</strong> Java Silverに合格する</span>
+          <span><strong>期間</strong> 6/8 - 7/15</span>
+          <span><strong>学習時間</strong> 平日1h / 休日2h</span>
+          <span><strong>教材</strong> 教材名と確認済み目次</span>
+          <span><strong>方針</strong> 重点・軽減範囲、日程補足</span>
+        </div>
+        <div className="constraint-box neutral-box">
+          <strong>生成後の扱い</strong>
+          <p>計画案は未保存の下書きです。内容を確認し、「この計画で作成」を押すまで登録されません。</p>
+        </div>
+        <div className="constraint-box">
+          <strong>入力内容は保持</strong>
+          <p>生成に失敗した場合も、この画面の入力内容を保持したまま再試行します。</p>
+        </div>
+      </aside>
+    </section>
+  );
+};
 
 const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
-  <section className="screen-grid">
+  <section className="screen-grid ai-plan-flow">
     <div className="panel wide">
       <div className="stepper">
-        <span className="step-item done">1 教材入力</span>
-        <span className="step-item done">2 結果確認</span>
-        <span className="step-item active">3 チャットで調整</span>
+        <span className="step-item done">1 条件・教材入力</span>
+        <span className="step-item active">2 計画案を確認</span>
+        <span className="step-item">3 承認して作成</span>
       </div>
     </div>
 
@@ -1496,8 +1737,8 @@ const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       <div className="panel-header">
         <div>
           <p className="eyebrow">SCR-14</p>
-          <h2>AI計画チャット</h2>
-          <p>生成後も自然文でスケジュールやWBSの修正を依頼します。</p>
+          <h2>AIへ計画修正を依頼</h2>
+          <p>元の計画は変更せず、修正案と差分を確認します。</p>
         </div>
       </div>
       <div className="chat-thread">
@@ -1527,20 +1768,20 @@ const AiPlanSettings = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       </label>
       <div className="button-group">
         <button className="primary-button" onClick={() => onMove("aiPlanResult")} type="button">
-          修正案を反映
+          この修正案を計画案へ反映
         </button>
         <button className="secondary-button" onClick={() => onMove("aiPlanResult")} type="button">
-          反映せず戻る
+          破棄して計画案へ戻る
         </button>
       </div>
     </div>
 
     <aside className="panel">
-      <h2>確認ポイント</h2>
+      <h2>変更の確認</h2>
       <ul className="check-list">
-        <li>フォーム入力より自然文依頼の方が使いやすいか</li>
-        <li>保存済み計画にも同じチャット修正を使えるか</li>
-        <li>AI修正案を直接反映せず、差分確認後に承認できるか</li>
+        <li>変更対象のタスクが分かる</li>
+        <li>予定日・予定工数の変更前後が分かる</li>
+        <li>期限や1日の学習可能時間を超えていない</li>
       </ul>
       <div className="constraint-box neutral-box">
         <strong>反映ルール</strong>
@@ -1557,39 +1798,68 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
   const totalHours = workTasks.reduce((sum, task) => sum + task.plannedHours, 0);
 
   return (
-    <section className="screen-grid">
-      <div className="hero-card">
+    <section className="screen-grid ai-plan-flow">
+      <div className="panel wide">
+        <div className="stepper">
+          <span className="step-item done">1 条件・教材入力</span>
+          <span className="step-item active">2 計画案を確認</span>
+          <span className="step-item">3 承認して作成</span>
+        </div>
+      </div>
+
+      <div className="hero-card plan-review-hero">
         <div>
           <p className="eyebrow">SCR-15</p>
-          <h2>AI生成結果確認</h2>
-          <p>
-            AIが作ったWBSと予定日を保存前に確認します。ここで修正できる範囲が、
-            要件として重要になります。
-          </p>
+          <h2>AIが作成した計画案を確認</h2>
+          <p>名称、期間、WBS、予定工数を確認してください。この時点ではまだ保存されていません。</p>
         </div>
-        <div className="button-group">
-          <button className="primary-button" onClick={() => onMove("projectDetail")} type="button">
-            この計画で作成
-          </button>
-          <button className="secondary-button" onClick={() => onMove("aiPlanSettings")} type="button">
-            チャットで修正
-          </button>
-        </div>
+        <span className="badge neutral">未保存の計画案</span>
       </div>
 
       <div className="metric-row">
         <Metric label="生成WBS" value={`${aiPlanTasks.length}件`} />
         <Metric label="タスク" value={`${workTasks.length}件`} />
         <Metric label="予定工数" value={formatHours(totalHours)} />
+        <Metric label="計画期間" value="38日" tone="good" />
       </div>
+
+      <section className="panel wide plan-project-summary">
+        <div className="panel-header">
+          <div>
+            <h2>プロジェクト基本情報</h2>
+            <p>AIの提案をそのまま使わず、保存前に修正できます。</p>
+          </div>
+          <span className="badge good">期間内</span>
+        </div>
+        <div className="plan-summary-grid">
+          <label>
+            プロジェクト名
+            <input defaultValue="Java Silver 合格" maxLength={100} />
+          </label>
+          <label className="summary-wide-field">
+            概要
+            <textarea className="compact-textarea" defaultValue="Java SE 17 Silverの出題範囲を、問題演習を中心に学習する。" />
+          </label>
+          <label>
+            開始日
+            <input type="date" defaultValue="2026-06-08" />
+          </label>
+          <label>
+            目標終了日
+            <input type="date" defaultValue="2026-07-15" />
+          </label>
+        </div>
+      </section>
 
       <section className="panel wide">
         <div className="panel-header">
           <div>
             <h2>生成されたWBS案</h2>
-            <p>保存前に名称、予定日、予定工数を調整できる想定です。</p>
+            <p>各行を直接編集するか、AIへまとめて修正を依頼できます。</p>
           </div>
-          <span className="badge warning">期限内に収まる計画案</span>
+          <button className="secondary-button" onClick={() => onMove("aiPlanSettings")} type="button">
+            AIへ修正を依頼
+          </button>
         </div>
         <div className="plan-task-list">
           {aiPlanTasks.map((task) => (
@@ -1610,35 +1880,36 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
       </section>
 
       <section className="panel">
-        <h2>AI計画チャット</h2>
-        <div className="ai-note-list">
-          <div className="ai-note-card">
-            <strong>例: 追加依頼</strong>
-            <p>6月20日は勉強できなくなった。期限は変えずにスケジュールを修正して。</p>
-          </div>
-          <div className="ai-note-card">
-            <strong>反映方法</strong>
-            <p>AIが変更差分を提示し、ユーザーが承認した場合だけWBSと予定へ反映します。</p>
-          </div>
+        <h2>計画チェック</h2>
+        <div className="plan-check-list">
+          <span className="plan-check ok"><strong>期間</strong> 目標終了日までに完了</span>
+          <span className="plan-check ok"><strong>学習量</strong> 平日1h・休日2h以内</span>
+          <span className="plan-check ok"><strong>WBS</strong> 親タスクとタスクの2階層</span>
+          <span className="plan-check warning"><strong>確認</strong> 模擬試験は1回のみ</span>
         </div>
         <button className="secondary-button full-width-button" onClick={() => onMove("aiPlanSettings")} type="button">
-          チャットで計画を調整
+          AIへ計画修正を依頼
         </button>
       </section>
 
       <section className="panel">
-        <h2>保存前チェック</h2>
+        <h2>作成する内容</h2>
         <ul className="check-list">
-          <li>プロジェクト名、期間、WBS名を保存前に編集できるか</li>
-          <li>AI生成結果を破棄して再生成できるか</li>
-          <li>生成後にWBS確認や計画修正へ自然につながるか</li>
+          <li>プロジェクトを未着手で作成</li>
+          <li>親タスクとタスクをまとめて保存</li>
+          <li>全タスクの進捗率を0%で作成</li>
         </ul>
-        <div className="constraint-box">
-          <strong>未確定要件</strong>
-          <p>
-            生成結果の履歴を残すか、保存されたプロジェクトとWBSだけを残すかは
-            要件定義で決める必要があります。
-          </p>
+        <div className="approval-box">
+          <label className="checkbox-label">
+            <input type="checkbox" defaultChecked />
+            プロジェクト情報とWBS案を確認しました
+          </label>
+          <button className="primary-button full-width-button" onClick={() => onMove("wbs")} type="button">
+            この計画でプロジェクトを作成
+          </button>
+          <button className="text-button full-width-button" onClick={() => onMove("aiPlanInput")} type="button">
+            入力条件から見直す
+          </button>
         </div>
       </section>
     </section>
