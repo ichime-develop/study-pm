@@ -1,15 +1,12 @@
 import { useMemo, useState } from "react";
 import {
-  aiAnswers,
   aiPlanTasks,
   projects,
-  questions,
   studyLogs,
   tasks,
   today,
   tocSampleText,
   type Project,
-  type QuestionStatus,
   type StudyLog,
   type TaskStatus,
   type WbsTask,
@@ -34,9 +31,6 @@ type Screen =
   | "projectForm"
   | "wbs"
   | "studyLogs"
-  | "questions"
-  | "questionForm"
-  | "aiContext"
   | "aiPlanInput"
   | "aiPlanSettings"
   | "aiPlanResult";
@@ -50,9 +44,6 @@ const screenLabels: Record<Screen, string> = {
   projectForm: "プロジェクト作成・編集",
   wbs: "WBS・ガント",
   studyLogs: "学習記録",
-  questions: "質問",
-  questionForm: "質問登録・編集",
-  aiContext: "AI送信情報選択",
   aiPlanInput: "教材入力",
   aiPlanSettings: "AI計画チャット",
   aiPlanResult: "AI計画確認",
@@ -64,12 +55,9 @@ const projectScreens: Screen[] = [
   "wbs",
   "studyLogs",
   "progressAnalysis",
-  "questions",
   "aiPlanInput",
   "aiPlanSettings",
   "aiPlanResult",
-  "questionForm",
-  "aiContext",
 ];
 
 export const App = () => {
@@ -163,9 +151,6 @@ export const App = () => {
         {screen === "projectForm" && <ProjectForm project={selectedProject} onMove={setScreen} />}
         {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
         {screen === "studyLogs" && <StudyLogList project={selectedProject} onMove={setScreen} />}
-        {screen === "questions" && <QuestionList project={selectedProject} onMove={setScreen} />}
-        {screen === "questionForm" && <QuestionForm onMove={setScreen} />}
-        {screen === "aiContext" && <AiContextSelector onMove={setScreen} />}
         {screen === "aiPlanInput" && <AiPlanInput onMove={setScreen} />}
         {screen === "aiPlanSettings" && <AiPlanSettings onMove={setScreen} />}
         {screen === "aiPlanResult" && <AiPlanResult onMove={setScreen} />}
@@ -181,7 +166,7 @@ const LoginScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
       <h2>学習をプロジェクトとして管理する</h2>
       <p>
         ログイン後はプロジェクト一覧から現在取り組むプロジェクトを選び、
-        その中でWBS、学習記録、進捗分析、質問を確認します。
+        その中でWBS、学習記録、進捗分析、AI学習計画を確認します。
       </p>
       <div className="auth-preview">
         <Metric label="進行中" value="1件" />
@@ -356,9 +341,6 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
   const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
   const remainingHours = Math.max(summary.plannedHours - summary.actualHours, 0);
-  const unresolvedQuestions = questions.filter(
-    (question) => question.projectId === project.id && question.status !== "resolved",
-  );
   const incompleteTasks = getLeafTasks(project.id, tasks)
     .map((task) => ({
       task,
@@ -407,16 +389,10 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
               <span>実績工数が予定工数を超えています。</span>
             </div>
           )}
-          {unresolvedQuestions.length > 0 && (
-            <div className="warning-banner warning">
-              <strong>未解決質問</strong>
-              <span>{unresolvedQuestions.length}件の未解決または調査中の質問があります。</span>
-            </div>
-          )}
-          {delayedTasks.length === 0 && !hasCostOverrun && unresolvedQuestions.length === 0 && (
+          {delayedTasks.length === 0 && !hasCostOverrun && (
             <div className="warning-banner good">
               <strong>警告なし</strong>
-              <span>進捗遅延、工数超過、未解決質問はありません。</span>
+              <span>進捗遅延、工数超過はありません。</span>
             </div>
           )}
         </div>
@@ -464,7 +440,6 @@ const projectTabItems: Array<{
   { label: "WBS", screen: "wbs", mvp: 1 },
   { label: "学習記録", screen: "studyLogs", mvp: 1 },
   { label: "進捗分析", screen: "progressAnalysis", mvp: 2 },
-  { label: "質問", screen: "questions", mvp: 3 },
 ];
 
 const ProjectSectionTabs = ({
@@ -1016,10 +991,7 @@ const TaskSidePanel = ({
   const relatedLogs = isParent
     ? studyLogs.filter((log) => childTaskIds.includes(log.taskId))
     : studyLogs.filter((log) => log.taskId === task.id);
-  const relatedQuestions = isParent
-    ? questions.filter((question) => question.taskId && childTaskIds.includes(question.taskId))
-    : questions.filter((question) => question.taskId === task.id);
-  const canDelete = relatedLogs.length === 0 && relatedQuestions.length === 0;
+  const canDelete = relatedLogs.length === 0;
 
   return (
     <aside className="task-side-panel" onClick={(event) => event.stopPropagation()}>
@@ -1077,7 +1049,7 @@ const TaskSidePanel = ({
         <div className="side-panel-section">
           <strong>親タスクの扱い</strong>
           <p>親タスクは章や単元をまとめる見出しです。予定、実績、進捗、学習記録は配下タスクで管理します。</p>
-          <p>{canDelete ? "削除時は確認後、配下タスクも削除対象になります。" : "配下タスクに学習記録または関連質問があるため削除できません。"}</p>
+          <p>{canDelete ? "削除時は確認後、配下タスクも削除対象になります。" : "配下タスクに学習記録があるため削除できません。"}</p>
         </div>
       ) : (
         <div className="side-panel-section">
@@ -1096,7 +1068,7 @@ const TaskSidePanel = ({
       {!canDelete && (
         <div className="constraint-box">
           <strong>削除できない理由</strong>
-          <p>学習記録 {relatedLogs.length}件 / 関連質問 {relatedQuestions.length}件があります。</p>
+          <p>学習記録 {relatedLogs.length}件があります。</p>
         </div>
       )}
 
@@ -1317,7 +1289,7 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
           <strong>制約の見せ方確認</strong>
           <p>
             親タスクは見出しとして扱い、予定、実績、進捗、学習記録を持ちません。
-            関連質問または学習記録があるタスクは削除できません。
+            学習記録があるタスクは削除できません。
           </p>
         </div>
       </section>
@@ -1429,231 +1401,6 @@ const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: 
   );
 };
 
-const QuestionList = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => (
-  <section className="screen-grid project-workspace-screen">
-    <ProjectWorkspaceHeader active="questions" onMove={onMove} project={project} />
-    <section className="panel wide">
-      <div className="panel-header">
-        <div>
-          <h2>質問</h2>
-          <p>選択中プロジェクト内の質問を、状態とカテゴリで絞り込む想定です。</p>
-        </div>
-        <button className="primary-button" onClick={() => onMove("questionForm")} type="button">
-          質問を追加
-        </button>
-      </div>
-      <div className="filter-bar">
-        <input placeholder="キーワード検索" />
-        <select defaultValue="">
-          <option value="">すべての状態</option>
-          <option value="open">未解決</option>
-          <option value="investigating">調査中</option>
-          <option value="resolved">解決済み</option>
-        </select>
-        <select defaultValue="">
-          <option value="">すべてのカテゴリ</option>
-          <option>Java文法</option>
-          <option>オブジェクト指向</option>
-          <option>EVM</option>
-        </select>
-      </div>
-      <div className="question-grid">
-        {questions.filter((question) => question.projectId === project.id).map((question) => {
-          const task = tasks.find((item) => item.id === question.taskId);
-          const answerCount = aiAnswers.filter((answer) => answer.questionId === question.id).length;
-          return (
-            <article className="question-card" key={question.id}>
-              <div className="question-card-header">
-                <QuestionStatusPill status={question.status} />
-                <span>{question.category}</span>
-              </div>
-              <h3>{question.title}</h3>
-              <p>{question.content}</p>
-              <div className="question-meta">
-                <span>{task ? `関連: ${task.name}` : "プロジェクト全体"}</span>
-                <span>AI回答 {answerCount}件</span>
-              </div>
-              <button className="secondary-button" onClick={() => onMove("questionForm")} type="button">
-                詳細・編集
-              </button>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  </section>
-);
-
-const QuestionForm = ({ onMove }: { onMove: (screen: Screen) => void }) => {
-  const question = questions[0];
-  const relatedAnswers = aiAnswers.filter((answer) => answer.questionId === question.id);
-
-  return (
-    <section className="screen-grid">
-      <div className="panel form-panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">SCR-11</p>
-            <h2>質問登録・編集</h2>
-            <p>質問、回答メモ、AI回答履歴の配置を確認します。</p>
-          </div>
-        </div>
-        <label>
-          タイトル
-          <input defaultValue={question.title} maxLength={100} />
-        </label>
-        <div className="form-row">
-          <label>
-            関連プロジェクト
-            <select defaultValue={question.projectId}>
-              {projects.filter((project) => !project.archived).map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            関連タスク
-            <select defaultValue={question.taskId ?? ""}>
-              <option value="">プロジェクト全体</option>
-              {getLeafTasks("java-silver", tasks).map((task) => (
-                <option key={task.id} value={task.id}>{task.name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="form-row">
-          <label>
-            カテゴリ
-            <input defaultValue={question.category} maxLength={100} />
-          </label>
-          <label>
-            状態
-            <select defaultValue={question.status}>
-              <option value="open">未解決</option>
-              <option value="investigating">調査中</option>
-              <option value="resolved">解決済み</option>
-            </select>
-          </label>
-        </div>
-        <label>
-          質問内容
-          <textarea defaultValue={question.content} maxLength={5000} />
-        </label>
-        <label>
-          回答メモ
-          <textarea
-            placeholder="解決済みにする場合は回答メモが必須です。"
-            defaultValue={question.answerMemo}
-            maxLength={5000}
-          />
-        </label>
-        <div className="button-group">
-          <button className="primary-button" type="button">保存する</button>
-          <button className="secondary-button" onClick={() => onMove("aiContext")} type="button">
-            AI回答を生成
-          </button>
-        </div>
-      </div>
-      <aside className="panel">
-        <h2>AI回答履歴</h2>
-        <p className="helper-text">AI回答は参考情報で、解決済みにするには回答メモが必要です。</p>
-        <div className="log-list">
-          {relatedAnswers.map((answer) => (
-            <article className="log-item" key={answer.id}>
-              <strong>{new Date(answer.generatedAt).toLocaleString("ja-JP")}</strong>
-              <span>生成成功</span>
-              <p>{answer.content}</p>
-            </article>
-          ))}
-        </div>
-        <div className="constraint-box">
-          <strong>失敗時の表示</strong>
-          <p>生成に失敗しても、質問、回答メモ、既存AI回答は失われません。</p>
-        </div>
-      </aside>
-    </section>
-  );
-};
-
-const AiContextSelector = ({ onMove }: { onMove: (screen: Screen) => void }) => (
-  <section className="screen-grid">
-    <div className="panel form-panel">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">SCR-12</p>
-          <h2>AI送信情報選択</h2>
-          <p>外部AIサービスへ送信する情報をユーザーが選択します。</p>
-        </div>
-      </div>
-      <div className="consent-card">
-        <strong>外部送信への同意</strong>
-        <p>
-          AI回答生成では、質問情報、関連タスク、選択した学習記録・回答メモを
-          外部AIサービスへ送信します。認証情報は送信しません。
-        </p>
-        <label className="checkbox-label">
-          <input type="checkbox" defaultChecked />
-          初回利用時の同意済み
-        </label>
-      </div>
-      <section>
-        <h3>送信する質問</h3>
-        <div className="selected-context">
-          <strong>{questions[0].title}</strong>
-          <p>{questions[0].content}</p>
-        </div>
-      </section>
-      <section>
-        <h3>追加する学習記録・回答メモ（10件まで）</h3>
-        <div className="context-list">
-          {studyLogs.map((log) => {
-            const task = tasks.find((item) => item.id === log.taskId);
-            return (
-              <label className="context-item" key={log.id}>
-                <input type="checkbox" defaultChecked={log.id === "log-3"} />
-                <span>
-                  <strong>{formatDate(log.studyDate)} / {task?.name}</strong>
-                  <small>{log.memo}</small>
-                </span>
-              </label>
-            );
-          })}
-          <label className="context-item">
-            <input type="checkbox" />
-            <span>
-              <strong>回答メモ: コンストラクタの暗黙定義</strong>
-              <small>{questions[1].answerMemo}</small>
-            </span>
-          </label>
-        </div>
-      </section>
-      <div className="button-group">
-        <button className="primary-button" onClick={() => onMove("questionForm")} type="button">
-          この内容でAI回答を生成
-        </button>
-        <button className="secondary-button" onClick={() => onMove("questionForm")} type="button">
-          戻る
-        </button>
-      </div>
-    </div>
-    <aside className="panel">
-      <h2>送信プレビュー</h2>
-      <div className="send-preview">
-        <span>質問情報</span>
-        <span>関連タスク情報</span>
-        <span>選択済み学習記録 1件</span>
-      </div>
-      <div className="constraint-box">
-        <strong>確認したい論点</strong>
-        <p>
-          初回同意だけで十分か、生成ごとに送信内容プレビューを必須にするかを
-          この画面で再検討します。
-        </p>
-      </div>
-    </aside>
-  </section>
-);
-
 const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
   <section className="screen-grid">
     <div className="hero-card ai-hero">
@@ -1722,7 +1469,7 @@ const AiPlanInput = ({ onMove }: { onMove: (screen: Screen) => void }) => (
         <li>テキスト入力、写真、画像ファイル添付を1つの入力欄にまとめても迷わないか</li>
         <li>+ メニューの項目が、写真・ファイル・貼り付け入力の導線として自然か</li>
         <li>実行ボタンと停止ボタンの配置が分かりやすいか</li>
-        <li>外部送信への同意をAI回答と共通化するか、計画生成でも個別に確認するか</li>
+        <li>計画生成前に、外部送信する教材情報と依頼内容をどのように確認するか</li>
       </ul>
       <div className="consent-card">
         <strong>送信される情報</strong>
@@ -1884,7 +1631,7 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
         <ul className="check-list">
           <li>プロジェクト名、期間、WBS名を保存前に編集できるか</li>
           <li>AI生成結果を破棄して再生成できるか</li>
-          <li>生成後に質問管理やAI回答へ自然につながるか</li>
+          <li>生成後にWBS確認や計画修正へ自然につながるか</li>
         </ul>
         <div className="constraint-box">
           <strong>未確定要件</strong>
@@ -2011,21 +1758,6 @@ const InfoHelp = ({ label, help }: { label: string; help: string[] }) => (
 
 const StatusPill = ({ status }: { status: Project["status"] | TaskStatus }) => (
   <span className={`status-pill ${status}`}>{getStatusLabel(status)}</span>
-);
-
-const getQuestionStatusLabel = (status: QuestionStatus) => {
-  switch (status) {
-    case "open":
-      return "未解決";
-    case "investigating":
-      return "調査中";
-    case "resolved":
-      return "解決済み";
-  }
-};
-
-const QuestionStatusPill = ({ status }: { status: QuestionStatus }) => (
-  <span className={`status-pill question-${status}`}>{getQuestionStatusLabel(status)}</span>
 );
 
 const ProgressBar = ({ value }: { value: number }) => (

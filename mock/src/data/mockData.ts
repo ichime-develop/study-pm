@@ -36,29 +36,6 @@ export type StudyLog = {
   updatedAt: string;
 };
 
-export type QuestionStatus = "open" | "investigating" | "resolved";
-
-export type Question = {
-  id: string;
-  projectId: string;
-  taskId: string | null;
-  title: string;
-  content: string;
-  category: string;
-  status: QuestionStatus;
-  answerMemo: string;
-  updatedAt: string;
-};
-
-export type AiAnswer = {
-  id: string;
-  questionId: string;
-  source: "ai";
-  generatedAt: string;
-  content: string;
-  status: "success" | "failed";
-};
-
 export type AiPlanTask = {
   id: string;
   level: number;
@@ -340,7 +317,7 @@ export const tasks: WbsTask[] = [
     projectId: "java-silver",
     parentId: null,
     name: "弱点復習",
-    description: "章末問題と質問管理に登録した不明点を復習する親タスク。",
+    description: "章末問題と学習記録に残した復習点を見直す親タスク。",
     plannedStartDate: "2026-07-09",
     plannedEndDate: "2026-07-15",
     plannedHours: 0,
@@ -360,11 +337,11 @@ export const tasks: WbsTask[] = [
     hasLogs: false,
   },
   {
-    id: "java-review-questions",
+    id: "java-review-notes",
     projectId: "java-silver",
     parentId: "java-review",
-    name: "質問メモを整理する",
-    description: "未解決の疑問と回答メモを見直す。",
+    name: "復習メモを整理する",
+    description: "学習記録に残した気づきと復習点を見直す。",
     plannedStartDate: "2026-07-12",
     plannedEndDate: "2026-07-13",
     plannedHours: 3,
@@ -436,63 +413,6 @@ export const studyLogs: StudyLog[] = [
     hours: 1.25,
     memo: "章末問題を半分解いた。switch式を再確認する。",
     updatedAt: "2026-06-05T08:45:00+09:00",
-  },
-];
-
-export const questions: Question[] = [
-  {
-    id: "q-1",
-    projectId: "java-silver",
-    taskId: "java-ch1-ex",
-    title: "switch式とswitch文の違いを整理したい",
-    content: "Java Silverの問題でswitch式の戻り値とbreakの扱いが混ざってしまう。",
-    category: "Java文法",
-    status: "open",
-    answerMemo: "",
-    updatedAt: "2026-06-05T09:15:00+09:00",
-  },
-  {
-    id: "q-2",
-    projectId: "java-silver",
-    taskId: "java-ch2-class",
-    title: "コンストラクタの暗黙定義が分からない",
-    content: "引数ありコンストラクタを定義した場合、デフォルトコンストラクタがどうなるか確認したい。",
-    category: "オブジェクト指向",
-    status: "investigating",
-    answerMemo: "引数ありコンストラクタを定義すると、引数なしコンストラクタは自動生成されない。",
-    updatedAt: "2026-06-04T20:20:00+09:00",
-  },
-  {
-    id: "q-3",
-    projectId: "pm-basic",
-    taskId: null,
-    title: "SPIとCPIの読み方",
-    content: "SPIとCPIが1を超える場合、学習プロジェクトではどう解釈するか。",
-    category: "EVM",
-    status: "resolved",
-    answerMemo: "SPIは予定に対する進み具合、CPIは実績工数に対する効率として見る。",
-    updatedAt: "2026-06-01T12:00:00+09:00",
-  },
-];
-
-export const aiAnswers: AiAnswer[] = [
-  {
-    id: "ai-1",
-    questionId: "q-1",
-    source: "ai",
-    generatedAt: "2026-06-05T09:20:00+09:00",
-    content:
-      "switch式は値を返す式として扱えます。caseごとにyieldまたはアロー構文で値を返し、従来のswitch文よりフォールスルーを避けやすい点が特徴です。",
-    status: "success",
-  },
-  {
-    id: "ai-2",
-    questionId: "q-2",
-    source: "ai",
-    generatedAt: "2026-06-04T20:10:00+09:00",
-    content:
-      "コンストラクタを1つも定義しない場合だけ、コンパイラが引数なしコンストラクタを追加します。1つでも定義すると自動追加されません。",
-    status: "success",
   },
 ];
 
@@ -595,7 +515,7 @@ export const aiPlanTasks: AiPlanTask[] = [
     id: "plan-3-2",
     level: 1,
     name: "模擬問題と弱点復習",
-    description: "模擬問題を解き、質問管理に不明点を登録する。",
+    description: "模擬問題を解き、学習記録へ復習点を残す。",
     plannedStartDate: "2026-07-06",
     plannedEndDate: "2026-07-12",
     plannedHours: 6,

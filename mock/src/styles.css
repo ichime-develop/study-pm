@@ -67,7 +67,6 @@ button {
 .task-title small,
 .table small,
 .log-item span,
-.question-meta,
 .context-item small {
   color: #6b7280;
 }
@@ -880,21 +879,6 @@ button {
 }
 
 .status-pill.completed {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.status-pill.question-open {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.status-pill.question-investigating {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.status-pill.question-resolved {
   background: #dcfce7;
   color: #15803d;
 }
@@ -1718,39 +1702,6 @@ textarea {
   left: 18px;
   margin: 0;
   position: absolute;
-}
-
-.question-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.question-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-}
-
-.question-card h3,
-.question-card p {
-  margin: 0;
-}
-
-.question-card p {
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.question-card-header,
-.question-meta {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .consent-card,
