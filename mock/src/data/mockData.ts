@@ -37,6 +37,7 @@ export type StudyLog = {
 
 export type AiPlanTask = {
   id: string;
+  parentId: string | null;
   level: number;
   name: string;
   description: string;
@@ -438,6 +439,7 @@ export const tocSampleText = `第1章 Javaの基本
 export const aiPlanTasks: AiPlanTask[] = [
   {
     id: "plan-1",
+    parentId: null,
     level: 0,
     name: "第1章 Javaの基本",
     description: "文法、型、演算子を理解する親タスク。",
@@ -447,6 +449,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-1-1",
+    parentId: "plan-1",
     level: 1,
     name: "Javaプログラムの構造を読む",
     description: "mainメソッド、パッケージ、importを確認する。",
@@ -456,6 +459,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-1-2",
+    parentId: "plan-1",
     level: 1,
     name: "データ型と変数を整理する",
     description: "プリミティブ型、参照型、varの扱いを整理する。",
@@ -465,6 +469,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-1-3",
+    parentId: "plan-1",
     level: 1,
     name: "演算子と型変換の問題を解く",
     description: "暗黙変換、キャスト、演算子優先順位を問題で確認する。",
@@ -474,6 +479,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-2",
+    parentId: null,
     level: 0,
     name: "第2章 クラスとオブジェクト",
     description: "クラス定義、コンストラクタ、継承を理解する親タスク。",
@@ -483,6 +489,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-2-1",
+    parentId: "plan-2",
     level: 1,
     name: "クラス定義とコンストラクタを読む",
     description: "フィールド、メソッド、初期化順序を確認する。",
@@ -492,6 +499,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-2-2",
+    parentId: "plan-2",
     level: 1,
     name: "継承とポリモーフィズムを演習する",
     description: "override、super、アクセス修飾子の問題を解く。",
@@ -501,6 +509,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-3",
+    parentId: null,
     level: 0,
     name: "第3章 例外処理とAPI",
     description: "例外、コレクション、模擬問題を扱う親タスク。",
@@ -510,6 +519,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-3-1",
+    parentId: "plan-3",
     level: 1,
     name: "例外処理とコレクションを学習する",
     description: "try-catch、throws、List/Set/Mapの基本を確認する。",
@@ -519,6 +529,7 @@ export const aiPlanTasks: AiPlanTask[] = [
   },
   {
     id: "plan-3-2",
+    parentId: "plan-3",
     level: 1,
     name: "模擬問題と弱点復習",
     description: "模擬問題を解き、学習記録へ復習点を残す。",
