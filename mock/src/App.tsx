@@ -124,7 +124,7 @@ export const App = () => {
         </div>
       </aside>
 
-      <main className={screen === "wbs" ? "main-content main-content-wide" : "main-content"}>
+      <main className="main-content">
         <header className="topbar">
           <div>
             <p className="eyebrow">PC Web UIモック</p>

@@ -20,8 +20,7 @@
   --color-danger: #a94438;
   --color-danger-soft: #f8e8e4;
   --shadow-soft: 0 8px 20px rgba(74, 55, 36, 0.06);
-  --content-max-width: 1120px;
-  --content-wide-max-width: 1280px;
+  --content-max-width: 1280px;
   --radius-card: 18px;
   --radius-button: 10px;
   --text-sm: 12px;
@@ -161,10 +160,6 @@ button {
   max-width: var(--content-max-width);
   padding: 20px 24px;
   width: 100%;
-}
-
-.main-content-wide {
-  max-width: var(--content-wide-max-width);
 }
 
 .topbar {
@@ -2088,15 +2083,15 @@ button {
 }
 
 .gantt-row.selected {
-  background: #eff6ff;
+  background: var(--color-surface-soft);
 }
 
 .gantt-row.parent-row {
-  background: #f8fafc;
+  background: var(--color-surface-soft);
 }
 
 .gantt-row.parent-row.selected {
-  background: #eaf2ff;
+  background: var(--color-surface-soft);
 }
 
 .gantt-row > span,
@@ -2110,9 +2105,9 @@ button {
 }
 
 .gantt-row > span {
-  color: #4b5563;
+  color: var(--color-text-muted);
   font-size: var(--text-sm);
-  font-weight: 900;
+  font-weight: 700;
   padding: 10px 12px;
   white-space: nowrap;
 }
@@ -2264,16 +2259,18 @@ button {
   background: transparent;
   border: 0;
   border-right: 1px solid #edf0f4;
-  color: #2563eb;
+  color: var(--color-text);
   display: flex;
-  font-weight: 900;
+  font-size: var(--text-md);
+  font-weight: 700;
   gap: 8px;
+  line-height: 1.35;
   padding-right: 12px;
   text-align: left;
 }
 
 .parent-row .gantt-task-name {
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .gantt-task-name span:last-child {
@@ -2283,17 +2280,18 @@ button {
 }
 
 .gantt-task-type {
-  background: #e0e7ff;
+  background: var(--color-neutral-soft);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  color: #3730a3;
+  color: var(--color-text-muted);
   flex: 0 0 auto;
   font-size: var(--text-sm);
-  font-weight: 900;
+  font-weight: 700;
   padding: 3px 7px;
 }
 
 .gantt-task-name:hover {
-  background: #eff6ff;
+  background: var(--color-surface-soft);
 }
 
 .gantt-empty-value,
@@ -2317,13 +2315,13 @@ button {
 
 .gantt-parent-note {
   align-items: center;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: var(--color-neutral-soft);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  color: #475569;
+  color: var(--color-text-muted);
   display: inline-flex;
   font-size: var(--text-sm);
-  font-weight: 900;
+  font-weight: 700;
   left: 10px;
   padding: 4px 9px;
   position: absolute;
@@ -3902,6 +3900,58 @@ button:focus-visible {
 .gantt-task-name:hover {
   background: var(--color-green-soft);
   color: var(--color-green);
+}
+
+/* WBS rows use the standard neutral palette; green is reserved for state feedback. */
+.gantt-row.selected,
+.gantt-row.parent-row,
+.gantt-row.parent-row.selected {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: inherit;
+}
+
+.gantt-task-name,
+.parent-row .gantt-task-name {
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.gantt-task-name span:last-child {
+  border-bottom: 1px solid rgba(74, 42, 20, 0.24);
+  overflow: hidden;
+  padding-bottom: 1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-task-name:hover,
+.gantt-task-name:focus,
+.gantt-task-name:focus-visible {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.gantt-task-name:hover span:last-child,
+.gantt-task-name:focus span:last-child,
+.gantt-task-name:focus-visible span:last-child {
+  border-bottom-color: var(--color-primary-dark);
+}
+
+.gantt-task-type,
+.gantt-parent-note {
+  background: var(--color-neutral-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.gantt-task-name .task-icon,
+.gantt-task-name .child-arrow {
+  color: var(--color-text-muted);
 }
 
 .gantt-bar.completed,
