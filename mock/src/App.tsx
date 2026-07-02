@@ -177,15 +177,46 @@ export const App = () => {
 const LoginScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
   <section className="auth-layout">
     <div className="auth-hero">
-      <p className="eyebrow">SCR-02</p>
+      <p className="eyebrow">AU02</p>
       <h2>学習をプロジェクトとして管理する</h2>
       <p>
-        ログイン後はプロジェクト一覧から現在取り組むプロジェクトを選び、
-        その中でWBS、学習記録、進捗分析、AI学習計画を確認します。
+        資格取得・スキルアップの学習を、仕事と同じ感覚でプロジェクト管理。
+        計画から振り返りまで一元管理できます。
       </p>
+      <ul className="hero-feature-list">
+        <li>
+          <span className="hero-feature-icon">📋</span>
+          <div>
+            <strong>WBSで学習を構造化</strong>
+            <span>大項目・小項目に分けて進捗を見える化</span>
+          </div>
+        </li>
+        <li>
+          <span className="hero-feature-icon">📈</span>
+          <div>
+            <strong>進捗分析・バーンダウン</strong>
+            <span>学習ペースと遅延をグラフで把握</span>
+          </div>
+        </li>
+        <li>
+          <span className="hero-feature-icon">🤖</span>
+          <div>
+            <strong>AIが学習計画を自動作成</strong>
+            <span>目標と期限からWBSをワンクリック生成</span>
+          </div>
+        </li>
+        <li>
+          <span className="hero-feature-icon">📝</span>
+          <div>
+            <strong>学習記録を積み上げる</strong>
+            <span>日々の記録が進捗に自動反映</span>
+          </div>
+        </li>
+      </ul>
       <div className="auth-preview">
         <Metric label="進行中" value="1件" />
         <Metric label="遅延" value="0件" />
+        <Metric label="完了タスク" value="8件" />
       </div>
     </div>
     <div className="panel form-panel auth-card">
@@ -218,7 +249,7 @@ const LoginScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
 const SignupScreen = ({ onMove }: { onMove: (screen: Screen) => void }) => (
   <section className="auth-layout">
     <div className="auth-hero">
-      <p className="eyebrow">SCR-01</p>
+      <p className="eyebrow">AU01</p>
       <h2>アカウント登録</h2>
       <p>
         MVPではメールアドレスとパスワードのみで登録します。メール認証と
@@ -320,14 +351,16 @@ const ProjectList = ({
         </div>
       </div>
       <div className="data-list project-list">
-        <div className="data-list-row data-list-head project-list-row">
-          <span>プロジェクト</span>
-          <span>状態</span>
-          <span>期間</span>
-          <span>進捗</span>
-          <span>工数</span>
-          <span>警告</span>
-        </div>
+        {list.length > 0 && (
+          <div className="data-list-row data-list-head project-list-row">
+            <span>プロジェクト</span>
+            <span>状態</span>
+            <span>期間</span>
+            <span>進捗</span>
+            <span>工数</span>
+            <span>警告</span>
+          </div>
+        )}
         {list.map((project) => {
           const summary = buildProjectSummary(project, tasks, studyLogs);
           return (
@@ -343,6 +376,9 @@ const ProjectList = ({
             </button>
           );
         })}
+        {list.length === 0 && (
+          <div className="empty-state">プロジェクトはまだありません。</div>
+        )}
       </div>
       </section>
     </section>
@@ -381,8 +417,8 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
       <div className="metric-row compact-metrics">
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
         <Metric
-          label="予定 / 実績（残）"
-          value={`${formatHours(summary.plannedHours)} / ${formatHours(summary.actualHours)}（残 ${formatHours(remainingHours)}）`}
+          label="予定 / 残工数"
+          value={`${formatHours(summary.plannedHours)} / ${formatHours(remainingHours)}`}
           tone={hasCostOverrun ? "danger" : "normal"}
         />
         <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
@@ -433,7 +469,7 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
           )}
           {incompleteTasks.slice(0, 8).map(({ task, summary: taskSummary }) => (
             <button
-              className={taskSummary.isDelayed ? "data-list-row incomplete-task-row delayed" : "data-list-row incomplete-task-row"}
+              className={taskSummary.isDelayed ? "data-list-row incomplete-task-row clickable delayed" : "data-list-row incomplete-task-row clickable"}
               key={task.id}
               onClick={() => onMove("wbs")}
               type="button"
@@ -930,23 +966,34 @@ const GanttWbsTable = ({
             style={{ gridTemplateColumns: fixedColumns }}
           >
             <button
+              aria-label={`${task.name}の詳細を開く`}
               className="gantt-task-name"
               onClick={(event) => {
                 event.stopPropagation();
                 onSelectTask(task.id);
               }}
+              title="タスク詳細を開く"
               style={{ paddingLeft: `${level * 22 + 12}px` }}
               type="button"
             >
-              <span className="task-icon">{isParent ? "▾" : "□"}</span>
-              <span>{task.name}</span>
+              <span aria-hidden="true" className="task-icon">{isParent ? "▾" : "↳"}</span>
+              <span className="gantt-task-label">{task.name}</span>
               {isParent && <span className="gantt-task-type">親タスク</span>}
             </button>
             <div className="gantt-hour-cell">
               {isParent ? (
                 <span className="gantt-empty-value">—</span>
               ) : (
-                <button className="gantt-hour-value" onClick={() => setOpenHourEditor({ taskId: task.id, field: "planned" })} type="button">
+                <button
+                  aria-label={`${task.name}の予定工数を編集`}
+                  className="gantt-hour-value"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setOpenHourEditor({ taskId: task.id, field: "planned" });
+                  }}
+                  title="予定工数を編集"
+                  type="button"
+                >
                   {plannedHours}
                 </button>
               )}
@@ -975,7 +1022,12 @@ const GanttWbsTable = ({
             {isParent ? (
               <span className="gantt-muted-cell">対象外</span>
             ) : (
-              <select defaultValue={Math.round(summary.progress / 10) * 10}>
+              <select
+                aria-label={`${task.name}の進捗率`}
+                className="gantt-progress-select"
+                defaultValue={Math.round(summary.progress / 10) * 10}
+                onClick={(event) => event.stopPropagation()}
+              >
                 {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
                   <option key={progress} value={progress}>{progress}%</option>
                 ))}
@@ -1249,11 +1301,15 @@ const EvmPanel = ({ project }: { project: Project }) => {
           <strong>{burndownEvaluation.message}</strong>
           <InfoHelp label="バーンダウン差分" help={burndownEvaluation.help} />
         </div>
+        <div className="chart-legend" aria-hidden="true">
+          <span><i className="legend-line ideal" />理想線</span>
+          <span><i className="legend-line actual" />実績線</span>
+        </div>
         <div className="chart-line ideal" />
         <div className="chart-line actual" />
         <span className="chart-label start">BAC</span>
         <span className="chart-label end">0h</span>
-        <p>バーンダウンの理想線と実績線のサイズ感確認用です。</p>
+        <p>残作業時間の理想線と実績線の差分を確認します。</p>
       </div>
     </div>
   );
@@ -1268,7 +1324,6 @@ const ProjectForm = ({
 }) => (
   <section className="screen-grid">
     <CreationFlowHeader
-      badge="未保存"
       description="まずプロジェクトの目的と期間を登録します。WBSは作成後に1から追加します。"
       steps={[
         { label: "1 プロジェクト情報を入力", state: "active" },
@@ -1308,9 +1363,9 @@ const ProjectForm = ({
           </label>
         </div>
         <p className="form-helper">新規プロジェクトは「未着手」で作成されます。保存後、プロジェクト概要からWBS作成へ進みます。</p>
-        <div className="button-group">
-          <button className="primary-button" onClick={onCreate} type="button">プロジェクトを作成</button>
+        <div className="form-submit-bar">
           <button className="secondary-button" onClick={onCancel} type="button">キャンセル</button>
+          <button className="primary-button" onClick={onCreate} type="button">プロジェクトを作成</button>
         </div>
       </div>
     </div>
@@ -1518,38 +1573,33 @@ const StudyLogList = ({ project, onMove }: { project: Project; onMove: (screen: 
                 <span>日付 / 時間</span>
                 <span>タスク</span>
                 <span>メモ</span>
-                <span>操作</span>
               </div>
             )}
             {projectLogs.map((log) => {
               const task = tasks.find((item) => item.id === log.taskId);
 
               return (
-                <article
+                <button
                   aria-label={`${formatDate(log.studyDate)} ${task?.name ?? "タスク未設定"}の学習記録を編集`}
-                  className="data-list-row log-item clickable-log-item"
+                  className={panelState?.mode === "edit" && panelState.log.id === log.id
+                    ? "data-list-row log-item clickable clickable-log-item selected"
+                    : "data-list-row log-item clickable clickable-log-item"}
                   key={log.id}
                   onClick={() => {
                     setPanelState({ mode: "edit", log });
                     setSaveNotice("");
                   }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setPanelState({ mode: "edit", log });
-                      setSaveNotice("");
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                 >
                   <strong>{formatDate(log.studyDate)} / {formatHours(log.hours)}</strong>
                   <span>{task?.name}</span>
                   <span>{log.memo}</span>
-                  <span className="text-button">編集</span>
-                </article>
+                </button>
               );
             })}
+            {projectLogs.length === 0 && (
+              <div className="empty-state">学習記録はまだありません。</div>
+            )}
           </div>
 
           {panelState && (
@@ -1585,7 +1635,6 @@ const AiPlanMethod = ({
 }) => (
   <section className="screen-grid">
     <CreationFlowHeader
-      badge="未保存"
       description="入力できる情報に合わせて作成方法を選びます。どちらも保存前にWBS案を確認・編集できます。"
       steps={[
         { label: "1 作成方法を選ぶ", state: "active" },
@@ -1599,7 +1648,7 @@ const AiPlanMethod = ({
       <div className="ai-method-grid">
         <button className="ai-method-card" onClick={() => onSelect("simple")} type="button">
           <span className="badge neutral">入力が少ない</span>
-          <strong>かんたん作成</strong>
+          <strong>概要から作成</strong>
           <p>学習目標、期限、学習内容の概要から、大まかなWBS案を作ります。</p>
           <small>教材の目次が手元にない場合に向いています。</small>
         </button>
@@ -1724,8 +1773,7 @@ Chapter 8 アプリを公開しよう
   return (
     <section className="screen-grid ai-plan-flow">
       <CreationFlowHeader
-        badge="未保存"
-        description={
+          description={
           isSimple
             ? "最低限の条件だけで始められます。生成されるWBSは大まかな案です。"
             : "OCR結果または入力した目次を確認してから、AIへ送信します。"
@@ -2277,7 +2325,6 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
   return (
     <section className="screen-grid ai-plan-flow">
       <CreationFlowHeader
-        badge="未保存の計画案"
         description="名称、期間、WBS、予定工数を確認してください。この時点ではまだ保存されていません。"
         steps={[
           { label: "1 条件を入力", state: "done" },
@@ -2336,16 +2383,33 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
           onClick={editingTask ? () => setEditingTaskId(null) : undefined}
         >
           <div className="data-list plan-task-list">
-            <div className="data-list-row data-list-head plan-task-row">
-              <span>タスク</span>
-              <span>予定期間</span>
-              <span>工数</span>
-              <span>操作</span>
-            </div>
+            {sortedTasks.length > 0 && (
+              <div className="data-list-row data-list-head plan-task-row">
+                <span>タスク</span>
+                <span>予定期間</span>
+                <span>工数</span>
+                <span>操作</span>
+              </div>
+            )}
             {sortedTasks.map((task) => {
               const isParent = task.plannedHours === 0;
               return (
-                <article className={isParent ? "data-list-row plan-task-row parent" : "data-list-row plan-task-row leaf"} key={task.id}>
+                <button
+                  aria-label={`${task.name}を編集`}
+                  className={[
+                    "data-list-row",
+                    "plan-task-row",
+                    isParent ? "parent" : "leaf",
+                    "clickable",
+                    editingTaskId === task.id ? "selected" : "",
+                  ].filter(Boolean).join(" ")}
+                  key={task.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setEditingTaskId(task.id);
+                  }}
+                  type="button"
+                >
                   <div className="task-title" style={{ paddingLeft: `${task.level * 24}px` }}>
                     <span className={task.parentId !== null ? "child-arrow" : "task-icon"}>
                       {isParent ? "▾" : task.parentId !== null ? "↳" : "□"}
@@ -2357,19 +2421,13 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
                   </div>
                   <span>{isParent ? "親タスク" : `${formatDate(task.plannedStartDate)} - ${formatDate(task.plannedEndDate)}`}</span>
                   <span>{isParent ? "計算対象外" : formatHours(task.plannedHours)}</span>
-                  <button
-                    className="text-button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setEditingTaskId(task.id);
-                    }}
-                    type="button"
-                  >
-                    編集
-                  </button>
-                </article>
+                  <span className="text-button">編集</span>
+                </button>
               );
             })}
+            {sortedTasks.length === 0 && (
+              <div className="empty-state">生成されたWBS案はありません。</div>
+            )}
           </div>
           {editingTask && (
             <AiPlanTaskEditPanel
