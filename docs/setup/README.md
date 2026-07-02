@@ -1,3 +1,9 @@
+<!--
+doc-type: セットアップ
+id-prefix: なし
+related: docs/setup/frontend.md, docs/setup/github.md, docs/basic-design/tech-stack.md
+-->
+
 # 環境構築
 
 ## 1. 目的

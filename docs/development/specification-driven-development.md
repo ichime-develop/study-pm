@@ -1,3 +1,9 @@
+<!--
+doc-type: 開発方針
+id-prefix: なし
+related: docs/development/README.md, docs/development/ai-assisted-development.md, docs/requirements/summary/README.md
+-->
+
 # 仕様駆動開発
 
 ## 目的

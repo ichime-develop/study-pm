@@ -1,3 +1,9 @@
+<!--
+doc-type: 基本設計
+id-prefix: DSG-TBD
+related: docs/requirements/summary/README.md, docs/requirements/details/non-functional.md, docs/basic-design/screen-list.md
+-->
+
 # 技術スタック
 
 ## 1. 目的
@@ -47,7 +53,7 @@
 
 ### 5.1 方針
 
-現時点ではAI活用（Claude Code等による横断編集）のしやすさを優先し、フロントエンドとバックエンドを1つのリポジトリ（モノレポ）にまとめる。
+現時点ではAI活用（Code X, Claude Code等による横断編集）のしやすさを優先し、フロントエンドとバックエンドを1つのリポジトリ（モノレポ）にまとめる。
 
 ```
 study-pm/

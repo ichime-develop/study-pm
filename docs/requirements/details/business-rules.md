@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: PRJ, WBS, LOG, EVM, PLN
+related: docs/requirements/details/functional.md, docs/requirements/details/data-screens-interfaces.md, docs/requirements/details/glossary.md
+-->
+
 # 業務ルール・入力表示ルール・例外
 
 ## 10. 業務ルール

@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: なし
+related: docs/requirements/details/scope.md, docs/requirements/details/functional.md, docs/requirements/summary/README.md
+-->
+
 # ユーザーストーリー
 
 ## 記載方針

@@ -1,3 +1,9 @@
+<!--
+doc-type: 開発方針
+id-prefix: なし
+related: docs/development/README.md, docs/development/specification-driven-development.md, docs/requirements/summary/README.md
+-->
+
 # AI支援開発
 
 ## 目的

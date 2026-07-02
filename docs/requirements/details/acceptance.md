@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: DSG-TBD
+related: docs/requirements/summary/README.md, docs/requirements/details/functional.md, docs/requirements/details/glossary.md
+-->
+
 # 受入条件・制約・次工程
 
 ## 18. 受入条件

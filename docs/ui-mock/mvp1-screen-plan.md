@@ -1,3 +1,9 @@
+<!--
+doc-type: UIモック
+id-prefix: SCR, PJ, WB, SL, AN, AI, CM
+related: docs/ui-mock/README.md, docs/requirements/details/data-screens-interfaces.md, docs/basic-design/screen-list.md
+-->
+
 # PC Web版 最終MVP UIモック画面計画
 
 ## 1. 対象範囲

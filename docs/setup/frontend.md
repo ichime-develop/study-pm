@@ -1,3 +1,9 @@
+<!--
+doc-type: セットアップ
+id-prefix: なし
+related: docs/setup/README.md, docs/basic-design/tech-stack.md, docs/development/README.md
+-->
+
 # Webフロントエンド開発環境
 
 ## 1. 目的

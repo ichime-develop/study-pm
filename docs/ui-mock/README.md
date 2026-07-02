@@ -1,3 +1,9 @@
+<!--
+doc-type: UIモック
+id-prefix: SCR, PJ, WB, SL, AN, AI, CM
+related: docs/ui-mock/mvp1-screen-plan.md, docs/requirements/details/data-screens-interfaces.md, docs/basic-design/screen-list.md
+-->
+
 # UIモック
 
 ## 1. 目的

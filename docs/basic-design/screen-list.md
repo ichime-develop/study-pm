@@ -1,3 +1,9 @@
+<!--
+doc-type: 基本設計
+id-prefix: AU, PJ, WB, SL, AN, AI, CM, SCR
+related: docs/basic-design/screen-flow.md, docs/requirements/details/data-screens-interfaces.md, docs/requirements/details/glossary.md
+-->
+
 # 画面一覧（画面ID・画面名）
 
 ## 1. 目的
@@ -83,4 +89,4 @@ UIモックのサイドバー（全画面切り替えナビ）は要件検証用
 ### 5.3 IDの拡張
 
 - 新しい画面は該当プレフィックスの次番号を割り当てる。番号の再利用はしない。
-- 画面内の領域や項目まで採番が必要になった場合は、`PJ03-01` のように枝番で拡張する。
+- 画面内の領域や項目まで採番が必要になった場合は、`SCR.PJ03-01` のように枝番で拡張する。

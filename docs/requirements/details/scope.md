@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: UC
+related: docs/requirements/summary/README.md, docs/requirements/details/user-stories.md, docs/requirements/details/functional.md
+-->
+
 # 基本方針・スコープ・ユースケース
 
 ## 6. 基本方針

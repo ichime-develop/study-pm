@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: UC, PRJ, WBS, LOG, EVM, PLN, USR, HME, SCR, DSG-TBD
+related: docs/requirements/details/scope.md, docs/requirements/details/functional.md, docs/requirements/details/data-screens-interfaces.md, docs/requirements/details/glossary.md
+-->
+
 # 学習支援Webアプリ 要件定義書
 
 ## 1. 文書情報

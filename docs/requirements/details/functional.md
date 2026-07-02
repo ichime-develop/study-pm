@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: PRJ, WBS, LOG, EVM, PLN, USR, HME
+related: docs/requirements/details/scope.md, docs/requirements/details/business-rules.md, docs/requirements/details/data-screens-interfaces.md, docs/requirements/details/glossary.md
+-->
+
 # 機能要件
 
 ## 9. 機能要件

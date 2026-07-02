@@ -1,3 +1,9 @@
+<!--
+doc-type: 開発方針
+id-prefix: なし
+related: docs/development/ai-assisted-development.md, docs/development/specification-driven-development.md, docs/INDEX.md
+-->
+
 # 開発方針
 
 ## 目的

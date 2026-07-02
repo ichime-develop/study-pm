@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: UC, PRJ, WBS, LOG, EVM, PLN, USR, HME, AU, PJ, WB, SL, AN, AI, CM, SCR, DSG-TBD, REV
+related: docs/requirements/details/functional.md, docs/requirements/details/data-screens-interfaces.md, docs/basic-design/screen-list.md
+-->
+
 # 用語定義
 
 
@@ -29,3 +35,18 @@
 | SPI | Schedule Performance Index。スケジュール効率を表す指標 |
 | CPI | Cost Performance Index。本アプリでは工数効率を表す指標 |
 | バーンダウンチャート | 日ごとの残予定工数を表示するグラフ |
+
+## ID体系一覧
+
+| ID体系 | 書式 | 用途 | 定義・主な参照 |
+| --- | --- | --- | --- |
+| ユースケースID | `UC-01` | ユースケースを識別する | `docs/requirements/details/scope.md` |
+| 機能要件ID | `PRJ-01`, `WBS-01`, `LOG-01`, `EVM-01`, `PLN-01`, `USR-01`, `HME-01` | 機能要件を機能領域別に識別する | `docs/requirements/details/functional.md` |
+| 画面ID | `AU01`, `PJ01`, `WB01`, `SL01`, `AN01`, `AI01` | 画面単位を識別する | `docs/basic-design/screen-list.md`, `docs/requirements/details/data-screens-interfaces.md` |
+| 共通部品ID | `CM01` | 複数画面で使う共通UI部品を識別する | `docs/basic-design/screen-list.md`, `docs/requirements/details/data-screens-interfaces.md` |
+| 画面内要件ID | `SCR.PJ01-01`, `SCR.WB01-01` | 画面内の表示項目、操作、状態などの要件を識別する | `docs/requirements/details/data-screens-interfaces.md` |
+| 保留事項ID | `DSG-TBD-01` | 要件定義・基本設計で未確定の事項を識別する | `docs/requirements/details/acceptance.md`, `docs/requirements/review/requirements-review.md`, `docs/basic-design/tech-stack.md` |
+| レビュー指摘ID | `REV-01` | レビューで出た指摘・確認事項を識別する | `docs/requirements/review/requirements-review.md` |
+| API ID | `API-PJ-01` | API設計時にAPI単位を識別するための予定書式 | 基本設計のAPI一覧で定義予定 |
+
+画面IDはハイフンを含まない `2文字+2桁` の形式とする。画面内要件IDは機能要件IDと混同しないよう、必ず `SCR.` を付ける。

@@ -1,3 +1,9 @@
+<!--
+doc-type: セットアップ
+id-prefix: なし
+related: docs/setup/README.md, docs/development/README.md, docs/INDEX.md
+-->
+
 # GitHub SSH接続手順
 
 ## 1. 目的

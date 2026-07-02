@@ -1,3 +1,9 @@
+<!--
+doc-type: 要件定義
+id-prefix: なし
+related: docs/requirements/summary/README.md, docs/basic-design/tech-stack.md, docs/requirements/details/acceptance.md
+-->
+
 # 非機能要件
 
 ## 14. 非機能要件
