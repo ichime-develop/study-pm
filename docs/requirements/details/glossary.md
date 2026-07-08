@@ -9,6 +9,7 @@ related: docs/requirements/details/functional.md, docs/requirements/details/data
 
 | 用語 | 定義 |
 | --- | --- |
+| アカウント（Account） | 要件定義上の「ユーザー」に対応する実装上のエンティティ。メールアドレス、パスワードハッシュ、表示名、AI利用同意などを保持し、認証情報と所有データの起点となる |
 | 学習プロジェクト | 学習目標、期間、計画工数をまとめる管理単位。例: Java Silver合格、SQL基礎習得 |
 | WBS | 学習内容を親タスクとタスクで整理するタスク構造 |
 | WBSタスク | 親タスクまたはタスクの総称 |
