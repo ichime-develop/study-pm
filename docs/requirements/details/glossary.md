@@ -47,7 +47,8 @@ related: docs/requirements/details/functional.md, docs/requirements/details/data
 | 共通部品ID | `CM01` | 複数画面で使う共通UI部品を識別する | `docs/basic-design/screen-list.md`, `docs/requirements/details/data-screens-interfaces.md` |
 | 画面内要件ID | `SCR.PJ01-01`, `SCR.WB01-01` | 画面内の表示項目、操作、状態などの要件を識別する | `docs/requirements/details/data-screens-interfaces.md` |
 | 保留事項ID | `DSG-TBD-01` | 要件定義・基本設計で未確定の事項を識別する | `docs/requirements/details/acceptance.md`, `docs/requirements/review/requirements-review.md`, `docs/basic-design/tech-stack.md` |
+| API保留事項ID | `API-TBD-02` | API設計で未確定の事項を識別する | `docs/basic-design/api-list.md` |
 | レビュー指摘ID | `REV-01` | レビューで出た指摘・確認事項を識別する | `docs/requirements/review/requirements-review.md` |
-| API ID | `API-PJ-01` | API設計時にAPI単位を識別するための予定書式 | 基本設計のAPI一覧で定義予定 |
+| API ID | `API-PJ-01`, `API-WB-05` | REST APIのエンドポイント単位を識別する | `docs/basic-design/api-list.md` |
 
 画面IDはハイフンを含まない `2文字+2桁` の形式とする。画面内要件IDは機能要件IDと混同しないよう、必ず `SCR.` を付ける。

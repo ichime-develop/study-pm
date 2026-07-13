@@ -48,7 +48,22 @@ related: docs/requirements/details/data-screens-interfaces.md, docs/requirements
 
 `ai_usage_consent_at` はMVP3のAI利用同意に備えた項目とする。MVP1でカラムを作るか、MVP3のマイグレーションで追加するかは実装時に決めてよい。
 
-### 4.2 Project
+### 4.2 RefreshToken
+
+アクセストークン再発行に使うリフレッシュトークンを表す。MVP1ではログアウト時の失効管理を目的として保持する。
+
+| 項目 | 方針 |
+| --- | --- |
+| テーブル名 | `refresh_tokens` |
+| 主なカラム | `id`, `account_id`, `token_hash`, `expires_at`, `revoked_at`, `created_at` |
+| 主キー | `id` |
+| 外部キー | `account_id` -> `accounts.id` |
+| 主な制約 | リフレッシュトークンは平文保存せず、ハッシュ化して保存する。`revoked_at` が設定済み、または `expires_at` を過ぎたトークンは再発行に使えない |
+| MVP | MVP1 |
+
+MVP1ではリフレッシュトークンのローテーション、再利用検知、デバイス一覧、全端末強制ログアウトは扱わない。これらが必要になった場合は、`replaced_by_token_id`, `last_used_at`, `user_agent`, `ip_address` などの追加カラムを検討する。
+
+### 4.3 Project
 
 学習プロジェクトを表す。プロジェクト状態はユーザー操作で保持するが、完了への変更時は業務ルールで検証する。
 
@@ -63,7 +78,7 @@ related: docs/requirements/details/data-screens-interfaces.md, docs/requirements
 
 プロジェクトは物理削除しない。通常一覧からの除外は `archived_at` の有無で判定する。復元時は `archived_at` を未設定に戻す。復元日時は要件上の表示・追跡対象ではないため保持しない。
 
-### 4.3 ProjectPeriodHistory
+### 4.4 ProjectPeriodHistory
 
 プロジェクト開始日または目標終了日の変更履歴を表す。
 
@@ -78,7 +93,7 @@ related: docs/requirements/details/data-screens-interfaces.md, docs/requirements
 
 新規作成時は変更前の値が存在しないため、期間履歴は追加しない。開始日だけ、または目標終了日だけが変わった場合も、変更イベント1回として変更前後の両方の期間を1行へ保存する。
 
-### 4.4 WbsTask
+### 4.5 WbsTask
 
 WBS上の親タスクとタスクを表す。親タスクとタスクは単一テーブルで管理し、`task_type` と `parent_wbs_task_id` で区別する。
 
@@ -96,7 +111,7 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 
 表示順は原則として保存しない。10.3の並び順ルールに従い、予定日と作成日時からクエリまたはサービス層で算出する。将来、手動並び替えを追加する場合のみ `sort_order` などの永続カラムを検討する。
 
-### 4.5 WbsTaskPlanHistory
+### 4.6 WbsTaskPlanHistory
 
 タスクの計画情報の変更履歴を表す。
 
@@ -111,7 +126,7 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 
 名称と説明の変更は計画履歴に含めない。親タスクは予定日、予定工数、進捗率を持たないため、親タスク自身の編集では計画履歴を追加しない。タスクを親タスク配下または親なしへ移動した場合は、対象タスクの計画履歴として保存する。
 
-### 4.6 WbsTaskProgressHistory
+### 4.7 WbsTaskProgressHistory
 
 タスクの進捗率変更履歴を表す。
 
@@ -126,7 +141,7 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 
 同日に複数回変更した場合もすべて保持する。日別EVやバーンダウン実績線では、JST各日終了時点までの最新行を採用する。親タスクは進捗率を持たないため、進捗履歴も持たない。
 
-### 4.7 StudyLog
+### 4.8 StudyLog
 
 学習記録を表す。学習記録は実績工数、AC、連続学習日数、総学習時間の算出元になる。
 
@@ -141,7 +156,7 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 
 `project_id` と `account_id` は `wbs_task_id` から辿れるが、プロジェクト単位・アカウント単位の集計と所有者判定を簡潔にするため保持する。登録・更新時には、指定タスクが同じプロジェクト・同じアカウントに属することをサービス層で検証する。タスクは別プロジェクトへ移動できないため、保存後の整合性は保ちやすい。
 
-### 4.8 AiPlanGenerationRequest
+### 4.9 AiPlanGenerationRequest
 
 AI学習計画生成へ渡す入力条件を表す。MVP3で作成する。
 
@@ -155,7 +170,7 @@ AI学習計画生成へ渡す入力条件を表す。MVP3で作成する。
 
 `constraints_json` には学習可能時間、学習できない曜日、日程補足、重点範囲、軽く確認する範囲、除外範囲などの任意条件を保持する。教材画像ファイルの保存方式と、画像単位の永続テーブルが必要かどうかはMVP3のAIサービス設計で決める。
 
-### 4.9 AiPlanDraft
+### 4.10 AiPlanDraft
 
 AIが生成した保存前の計画案を表す。MVP3で作成する。
 
@@ -221,6 +236,7 @@ MVP時点では集計キャッシュやサマリーテーブルは作らない�
 ```mermaid
 erDiagram
     accounts ||--o{ projects : owns
+    accounts ||--o{ refresh_tokens : has
     accounts ||--o{ study_logs : records
     accounts ||--o{ ai_plan_generation_requests : creates
 
@@ -246,6 +262,7 @@ erDiagram
 | テーブル | エンティティ | 作成MVP | 備考 |
 | --- | --- | --- | --- |
 | `accounts` | Account | MVP1 | 認証とアカウント所有データの起点 |
+| `refresh_tokens` | RefreshToken | MVP1 | JWTリフレッシュトークンの失効管理 |
 | `projects` | Project | MVP1 | アーカイブは物理削除ではなく非表示 |
 | `project_period_history` | ProjectPeriodHistory | MVP1 | MVP1から保存するが、履歴一覧表示はしない |
 | `wbs_tasks` | WbsTask | MVP1 | 親タスクとタスクを単一テーブルで扱う |
@@ -262,6 +279,7 @@ MVP2では新規テーブルを追加せず、MVP1から保存している履歴
 | 要件 | 対応 |
 | --- | --- |
 | 15章 データ要件 | 主要データをエンティティ一覧へ対応付けた |
+| 17.1 最終MVPのAPI利用 | `accounts`, `refresh_tokens` によりJWT認証とリフレッシュトークン失効管理に対応 |
 | 10.3 WBS階層と集計 | `wbs_tasks` 単一テーブル + self-join、親タスク除外集計で対応 |
 | 10.4 予定日とプロジェクト期間 | `project_period_history` と計画不整合判定で対応 |
 | 10.5 進捗率と履歴 | `wbs_task_progress_history` を変更イベント単位で保存 |
@@ -279,3 +297,4 @@ MVP2では新規テーブルを追加せず、MVP1から保存している履歴
 | WBS表示順 | 永続カラムは持たず、予定日と作成日時から算出する。手動並び替えが追加される場合だけ再検討する |
 | AI教材画像 | MVP3のAIサービス設計で、画像ファイルを永続保存するか一時保存にするかを決める。必要なら `ai_plan_generation_request_images` 相当の追加テーブルを検討する |
 | AI下書きの正規化 | MVP3では `draft_wbs_tasks_json` に保持する方針とする。長期保存や詳細な差分編集が必要になった場合だけ下書きタスクテーブルを検討する |
+| リフレッシュトークンの詳細 | `refresh_tokens` はMVP1で作成する。トークン有効期限、Cookie属性、PC WebとFlutterでの受け渡し差分、ローテーションを将来追加するかはAPI詳細設計で決定する |

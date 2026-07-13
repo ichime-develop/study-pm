@@ -1,0 +1,212 @@
+<!--
+doc-type: 基本設計
+id-prefix: API-AU, API-PJ, API-WB, API-SL, API-AN, API-AI
+related: docs/basic-design/screen-list.md, docs/basic-design/screen-flow.md, docs/basic-design/data-model.md, docs/requirements/details/data-screens-interfaces.md
+-->
+
+# API一覧
+
+## 1. 目的
+
+PC Web版 `study-pm` と将来のFlutterスマホアプリが共通利用するREST APIの基本方針とAPI一覧を定義する。
+
+本書ではAPIの責務、エンドポイント、使用画面、MVP、主要な入出力、関連業務ルールを整理する。詳細なリクエスト/レスポンスJSON、HTTPステータス、バリデーションエラー形式、OpenAPI定義はAPI詳細設計または実装時に定義する。
+
+## 2. 前提
+
+- 技術スタックは `docs/basic-design/tech-stack.md` に従う。
+- 画面IDとルーティングは `docs/basic-design/screen-list.md` に従う。
+- 画面遷移は `docs/basic-design/screen-flow.md` に従う。
+- データモデルは `docs/basic-design/data-model.md` に従う。
+- APIはJSON入出力を基本とする。
+- 認証後のAPIは、認証済みアカウントの所有データだけを参照・更新できる。
+- APIは画面単位ではなくリソース単位を基本とする。
+- ただしプロジェクト概要、進捗分析など複数リソースを集約して表示する画面には、読み取り専用の集約APIを用意する。
+- MVP外のAPIは同じ文書に記載するが、MVP列で実装対象を明確に分ける。
+
+## 3. API ID方針
+
+API IDは画面IDとは別系統で採番する。
+
+| プレフィックス | 領域 |
+| --- | --- |
+| API-AU | 認証・アカウント |
+| API-PJ | プロジェクト |
+| API-WB | WBS |
+| API-SL | 学習記録 |
+| API-AN | 進捗分析 |
+| API-AI | AI学習計画生成 |
+
+## 4. 共通方針
+
+### 4.0 認証方式
+
+- 認証方式はJWTを採用する。
+- アクセストークンは短命JWTとし、APIリクエストでは原則として `Authorization: Bearer ...` で送信する。
+- アクセストークンはDBに保存しない。
+- リフレッシュトークンは長命のランダム文字列とし、サーバー側では `refresh_tokens` にハッシュ化して保存する。
+- ログアウト時は対象のリフレッシュトークンを失効させる。
+- MVP1ではリフレッシュトークンのローテーション、再利用検知、デバイス一覧、全端末強制ログアウトは扱わない。
+- PC Webでは、アクセストークンはメモリ保持、リフレッシュトークンは `HttpOnly`, `Secure`, `SameSite` 属性付きCookieで保持する方針とする。localStorageにはトークンを保存しない。
+- Flutterスマホアプリでは、アクセストークンとリフレッシュトークンをセキュアストレージで保持する方針とする。
+- `/api/auth/refresh` は、PC WebではCookieから、Flutterではリクエスト本文からリフレッシュトークンを受け取れる設計にする。具体的な判定方法とレスポンス形式はAPI詳細設計で決定する。
+- PC WebでリフレッシュトークンをCookie送信するため、`/api/auth/refresh` と `/api/auth/logout` はCSRFを考慮する。MVP1では `SameSite=Strict` または `Lax` を前提とし、詳細はAPI詳細設計で決定する。
+
+### 4.1 URL設計
+
+- ベースパスは `/api` とする。
+- プロジェクト配下のリソースの一覧取得・作成は `/api/projects/{projectId}/...` に寄せる。
+- 作成済みリソースの個別取得・更新・削除は、IDがグローバルに一意であるため `/api/wbs-tasks/{taskId}`, `/api/study-logs/{studyLogId}` のようにリソース直下のパスで扱う。所有者検証は4.2に従いサーバー側で行う。
+- 認証中アカウントに関するAPI（ユーザー単位のサマリー等）は `/api/me` 配下を使う。
+- アクション性が強い操作は、リソースの状態変更として表現できる場合は `PATCH` を使う。
+- 集約表示用APIは読み取り専用の `GET` とし、DBに集計値を保存しない。
+
+### 4.2 認証・認可
+
+- 登録（API-AU-01）、ログイン（API-AU-02）、アクセストークン再発行（API-AU-05。リフレッシュトークンで検証）を除き、原則として認証必須とする。
+- 認証済みAPIでは、パスやリクエスト本文で指定された `projectId`, `taskId`, `studyLogId` が認証中アカウントの所有データであることをサーバー側で検証する。
+- 他ユーザーのデータを指定された場合、対象データの存在を推測しにくい応答とする。
+
+### 4.3 副作用の分離
+
+- WBSタスクの通常更新と進捗率更新はAPIを分ける。
+- 進捗率更新は `wbs_task_progress_history` の追加という重要な副作用を持つため、`PATCH /api/wbs-tasks/{taskId}/progress` として独立させる。
+- 学習記録の登録・更新・削除後、実績工数や総学習時間は保存せず、表示時に現在の `study_logs` から再計算する。
+- プロジェクト期間変更、WBS計画変更、WBS進捗変更では、要件で定義された履歴を保存する。
+
+### 4.4 MVP境界
+
+| MVP | API範囲 |
+| --- | --- |
+| MVP1 | 認証、プロジェクト、WBS、学習記録、プロジェクト一覧ホーム |
+| MVP2 | 進捗分析、EVM、バーンダウン |
+| MVP3 | AI学習計画生成、OCR、AI計画案確認・保存 |
+
+## 5. API一覧
+
+### 5.1 認証・アカウント
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-AU-01 | POST | `/api/auth/signup` | アカウント登録 | AU01 | 1 | 不要 | email, password, displayName | アカウント概要、アクセストークン、リフレッシュトークンまたはCookie設定 | USR-01, USR-05, USR-06, USR-07 |
+| API-AU-02 | POST | `/api/auth/login` | ログイン | AU02 | 1 | 不要 | email, password | アカウント概要、アクセストークン、リフレッシュトークンまたはCookie設定 | USR-02, USR-08 |
+| API-AU-03 | POST | `/api/auth/logout` | ログアウト。リフレッシュトークンを失効させる | CM01 | 1 | 必須 | リフレッシュトークンまたはCookie | 成功結果 | USR-03 |
+| API-AU-04 | GET | `/api/me` | 認証中アカウント取得 | ログイン後共通 | 1 | 必須 | なし | accountId, email, displayName | USR-04 |
+| API-AU-05 | POST | `/api/auth/refresh` | アクセストークン再発行。リフレッシュトークンを検証し、新しいアクセストークンを返す | ログイン後共通（画面非依存） | 1 | 不要（リフレッシュトークンで検証） | リフレッシュトークンまたはCookie | 新しいアクセストークン | 4.0 認証方式 |
+
+### 5.2 プロジェクト
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-PJ-01 | GET | `/api/projects` | プロジェクト一覧取得 | PJ01 | 1 | 必須 | keyword, status, archived, sort, page | プロジェクト一覧、ページ情報、一覧用集計 | PRJ-04, PRJ-05, PRJ-16, PRJ-17, 10.11 |
+| API-PJ-02 | GET | `/api/me/study-summary` | プロジェクト一覧上部の学習サマリー取得 | PJ01 | 1 | 必須 | なし | 連続学習日数、総学習時間、進行中件数 | HME-02, HME-03, HME-04, 10.11 |
+| API-PJ-03 | POST | `/api/projects` | プロジェクト作成 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate | 作成済みプロジェクト概要 | PRJ-01, PRJ-02, PRJ-14, PRJ-15 |
+| API-PJ-04 | GET | `/api/projects/{projectId}` | プロジェクト詳細取得 | PJ02, PJ03, CM02 | 1 | 必須 | projectId | プロジェクト基本情報 | PRJ-07, SCR.PJ03-01 |
+| API-PJ-05 | PATCH | `/api/projects/{projectId}` | プロジェクト基本情報更新 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate, status | 更新後プロジェクト概要 | PRJ-03, PRJ-20, PRJ-21, PRJ-22, 10.1, 10.4 |
+| API-PJ-06 | GET | `/api/projects/{projectId}/overview` | プロジェクト概要用サマリー取得 | PJ03 | 1 | 必須 | projectId | 進捗率、予定工数、残予定工数、プロジェクト学習時間、プロジェクト連続日数、警告、未完了タスク | PRJ-18, PRJ-27, PRJ-28, SCR.PJ03-02, SCR.PJ03-10, SCR.PJ03-23 |
+| API-PJ-07 | PATCH | `/api/projects/{projectId}/archive` | プロジェクトをアーカイブ | PJ03 | 1 | 必須 | projectId | 更新後アーカイブ状態 | PRJ-09, PRJ-23, 10.1 |
+| API-PJ-08 | PATCH | `/api/projects/{projectId}/restore` | アーカイブ済みプロジェクトを復元 | PJ03 | 1 | 必須 | projectId | 更新後アーカイブ状態 | PRJ-10, PRJ-24, 10.1 |
+
+### 5.3 WBS
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-WB-01 | GET | `/api/projects/{projectId}/wbs` | WBS一覧取得 | WB01, CM02 | 1 | 必須 | projectId | 親タスク・タスク一覧、ガント表示用日付範囲、集計 | WBS-01, WBS-06, WBS-12, WBS-24, 10.3 |
+| API-WB-02 | POST | `/api/projects/{projectId}/wbs-tasks` | 親タスクまたはタスク作成 | WB01 | 1 | 必須 | taskType, name, description, parentTaskId, plannedStartDate, plannedEndDate, plannedHours | 作成済みWBSタスク | WBS-01, WBS-02, WBS-03, WBS-17, WBS-18, 10.3, 10.5 |
+| API-WB-03 | GET | `/api/wbs-tasks/{taskId}` | WBSタスク詳細取得 | WB01 | 1 | 必須 | taskId | WBSタスク詳細、関連学習記録概要 | WBS-05, SCR.WB01-07 |
+| API-WB-04 | PATCH | `/api/wbs-tasks/{taskId}` | WBSタスクの基本・計画情報更新 | WB01 | 1 | 必須 | name, description, parentTaskId, plannedStartDate, plannedEndDate, plannedHours | 更新後WBSタスク | WBS-05, WBS-07, WBS-16, WBS-22, WBS-23, 10.3, 10.4 |
+| API-WB-05 | PATCH | `/api/wbs-tasks/{taskId}/progress` | タスク進捗率更新 | WB01 | 1 | 必須 | progressRate | 更新後進捗率、進捗履歴追加有無 | WBS-09, WBS-10, WBS-11, WBS-15, 10.5 |
+| API-WB-06 | DELETE | `/api/wbs-tasks/{taskId}` | WBSタスク削除 | WB01 | 1 | 必須 | taskId | 成功結果 | WBS-08, WBS-20, WBS-21, 10.3 |
+| API-WB-07 | GET | `/api/projects/{projectId}/wbs-summary` | WBS画面用のWBS集計取得 | WB01 | 1 | 必須 | projectId | 予定工数、実績工数、進捗率、遅延有無 | PRJ-08, WBS-12, WBS-13 |
+
+API-WB-04は名称・説明・予定日・予定工数・親タスクの更新を扱う。進捗率はAPI-WB-05でのみ更新する。
+
+API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗率0%の `wbs_task_progress_history` を1行作成する。
+
+### 5.4 学習記録
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-SL-01 | GET | `/api/projects/{projectId}/study-logs` | プロジェクト内学習記録一覧取得 | SL01 | 1 | 必須 | projectId, taskId, page | 学習記録一覧、合計学習時間 | LOG-14, LOG-16, SCR.SL01-01, SCR.SL01-02 |
+| API-SL-02 | POST | `/api/projects/{projectId}/study-logs` | 学習記録登録 | SL01, WB01 | 1 | 必須 | wbsTaskId, studyDate, studyHours, memo | 登録済み学習記録、再計算後サマリー | LOG-01, LOG-02, LOG-03, LOG-05, LOG-12, LOG-13, LOG-19 |
+| API-SL-03 | GET | `/api/study-logs/{studyLogId}` | 学習記録詳細取得 | SL01 | 1 | 必須 | studyLogId | 学習記録詳細 | LOG-14, SCR.SL01-12 |
+| API-SL-04 | PATCH | `/api/study-logs/{studyLogId}` | 学習記録更新 | SL01 | 1 | 必須 | wbsTaskId, studyDate, studyHours, memo | 更新後学習記録、再計算後サマリー | LOG-06, LOG-07, LOG-18, 10.6 |
+| API-SL-05 | DELETE | `/api/study-logs/{studyLogId}` | 学習記録削除 | SL01 | 1 | 必須 | studyLogId | 成功結果、再計算後サマリー | LOG-06, LOG-08, LOG-18, SCR.SL01-16 |
+
+学習記録は親タスクへ登録できない。`wbsTaskId` は同じプロジェクト内の `task_type = LEAF` のみ許可する。
+
+### 5.5 進捗分析
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-AN-01 | GET | `/api/projects/{projectId}/analysis/evm` | EVMサマリー取得 | AN01, PJ03 | 2 | 必須 | projectId | BAC, PV, EV, AC, SV, CV, SPI, CPI, 算出不可理由 | EVM-01, EVM-02, EVM-03, EVM-05, EVM-13, EVM-15, 10.8 |
+| API-AN-02 | GET | `/api/projects/{projectId}/analysis/burndown` | バーンダウン取得 | AN01 | 2 | 必須 | projectId | 理想線、実績線、差分工数、差分日数 | EVM-06, EVM-07, EVM-09, EVM-10, EVM-12, 10.9 |
+| API-AN-03 | GET | `/api/projects/{projectId}/analysis/plan-warnings` | 計画不整合取得 | PJ03, AN01, WB01 | 2 | 必須 | projectId | 不整合タスク一覧、警告種別 | EVM-11, PRJ-22, 10.4 |
+
+進捗分析APIは集約結果を返すだけで、EVM指標やバーンダウン表示点をDBへ保存しない。
+
+### 5.6 AI学習計画生成
+
+| API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| API-AI-01 | POST | `/api/ai-plan/ocr` | 教材目次画像OCR | AI02 | 3 | 必須 | 画像ファイル、画像順 | OCR結果テキスト | PLN-02, PLN-03, PLN-04, PLN-11, PLN-12, PLN-13, PLN-14 |
+| API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成実行 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, overviewText, materialName, tocText, constraints | 生成依頼ID、計画案ID、生成状態 | PLN-01, PLN-05, PLN-06, PLN-08, PLN-09, PLN-10, PLN-19, PLN-20 |
+| API-AI-03 | GET | `/api/ai-plan/drafts/{draftId}` | AI計画案取得 | AI03 | 3 | 必須 | draftId | プロジェクト候補、WBS候補、計画チェック結果 | PLN-06, PLN-07, PLN-16 |
+| API-AI-04 | PATCH | `/api/ai-plan/drafts/{draftId}` | AI計画案の保存前編集 | AI03 | 3 | 必須 | projectName, description, startDate, targetEndDate, draftWbsTasks | 更新後計画案、計画チェック結果 | PLN-16, PLN-17, 10.10 |
+| API-AI-05 | POST | `/api/ai-plan/drafts/{draftId}/convert` | AI計画案からプロジェクト作成 | AI03 | 3 | 必須 | draftId | 作成済みprojectId, wbsTaskIds | PLN-07, 10.10 |
+| API-AI-06 | POST | `/api/ai-plan/requests/{requestId}/regenerate` | 条件変更後の再生成 | AI02, AI03 | 3 | 必須 | 変更後条件 | 新しい計画案ID、生成状態 | PLN-08, PLN-18 |
+
+AI学習計画案からプロジェクトを作成した後、作成済みプロジェクトとWBSは通常の `projects` / `wbs_tasks` として扱う。同じ `ai_plan_draft` から複数プロジェクトを作成することはできない。
+
+## 6. 画面とAPIの対応
+
+| 画面ID | 主に使用するAPI |
+| --- | --- |
+| AU01 | API-AU-01 |
+| AU02 | API-AU-02 |
+| PJ01 | API-PJ-01, API-PJ-02 |
+| PJ02 | API-PJ-03, API-PJ-04, API-PJ-05 |
+| PJ03 | API-PJ-04, API-PJ-06, API-PJ-07, API-PJ-08, API-AN-01, API-AN-03 |
+| WB01 | API-WB-01, API-WB-02, API-WB-03, API-WB-04, API-WB-05, API-WB-06, API-WB-07, API-SL-02 |
+| SL01 | API-SL-01, API-SL-02, API-SL-03, API-SL-04, API-SL-05 |
+| AN01 | API-AN-01, API-AN-02, API-AN-03 |
+| AI01 | なし（静的な選択画面。遷移のみ） |
+| AI02 | API-AI-01, API-AI-02, API-AI-06 |
+| AI03 | API-AI-03, API-AI-04, API-AI-05, API-AI-06 |
+| CM01（共通） | API-AU-03, API-AU-04 |
+
+API-AU-04（認証中アカウント取得）はログイン後の全画面で共通利用するため、個別画面の行には記載しない。
+
+MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗分析への導線を表示する場合も、MVP1では非活性または段階提供表示とする。
+
+## 7. 主要業務ルールとの対応
+
+| ルール | 主に関係するAPI | 方針 |
+| --- | --- | --- |
+| 所有者制御 | 全認証必須API | 認証中アカウントの所有データだけ参照・更新できる |
+| アーカイブ済み更新不可 | API-PJ-05, API-WB-02〜06, API-SL-02〜05 | アーカイブ済みプロジェクト配下の更新を拒否する |
+| 完了条件 | API-PJ-05 | 完了へ変更する場合、1件以上のリーフタスクが存在し、全リーフタスクが100%であることを検証する |
+| プロジェクト期間履歴 | API-PJ-05 | 開始日または目標終了日が変わった場合、`project_period_history` を追加する |
+| WBS階層制約 | API-WB-02, API-WB-04 | 親タスクは最上位のみ、リーフタスクは親タスク配下または親なしのみ許可する |
+| WBS計画履歴 | API-WB-04 | 親タスク、予定日、予定工数が変わった場合、`wbs_task_plan_history` を追加する |
+| WBS進捗履歴 | API-WB-02, API-WB-05 | タスク作成時に0%を追加し、進捗率変更時に `wbs_task_progress_history` を追加する |
+| 学習記録制約 | API-SL-02, API-SL-04 | 親タスク、未来日、他プロジェクトのタスクを拒否する |
+| 実績工数再計算 | API-SL-02〜05, API-PJ-06, API-WB-01, API-WB-07 | 実績工数は保存せず、現在の学習記録から取得時に再計算する |
+| EVM・バーンダウン | API-AN-01, API-AN-02 | 指標は保存せず、現在の計画値・進捗履歴・学習記録から計算する |
+
+## 8. 未決事項
+
+| ID | 内容 | 決定タイミング |
+| --- | --- | --- |
+| API-TBD-02 | エラー応答の共通形式 | API詳細設計 |
+| API-TBD-03 | ページング形式をoffset/pageにするかcursorにするか | API詳細設計 |
+| API-TBD-04 | 学習記録の過去日編集期限 | 業務ロジック設計またはAPI詳細設計 |
+| API-TBD-05 | AI教材画像を永続保存するか、一時保存にするか | MVP3のAIサービス設計 |
+| API-TBD-06 | API IDをOpenAPI operationIdへそのまま反映するか | OpenAPI定義作成時 |
+| API-TBD-07 | AI計画生成の完了確認方式（同期応答にするか、ステータス取得APIによるポーリングにするか）。DSG-TBD-05（タイムアウト値）と合わせて決定する | MVP3のAIサービス設計 |
+
+## 9. 矛盾点・要件同期メモ
+
+現時点で本API一覧と既存要件・データモデルの既知の矛盾はない。
+
+復元API（API-PJ-08）は `archived_at` を未設定に戻す。復元日時は保持せず、レスポンスにも `restoredAt` を含めない。

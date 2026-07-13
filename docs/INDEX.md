@@ -7,7 +7,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 1. [要件定義サマリ](requirements/summary/README.md)で全体像を確認する。
 2. [スコープ](requirements/details/scope.md)と[機能要件](requirements/details/functional.md)でMVP範囲を確認する。
 3. [データ・画面・外部インターフェース要件](requirements/details/data-screens-interfaces.md)で画面要件とデータ要件を確認する。
-4. [画面一覧](basic-design/screen-list.md)、[画面遷移図](basic-design/screen-flow.md)、[技術スタック](basic-design/tech-stack.md)、[データモデル](basic-design/data-model.md)で基本設計の前提を確認する。
+4. [画面一覧](basic-design/screen-list.md)、[画面遷移図](basic-design/screen-flow.md)、[技術スタック](basic-design/tech-stack.md)、[データモデル](basic-design/data-model.md)、[API一覧](basic-design/api-list.md)で基本設計の前提を確認する。
 5. [UIモック](ui-mock/README.md)と[開発方針](development/README.md)を参照し、実装方針に落とし込む。
 
 ## 2. 要件定義
@@ -29,6 +29,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [画面一覧](basic-design/screen-list.md) - 画面ID、画面名、MVP区分、主な役割を定義する。
 - [画面遷移図](basic-design/screen-flow.md) - 画面間の遷移と遷移制約を定義する。
 - [データモデル](basic-design/data-model.md) - エンティティ、履歴、集計値、MVP別テーブル作成方針を定義する。
+- [API一覧](basic-design/api-list.md) - REST APIの基本方針、API ID、エンドポイント、画面・業務ルールとの対応を定義する。
 
 ## 4. UIモック
 
