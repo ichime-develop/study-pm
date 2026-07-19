@@ -1,0 +1,20 @@
+<!--
+doc-type: 詳細設計
+id-prefix: なし
+related: docs/INDEX.md, docs/basic-design/data-model.md, docs/basic-design/api-list.md, docs/development/specification-driven-development.md
+-->
+
+# 詳細設計
+
+実装前に、基本設計を具体的な構造、入出力、制約、例外処理へ落とし込む成果物を管理する。
+
+## 収録方針
+
+- 基本設計では抽象度が高すぎて実装者が迷う領域を対象にする。
+- 型、制約、外部キー、インデックス、例外、入出力、永続化方針を具体化する。
+- 要件定義や基本設計の責務を上書きせず、その前提を補強する。
+
+## 現在の成果物
+
+- [DBスキーマ詳細設計](database-schema.md) - PostgreSQLテーブル、制約、インデックス、Flyway作成順を定義する。
+- [業務ロジック詳細設計](business-logic.md) - 集計、状態遷移、履歴保存、学習サマリー、EVM、バーンダウンの実装前提を定義する。

@@ -8,7 +8,8 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 2. [スコープ](requirements/details/scope.md)と[機能要件](requirements/details/functional.md)でMVP範囲を確認する。
 3. [データ・画面・外部インターフェース要件](requirements/details/data-screens-interfaces.md)で画面要件とデータ要件を確認する。
 4. [画面一覧](basic-design/screen-list.md)、[画面遷移図](basic-design/screen-flow.md)、[技術スタック](basic-design/tech-stack.md)、[データモデル](basic-design/data-model.md)、[API一覧](basic-design/api-list.md)で基本設計の前提を確認する。
-5. [UIモック](ui-mock/README.md)と[開発方針](development/README.md)を参照し、実装方針に落とし込む。
+5. [詳細設計README](detailed-design/README.md)、[DBスキーマ詳細設計](detailed-design/database-schema.md)、[業務ロジック詳細設計](detailed-design/business-logic.md)で実装前提を具体化する。
+6. [UIモック](ui-mock/README.md)と[開発方針](development/README.md)を参照し、実装方針に落とし込む。
 
 ## 2. 要件定義
 
@@ -31,18 +32,24 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [データモデル](basic-design/data-model.md) - エンティティ、履歴、集計値、MVP別テーブル作成方針を定義する。
 - [API一覧](basic-design/api-list.md) - REST APIの基本方針、API ID、エンドポイント、画面・業務ルールとの対応を定義する。
 
-## 4. UIモック
+## 4. 詳細設計
+
+- [詳細設計README](detailed-design/README.md) - 詳細設計の位置づけと収録方針をまとめる。
+- [DBスキーマ詳細設計](detailed-design/database-schema.md) - PostgreSQLテーブル、カラム型、制約、外部キー、インデックス、Flyway作成順を定義する。
+- [業務ロジック詳細設計](detailed-design/business-logic.md) - 集計、状態遷移、履歴保存、学習サマリー、EVM、バーンダウンの実装前提を定義する。
+
+## 5. UIモック
 
 - [UIモックREADME](ui-mock/README.md) - UIモックの位置づけ、起動方法、確認観点をまとめる。
 - [MVP1画面計画](ui-mock/mvp1-screen-plan.md) - MVP1で確認する画面とモック上の検証観点を整理する。
 
-## 5. セットアップ
+## 6. セットアップ
 
 - [セットアップREADME](setup/README.md) - 開発環境構築の入口をまとめる。
 - [フロントエンドセットアップ](setup/frontend.md) - フロントエンド開発環境の構築手順をまとめる。
 - [GitHubセットアップ](setup/github.md) - GitHub利用時の初期設定や運用メモをまとめる。
 
-## 6. 開発方針
+## 7. 開発方針
 
 - [開発方針README](development/README.md) - 開発方針ドキュメントの入口をまとめる。
 - [AI支援開発](development/ai-assisted-development.md) - AIを使った開発時の役割分担と注意点を定義する。

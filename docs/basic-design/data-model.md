@@ -118,13 +118,14 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 | 項目 | 方針 |
 | --- | --- |
 | テーブル名 | `wbs_task_plan_history` |
-| 主なカラム | `id`, `wbs_task_id`, `old_parent_wbs_task_id`, `new_parent_wbs_task_id`, `old_planned_start_date`, `new_planned_start_date`, `old_planned_end_date`, `new_planned_end_date`, `old_planned_hours`, `new_planned_hours`, `changed_by_account_id`, `changed_at` |
+| 主なカラム | `id`, `wbs_task_id`, `project_id`, `task_name_snapshot`, `old_parent_wbs_task_id`, `new_parent_wbs_task_id`, `old_planned_start_date`, `new_planned_start_date`, `old_planned_end_date`, `new_planned_end_date`, `old_planned_hours`, `new_planned_hours`, `changed_by_account_id`, `changed_at` |
 | 主キー | `id` |
-| 外部キー | `wbs_task_id` -> `wbs_tasks.id`, `changed_by_account_id` -> `accounts.id` |
+| 外部キー | `wbs_task_id` -> `wbs_tasks.id`（削除時はNULL）、`project_id` -> `projects.id`、`changed_by_account_id` -> `accounts.id` |
 | 追加条件 | タスクの `parent_wbs_task_id`, `planned_start_date`, `planned_end_date`, `planned_hours` のいずれかが変わった場合に1行追加する |
 | MVP | MVP1 |
 
 名称と説明の変更は計画履歴に含めない。親タスクは予定日、予定工数、進捗率を持たないため、親タスク自身の編集では計画履歴を追加しない。タスクを親タスク配下または親なしへ移動した場合は、対象タスクの計画履歴として保存する。
+タスク削除後も履歴を保持するため、変更時点のタスク名を `task_name_snapshot` に保存し、`project_id` で帰属プロジェクトを保持する。親タスク削除時は `old_parent_wbs_task_id` / `new_parent_wbs_task_id` がNULLになり、移動元・移動先の親タスクを履歴から追跡することは保証しない。
 
 ### 4.7 WbsTaskProgressHistory
 
@@ -133,13 +134,14 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 | 項目 | 方針 |
 | --- | --- |
 | テーブル名 | `wbs_task_progress_history` |
-| 主なカラム | `id`, `wbs_task_id`, `progress_rate`, `changed_by_account_id`, `changed_at` |
+| 主なカラム | `id`, `wbs_task_id`, `project_id`, `task_name_snapshot`, `progress_rate`, `changed_by_account_id`, `changed_at` |
 | 主キー | `id` |
-| 外部キー | `wbs_task_id` -> `wbs_tasks.id`, `changed_by_account_id` -> `accounts.id` |
+| 外部キー | `wbs_task_id` -> `wbs_tasks.id`（削除時はNULL）、`project_id` -> `projects.id`、`changed_by_account_id` -> `accounts.id` |
 | 追加条件 | タスク作成時に0%を1行追加する。以降は保存前後の進捗率が変わった場合だけ1行追加する |
 | MVP | MVP1 |
 
 同日に複数回変更した場合もすべて保持する。日別EVやバーンダウン実績線では、JST各日終了時点までの最新行を採用する。親タスクは進捗率を持たないため、進捗履歴も持たない。
+タスク削除後も履歴を保持するため、変更時点のタスク名を `task_name_snapshot` に保存し、`project_id` で帰属プロジェクトを保持する。
 
 ### 4.8 StudyLog
 
@@ -242,11 +244,13 @@ erDiagram
 
     projects ||--o{ wbs_tasks : has
     projects ||--o{ project_period_history : has
+    projects ||--o{ wbs_task_plan_history : has
+    projects ||--o{ wbs_task_progress_history : has
     projects ||--o{ study_logs : has
 
     wbs_tasks |o--o{ wbs_tasks : parent_of
-    wbs_tasks ||--o{ wbs_task_plan_history : has
-    wbs_tasks ||--o{ wbs_task_progress_history : has
+    wbs_tasks |o--o{ wbs_task_plan_history : has
+    wbs_tasks |o--o{ wbs_task_progress_history : has
     wbs_tasks ||--o{ study_logs : has
 
     ai_plan_generation_requests ||--o{ ai_plan_drafts : generates

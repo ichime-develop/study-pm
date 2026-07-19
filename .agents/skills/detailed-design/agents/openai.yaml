@@ -1,0 +1,4 @@
+interface:
+  display_name: "Detailed Design"
+  short_description: "Implementation-ready detailed design for study-pm"
+  default_prompt: "Use $detailed-design to turn study-pm basic design into implementation-ready detailed design."

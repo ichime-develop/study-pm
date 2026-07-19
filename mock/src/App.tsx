@@ -390,7 +390,8 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
   const summary = buildProjectSummary(project, tasks, studyLogs);
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
   const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
-  const remainingHours = Math.max(summary.plannedHours - summary.actualHours, 0);
+  const earnedValue = (summary.plannedHours * summary.progress) / 100;
+  const remainingHours = Math.max(summary.plannedHours - earnedValue, 0);
   const incompleteTasks = getLeafTasks(project.id, tasks)
     .map((task) => ({
       task,
