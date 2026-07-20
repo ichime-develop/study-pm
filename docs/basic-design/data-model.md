@@ -70,13 +70,13 @@ MVP1ではリフレッシュトークンのローテーション、再利用検�
 | 項目 | 方針 |
 | --- | --- |
 | テーブル名 | `projects` |
-| 主なカラム | `id`, `account_id`, `name`, `description`, `start_date`, `target_end_date`, `status`, `archived_at`, `created_at`, `updated_at` |
+| 主なカラム | `id`, `account_id`, `name`, `description`, `start_date`, `target_end_date`, `status`, `created_at`, `updated_at` |
 | 主キー | `id` |
 | 外部キー | `account_id` -> `accounts.id` |
 | 保存しない集計値 | 予定工数合計、実績工数合計、進捗率、遅延有無、EVM指標 |
 | MVP | MVP1 |
 
-プロジェクトは物理削除しない。通常一覧からの除外は `archived_at` の有無で判定する。復元時は `archived_at` を未設定に戻す。復元日時は要件上の表示・追跡対象ではないため保持しない。
+プロジェクトは削除APIで削除する。削除時は、対象プロジェクト配下のWBSタスク、学習記録、履歴も削除対象とする。
 
 ### 4.4 ProjectPeriodHistory
 
@@ -267,7 +267,7 @@ erDiagram
 | --- | --- | --- | --- |
 | `accounts` | Account | MVP1 | 認証とアカウント所有データの起点 |
 | `refresh_tokens` | RefreshToken | MVP1 | JWTリフレッシュトークンの失効管理 |
-| `projects` | Project | MVP1 | アーカイブは物理削除ではなく非表示 |
+| `projects` | Project | MVP1 | 不要なプロジェクトは削除できる |
 | `project_period_history` | ProjectPeriodHistory | MVP1 | MVP1から保存するが、履歴一覧表示はしない |
 | `wbs_tasks` | WbsTask | MVP1 | 親タスクとタスクを単一テーブルで扱う |
 | `wbs_task_plan_history` | WbsTaskPlanHistory | MVP1 | MVP1から保存するが、MVP2のEVM・バーンダウン計算には使わない |
@@ -296,7 +296,7 @@ MVP2では新規テーブルを追加せず、MVP1から保存している履歴
 
 | 項目 | 判断・未決事項 |
 | --- | --- |
-| 過去日の学習記録編集期限 | 要件上「基本設計で決定」とされているが、データモデル上は編集可能期間を制限しない。業務ルールまたはAPI設計で別途決める |
+| 過去日の学習記録編集期限 | MVP1では期限なしで編集・削除可能とする。データモデル上も編集可能期間を制限するカラムは持たない |
 | StudyLogの `account_id` / `project_id` | 集計と所有者判定のため、`wbs_task_id` から辿れる情報を保持する。整合性は登録・更新時のサービス層検証で担保する |
 | WBS表示順 | 永続カラムは持たず、予定日と作成日時から算出する。手動並び替えが追加される場合だけ再検討する |
 | AI教材画像 | MVP3のAIサービス設計で、画像ファイルを永続保存するか一時保存にするかを決める。必要なら `ai_plan_generation_request_images` 相当の追加テーブルを検討する |

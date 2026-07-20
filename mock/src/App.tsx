@@ -70,7 +70,6 @@ export const App = () => {
   const visibleProjects = useMemo(
     () =>
       [...allProjects]
-        .filter((project) => !project.archived)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [manualProjectCreated],
   );
@@ -624,9 +623,8 @@ const ProjectWorkspaceHeader = ({
         </div>
         <p>{project.summary}</p>
       </div>
-      <div className="project-workspace-meta" aria-label="プロジェクト期間と表示状態">
+      <div className="project-workspace-meta" aria-label="プロジェクト期間">
         <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
-        <span className="badge neutral">{project.archived ? "アーカイブ中" : "通常表示"}</span>
       </div>
     </div>
     <ProjectSectionTabs active={active} hasNoTasks={hasNoTasks} onMove={onMove} />

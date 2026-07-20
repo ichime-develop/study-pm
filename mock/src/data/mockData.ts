@@ -8,7 +8,6 @@ export type Project = {
   startDate: string;
   targetEndDate: string;
   status: ProjectStatus;
-  archived: boolean;
   updatedAt: string;
 };
 
@@ -55,7 +54,6 @@ export const manualProject: Project = {
   startDate: "2026-06-08",
   targetEndDate: "2026-07-15",
   status: "not_started",
-  archived: false,
   updatedAt: "2026-06-05T10:00:00+09:00",
 };
 
@@ -67,7 +65,6 @@ export const projects: Project[] = [
     startDate: "2026-06-01",
     targetEndDate: "2026-07-15",
     status: "in_progress",
-    archived: false,
     updatedAt: "2026-06-05T09:00:00+09:00",
   },
   {
@@ -77,7 +74,6 @@ export const projects: Project[] = [
     startDate: "2026-06-10",
     targetEndDate: "2026-07-05",
     status: "not_started",
-    archived: false,
     updatedAt: "2026-06-04T20:00:00+09:00",
   },
   {
@@ -87,18 +83,7 @@ export const projects: Project[] = [
     startDate: "2026-05-01",
     targetEndDate: "2026-05-31",
     status: "completed",
-    archived: false,
     updatedAt: "2026-06-01T18:30:00+09:00",
-  },
-  {
-    id: "archived-design",
-    name: "設計書入門 読破",
-    summary: "アーカイブ表示確認用のプロジェクト。",
-    startDate: "2026-04-01",
-    targetEndDate: "2026-04-30",
-    status: "completed",
-    archived: true,
-    updatedAt: "2026-05-01T12:00:00+09:00",
   },
 ];
 

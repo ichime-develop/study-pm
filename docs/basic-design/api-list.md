@@ -98,14 +98,13 @@ API IDは画面IDとは別系統で採番する。
 
 | API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-PJ-01 | GET | `/api/projects` | プロジェクト一覧取得 | PJ01 | 1 | 必須 | keyword, status, archived, sort, page | プロジェクト一覧、ページ情報、一覧用集計 | PRJ-04, PRJ-05, PRJ-16, PRJ-17, 10.11 |
+| API-PJ-01 | GET | `/api/projects` | プロジェクト一覧取得 | PJ01 | 1 | 必須 | keyword, status, sort, page | プロジェクト一覧、ページ情報、一覧用集計 | PRJ-04, PRJ-05, PRJ-16, PRJ-17, 10.11 |
 | API-PJ-02 | GET | `/api/me/study-summary` | プロジェクト一覧上部の学習サマリー取得 | PJ01 | 1 | 必須 | なし | 連続学習日数、総学習時間、進行中件数 | HME-02, HME-03, HME-04, 10.11 |
 | API-PJ-03 | POST | `/api/projects` | プロジェクト作成 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate | 作成済みプロジェクト概要 | PRJ-01, PRJ-02, PRJ-14, PRJ-15 |
 | API-PJ-04 | GET | `/api/projects/{projectId}` | プロジェクト詳細取得 | PJ02, PJ03, CM02 | 1 | 必須 | projectId | プロジェクト基本情報 | PRJ-07, SCR.PJ03-01 |
 | API-PJ-05 | PATCH | `/api/projects/{projectId}` | プロジェクト基本情報更新 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate, status | 更新後プロジェクト概要 | PRJ-03, PRJ-20, PRJ-21, PRJ-22, 10.1, 10.4 |
 | API-PJ-06 | GET | `/api/projects/{projectId}/overview` | プロジェクト概要用サマリー取得 | PJ03 | 1 | 必須 | projectId | 進捗率、予定工数、残予定工数、プロジェクト学習時間、プロジェクト連続日数、警告、未完了タスク | PRJ-18, PRJ-27, PRJ-28, SCR.PJ03-02, SCR.PJ03-10, SCR.PJ03-23 |
-| API-PJ-07 | PATCH | `/api/projects/{projectId}/archive` | プロジェクトをアーカイブ | PJ03 | 1 | 必須 | projectId | 更新後アーカイブ状態 | PRJ-09, PRJ-23, 10.1 |
-| API-PJ-08 | PATCH | `/api/projects/{projectId}/restore` | アーカイブ済みプロジェクトを復元 | PJ03 | 1 | 必須 | projectId | 更新後アーカイブ状態 | PRJ-10, PRJ-24, 10.1 |
+| API-PJ-07 | DELETE | `/api/projects/{projectId}` | プロジェクト削除 | PJ03 | 1 | 必須 | projectId | 成功結果 | PRJ-09, PRJ-10, PRJ-11, PRJ-12, PRJ-23, PRJ-24, PRJ-25, 10.1 |
 
 ### 5.3 WBS
 
@@ -166,7 +165,7 @@ AI学習計画案からプロジェクトを作成した後、作成済みプロ
 | AU02 | API-AU-02 |
 | PJ01 | API-PJ-01, API-PJ-02 |
 | PJ02 | API-PJ-03, API-PJ-04, API-PJ-05 |
-| PJ03 | API-PJ-04, API-PJ-06, API-PJ-07, API-PJ-08, API-AN-01, API-AN-03 |
+| PJ03 | API-PJ-04, API-PJ-06, API-PJ-07, API-AN-01, API-AN-03 |
 | WB01 | API-WB-01, API-WB-02, API-WB-03, API-WB-04, API-WB-05, API-WB-06, API-WB-07, API-SL-02 |
 | SL01 | API-SL-01, API-SL-02, API-SL-03, API-SL-04, API-SL-05 |
 | AN01 | API-AN-01, API-AN-02, API-AN-03 |
@@ -184,13 +183,13 @@ MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗�
 | ルール | 主に関係するAPI | 方針 |
 | --- | --- | --- |
 | 所有者制御 | 全認証必須API | 認証中アカウントの所有データだけ参照・更新できる |
-| アーカイブ済み更新不可 | API-PJ-05, API-WB-02〜06, API-SL-02〜05 | アーカイブ済みプロジェクト配下の更新を拒否する |
+| プロジェクト削除 | API-PJ-07 | 削除前確認は画面側で行い、APIでは所有者確認後に対象プロジェクトと関連データを削除する |
 | 完了条件 | API-PJ-05 | 完了へ変更する場合、1件以上のリーフタスクが存在し、全リーフタスクが100%であることを検証する |
 | プロジェクト期間履歴 | API-PJ-05 | 開始日または目標終了日が変わった場合、`project_period_history` を追加する |
 | WBS階層制約 | API-WB-02, API-WB-04 | 親タスクは最上位のみ、リーフタスクは親タスク配下または親なしのみ許可する |
 | WBS計画履歴 | API-WB-04 | 親タスク、予定日、予定工数が変わった場合、`wbs_task_plan_history` を追加する |
 | WBS進捗履歴 | API-WB-02, API-WB-05 | タスク作成時に0%を追加し、進捗率変更時に `wbs_task_progress_history` を追加する |
-| 学習記録制約 | API-SL-02, API-SL-04 | 親タスク、未来日、他プロジェクトのタスクを拒否する |
+| 学習記録制約 | API-SL-02, API-SL-04 | 親タスク、未来日、他プロジェクトのタスクを拒否する。過去日の学習記録は期限なく編集・削除を許可する |
 | 実績工数再計算 | API-SL-02〜05, API-PJ-06, API-WB-01, API-WB-07 | 実績工数は保存せず、現在の学習記録から取得時に再計算する |
 | EVM・バーンダウン | API-AN-01, API-AN-02 | 指標は保存せず、現在の計画値・進捗履歴・学習記録から計算する |
 
@@ -200,7 +199,6 @@ MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗�
 | --- | --- | --- |
 | API-TBD-02 | エラー応答の共通形式 | API詳細設計 |
 | API-TBD-03 | ページング形式をoffset/pageにするかcursorにするか | API詳細設計 |
-| API-TBD-04 | 学習記録の過去日編集期限 | 業務ロジック設計またはAPI詳細設計 |
 | API-TBD-05 | AI教材画像を永続保存するか、一時保存にするか | MVP3のAIサービス設計 |
 | API-TBD-06 | API IDをOpenAPI operationIdへそのまま反映するか | OpenAPI定義作成時 |
 | API-TBD-07 | AI計画生成の完了確認方式（同期応答にするか、ステータス取得APIによるポーリングにするか）。DSG-TBD-05（タイムアウト値）と合わせて決定する | MVP3のAIサービス設計 |
@@ -208,5 +206,3 @@ MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗�
 ## 9. 矛盾点・要件同期メモ
 
 現時点で本API一覧と既存要件・データモデルの既知の矛盾はない。
-
-復元API（API-PJ-08）は `archived_at` を未設定に戻す。復元日時は保持せず、レスポンスにも `restoredAt` を含めない。

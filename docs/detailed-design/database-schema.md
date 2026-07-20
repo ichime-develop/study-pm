@@ -56,13 +56,13 @@ and value * 4 = floor(value * 4)
 
 | 対象 | 方針 |
 | --- | --- |
-| `projects` | 物理削除しない。`archived_at` でアーカイブ状態を管理する |
+| `projects` | 削除APIに対応して物理削除する |
 | `wbs_tasks` | 削除APIに対応して物理削除する |
 | `study_logs` | 削除APIに対応して物理削除する |
 | WBS履歴 | タスク削除後も保持する |
 | `refresh_tokens` | アカウント削除時は同時に削除する |
 
-WBS履歴はタスク削除後も参照できるように、履歴テーブルの `wbs_task_id` はnullableとし、`ON DELETE SET NULL` を使う。削除後も履歴の文脈が分かるよう、履歴テーブルには `project_id` と `task_name_snapshot` を保持する。
+WBS履歴はタスク削除後も参照できるように、履歴テーブルの `wbs_task_id` はnullableとし、`ON DELETE SET NULL` を使う。削除後も履歴の文脈が分かるよう、履歴テーブルには `project_id` と `task_name_snapshot` を保持する。プロジェクト削除時は、サービス層でプロジェクト配下の学習記録、WBS履歴、WBSタスク、期間履歴を削除してからプロジェクトを削除する。
 
 ## 3. テーブル一覧
 
@@ -134,7 +134,6 @@ WBS履歴はタスク削除後も参照できるように、履歴テーブル�
 | `start_date` | `date` | NO | 開始日 |
 | `target_end_date` | `date` | NO | 目標終了日 |
 | `status` | `varchar(20)` | NO | `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED` |
-| `archived_at` | `timestamptz` | YES | アーカイブ日時 |
 | `created_at` | `timestamptz` | NO | 作成日時 |
 | `updated_at` | `timestamptz` | NO | 更新日時 |
 
@@ -146,7 +145,7 @@ WBS履歴はタスク削除後も参照できるように、履歴テーブル�
 - `char_length(name) between 1 and 100`
 - `start_date <= target_end_date`
 
-プロジェクトは物理削除しない。復元時は `archived_at` をNULLへ戻す。復元日時は保持しない。
+プロジェクト削除時は、関連データも削除対象とする。削除後は復元しない。
 
 ### 4.4 project_period_history
 
@@ -315,7 +314,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | 領域 | サービス層で守る制約 |
 | --- | --- |
 | 所有者制御 | 指定IDが認証中アカウントの所有データであること |
-| アーカイブ | アーカイブ済みプロジェクト配下の更新拒否 |
+| プロジェクト削除 | 削除前に所有者確認を行い、関連データを削除順序に従って削除すること |
 | WBS親子 | 親が同一プロジェクトのPARENTであること、3階層以上を作らないこと |
 | WBS削除 | 学習記録があるLEAF、配下に学習記録があるPARENTの削除拒否 |
 | 履歴追加 | 保存前後の値が変わった場合だけ履歴を追加すること |
@@ -336,7 +335,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 
 | インデックス | 目的 |
 | --- | --- |
-| `idx_projects_account_archive_updated` on `(account_id, archived_at, updated_at desc)` | プロジェクト一覧の初期表示 |
+| `idx_projects_account_updated` on `(account_id, updated_at desc)` | プロジェクト一覧の初期表示 |
 | `idx_projects_account_status` on `(account_id, status)` | 状態フィルタ |
 
 キーワード検索はMVP1では部分一致検索を想定する。性能が問題になった場合に、`pg_trgm` や全文検索インデックスを検討する。
@@ -414,6 +413,5 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | --- | --- | --- |
 | UUID生成方式 | アプリケーション側生成かDB側 `gen_random_uuid()` か | backend実装開始時 |
 | リフレッシュトークン詳細 | 有効期限、Cookie属性、Web/Flutterの受け渡し差分 | API詳細設計 |
-| 過去日の学習記録編集期限 | データ上は制限しない。業務ルール・APIで制限するか決める | 業務ロジック設計またはAPI詳細設計 |
 | AI関連テーブル | 画像保存方式、AI生成ステータス、下書きWBSの正規化有無 | MVP3のAIサービス設計 |
 | 検索インデックス | プロジェクト名・概要検索に通常LIKEで足りるか、`pg_trgm` を使うか | 性能確認時 |
