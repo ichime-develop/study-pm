@@ -4,6 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
+/**
+ * study-pmバックエンドAPIのSpring Boot起動クラス。
+ * 業務ロジックやAPIエンドポイントの責務は各パッケージへ分離する。
+ */
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class StudyPmApplication {

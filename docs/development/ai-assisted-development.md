@@ -41,6 +41,7 @@ Agent Skillは `.agents/skills/` 配下に配置する。
 | 要件定義Skill | `.agents/skills/requirements/SKILL.md` | ユーザー要望やユーザーストーリーを要件へ整理する |
 | 基本設計Skill | `.agents/skills/basic-design/SKILL.md` | 要件から画面、API、DB、構成を整理する |
 | 詳細設計Skill | `.agents/skills/detailed-design/SKILL.md` | 基本設計をもとにDB、API、業務ロジックを実装前提の粒度へ具体化する |
+| 実装Skill | `.agents/skills/implementation/SKILL.md` | 承認済みの基本設計・詳細設計をもとに実装する |
 | コードレビューSkill | `.agents/skills/code-review/SKILL.md` | 実装差分を要件・設計に照らしてレビューする |
 
 ## 現時点では作らないSkill

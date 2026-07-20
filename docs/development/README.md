@@ -25,3 +25,4 @@ related: docs/development/ai-assisted-development.md, docs/development/specifica
 | --- | --- |
 | [specification-driven-development.md](specification-driven-development.md) | 仕様駆動開発の進め方 |
 | [ai-assisted-development.md](ai-assisted-development.md) | AI支援開発の使い方と注意点 |
+| [coding-guidelines.md](coding-guidelines.md) | 命名、コメント、クラス設計、メソッド設計の判断基準 |

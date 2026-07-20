@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implementation"
+  short_description: "Implement study-pm from approved designs"
+  default_prompt: "Use $implementation to implement the next study-pm feature from the approved designs."

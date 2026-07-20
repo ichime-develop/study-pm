@@ -1,5 +1,7 @@
 package com.studypm.config;
 
+import com.studypm.common.api.ApiAccessDeniedHandler;
+import com.studypm.common.api.ApiAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,12 +11,28 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * APIの認証・認可フィルタとパスワードハッシュ方式を設定する。
+ * JWT検証フィルタとログイン処理は、認証API実装時に追加する。
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final ApiAuthenticationEntryPoint authenticationEntryPoint;
+    private final ApiAccessDeniedHandler accessDeniedHandler;
+
+    public SecurityConfig(
+            ApiAuthenticationEntryPoint authenticationEntryPoint,
+            ApiAccessDeniedHandler accessDeniedHandler
+    ) {
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
+
     @Bean
     PasswordEncoder passwordEncoder() {
+        // coding-guidelines.md 6.1: ハッシュ方式の移行余地を残すため、Spring Securityの委譲方式を使う。
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
@@ -25,6 +43,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/signup",

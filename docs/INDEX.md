@@ -10,6 +10,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 4. [画面一覧](basic-design/screen-list.md)、[画面遷移図](basic-design/screen-flow.md)、[技術スタック](basic-design/tech-stack.md)、[データモデル](basic-design/data-model.md)、[API一覧](basic-design/api-list.md)で基本設計の前提を確認する。
 5. [詳細設計README](detailed-design/README.md)、[DBスキーマ詳細設計](detailed-design/database-schema.md)、[業務ロジック詳細設計](detailed-design/business-logic.md)で実装前提を具体化する。
 6. [UIモック](ui-mock/README.md)と[開発方針](development/README.md)を参照し、実装方針に落とし込む。
+7. 実装前に[コーディング規約](development/coding-guidelines.md)でコード上の名前、コメント、設計の基準を確認する。
 
 ## 2. 要件定義
 
@@ -54,3 +55,4 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [開発方針README](development/README.md) - 開発方針ドキュメントの入口をまとめる。
 - [AI支援開発](development/ai-assisted-development.md) - AIを使った開発時の役割分担と注意点を定義する。
 - [仕様駆動開発](development/specification-driven-development.md) - 仕様駆動で進めるための考え方と成果物の扱いを定義する。
+- [コーディング規約](development/coding-guidelines.md) - 実装時の命名、コメント、クラス設計、メソッド設計の判断基準を定義する。
