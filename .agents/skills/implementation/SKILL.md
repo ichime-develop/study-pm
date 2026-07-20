@@ -11,68 +11,68 @@ description: Use when implementing study-pm features from approved basic design 
 
 ## Inputs
 
-Before editing code, read only the documents needed for the task.
+コードを編集する前に、タスクに必要なドキュメントだけを読む。
 
-- Start from `docs/INDEX.md` to locate current sources of truth.
-- Use `docs/basic-design/` for feature scope, API list, data model, screen flow, and technology stack.
-- Use `docs/detailed-design/` for DB schema, business logic, validations, exceptions, and persistence behavior.
-- Use `docs/requirements/` when implementation behavior must be traced back to requirements.
-- Use `docs/development/coding-guidelines.md` for naming, comments, class design, method design, frontend naming, and test naming.
-- Use `mock/` only as a UI/reference source. Do not retrofit coding-style comments or naming fixes into `mock/` unless the user explicitly asks.
+- `docs/INDEX.md` から現在の正本を辿る。
+- 機能スコープ、API一覧、データモデル、画面遷移、技術スタックは `docs/basic-design/` を使う。
+- DBスキーマ、業務ロジック、バリデーション、例外、永続化の挙動は `docs/detailed-design/` を使う。
+- 実装の挙動を要件まで遡って確認する必要がある場合は `docs/requirements/` を使う。
+- 命名、コメント、クラス設計、メソッド設計、フロントエンド命名、テスト命名は `docs/development/coding-guidelines.md` を使う。
+- `mock/` はUI・参照用としてのみ使う。ユーザーが明示的に依頼しない限り、`mock/` へコーディングスタイルのコメントや命名修正を後追いで加えない。
 
 ## Workflow
 
-1. Inspect the relevant design and existing implementation before changing files.
-2. State the implementation target and the design documents used as inputs.
-3. Keep implementation within the approved MVP scope.
-4. Prefer existing local patterns and project terminology over inventing new structure.
-5. Implement backend, frontend, migration, and tests in small dependency-safe slices.
-6. If a design contradiction or missing decision blocks implementation, report it instead of silently inventing product behavior.
-7. Run the most relevant available validation and report any validation that could not be run.
+1. ファイルを変更する前に、関連する設計と既存実装を確認する。
+2. 実装対象と、入力に使った設計ドキュメントを述べる。
+3. 実装は承認済みのMVP範囲内に収める。
+4. 新しい構造を発明するより、既存のローカルパターンとプロジェクト用語を優先する。
+5. バックエンド・フロントエンド・マイグレーション・テストを、依存関係を壊さない小さな単位で実装する。
+6. 設計の矛盾や未決定事項が実装を妨げる場合は、勝手にプロダクト挙動を作らず報告する。
+7. 実行可能な検証のうち最も関連するものを実行し、実行できなかった検証は報告する。
 
 ## Coding Rules
 
-- Follow `docs/development/coding-guidelines.md`.
-- Add a short responsibility comment at the top of each new source file.
-- Use names from requirements, basic design, detailed design, and glossary.
-- Avoid `Info`, `Data`, `Manager`, `Util`, `Common`, and `xxxFlag` unless there is a clear boundary reason.
-- Keep business logic out of controllers and UI components. Put it in domain objects, services, calculators, or validators with clear responsibility names.
-- Use `is...`, `has...`, or `can...` for boolean values.
-- Keep comments focused on responsibility, rationale, business rules, security decisions, or non-obvious exceptions. Do not comment by restating the code.
+- `docs/development/coding-guidelines.md` に従う。
+- 新規ソースファイルの先頭に、責務を示す短いコメントを書く。
+- 要件・基本設計・詳細設計・glossary の名前を使う。
+- 明確な境界上の理由がない限り、`Info`、`Data`、`Manager`、`Util`、`Common`、`xxxFlag` を避ける。
+- 業務ロジックをControllerやUIコンポーネントに置かない。責務が分かる名前のドメインオブジェクト、Service、Calculator、Validator に置く。
+- boolean は `is...` / `has...` / `can...` を使う。
+- コメントは責務・理由・業務ルール・セキュリティ判断・自明でない例外に絞る。コードの言い換えを書かない。
 
 ## Backend Rules
 
-- Use Java 21 + Spring Boot 3.x + Spring Data JPA + Flyway + PostgreSQL as defined in `tech-stack.md`.
-- Keep database objects aligned with `docs/detailed-design/database-schema.md`.
-- Use Flyway migrations for schema changes. Do not rely on Hibernate DDL generation.
-- Use `BigDecimal` for hours and calculation values that represent study effort.
-- Use `LocalDate` for business dates and `Instant` or `OffsetDateTime` for timestamps.
-- Preserve the common API error envelope from `api-list.md`.
-- Keep authentication behavior aligned with JWT, refresh token hash storage, and cookie rules from `api-list.md`.
+- `tech-stack.md` の定義どおり、Java 21 + Spring Boot 3.x + Spring Data JPA + Flyway + PostgreSQL を使う。
+- データベースオブジェクトは `docs/detailed-design/database-schema.md` に合わせる。
+- スキーマ変更はFlywayマイグレーションで行う。Hibernate のDDL生成に依存しない。
+- 学習工数を表す時間・計算値には `BigDecimal` を使う。
+- 業務日付には `LocalDate`、タイムスタンプには `Instant` または `OffsetDateTime` を使う。
+- `api-list.md` の共通エラー応答形式を維持する。
+- 認証の挙動は `api-list.md` のJWT・リフレッシュトークンのハッシュ保存・Cookieルールに合わせる。
 
 ## Frontend Rules
 
-- Build the real app under `frontend/`; treat `mock/` as reference only.
-- Use React + TypeScript + Vite, React Router, TanStack Query, and independent CSS as defined in `tech-stack.md`.
-- Use PascalCase components, `useXxx` hooks, `onXxx` props, and `handleXxx` local handlers.
-- Avoid `any`; use typed API models and narrow `unknown` values.
-- Keep server state in TanStack Query and local UI state in React state.
-- Preserve UI terminology, layout intent, and interaction patterns from the approved UI mock unless design docs say otherwise.
+- 本実装は `frontend/` に作り、`mock/` は参照のみとして扱う。
+- `tech-stack.md` の定義どおり、React + TypeScript + Vite、React Router、TanStack Query、独自CSS を使う。
+- コンポーネントはPascalCase、フックは `useXxx`、propsは `onXxx`、ローカルハンドラは `handleXxx` にする。
+- `any` を避け、型付きのAPIモデルを使い、`unknown` は絞り込む。
+- サーバー状態はTanStack Query、ローカルUI状態はReactのstateに置く。
+- 設計ドキュメントが別途指示しない限り、承認済みUIモックのUI用語・レイアウト意図・操作パターンを維持する。
 
 ## Testing And Validation
 
-- Add or update tests with the implementation slice when behavior risk is meaningful.
-- Name backend unit tests `XxxTest` and Testcontainers/PostgreSQL integration tests `XxxIT`.
-- Name frontend tests `Xxx.test.tsx` and test through user-visible behavior.
-- For backend schema/API work, prefer validation in this order: compile/tests, Flyway migration against PostgreSQL, targeted API tests.
-- For frontend work, prefer validation in this order: typecheck, unit/component tests, build, browser verification when local UI behavior matters.
+- 挙動のリスクが意味を持つ場合は、実装スライスと一緒にテストを追加・更新する。
+- バックエンドの単体テストは `XxxTest`、Testcontainers/PostgreSQL の結合テストは `XxxIT` と命名する。
+- フロントエンドのテストは `Xxx.test.tsx` と命名し、ユーザーに見える挙動を通してテストする。
+- バックエンドのスキーマ/API作業では、検証を次の順で優先する: コンパイル/テスト → PostgreSQLへのFlywayマイグレーション → 対象APIのテスト。
+- フロントエンド作業では、検証を次の順で優先する: 型チェック → 単体/コンポーネントテスト → ビルド → ローカルUI挙動が重要な場合はブラウザ確認。
 
 ## Output
 
-When reporting completion, include:
+完了を報告するときは、次を含める。
 
-- What was implemented.
-- Which design documents drove the implementation.
-- Files changed at a high level.
-- Validation run and failures or unavailable tools.
-- Remaining risks or follow-up implementation slices.
+- 実装した内容。
+- 実装を駆動した設計ドキュメント。
+- 変更したファイルの概要。
+- 実行した検証と、失敗または利用不可だったツール。
+- 残るリスクまたは後続の実装スライス。

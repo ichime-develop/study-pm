@@ -163,11 +163,17 @@ React 19 + TypeScript + TanStack Query + React Router + 独自CSSの前提で、
 type Project = {
   id: string;
   name: string;
+  status: "not_started" | "in_progress" | "completed";
+};
+
+type ProjectOverviewProps = {
+  project: Project;
+  onMove: (screen: string) => void;
 };
 
 const ProjectOverview = ({ project, onMove }: ProjectOverviewProps) => {
   const handleMoveToWbs = () => onMove("wbs");
-  const hasStudyLogs = project.studyLogCount > 0;
+  const isCompleted = project.status === "completed";
 
   // ...
 };
