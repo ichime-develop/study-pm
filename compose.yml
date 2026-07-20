@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: study-pm-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: studypm
+      POSTGRES_USER: studypm
+      POSTGRES_PASSWORD: studypm
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

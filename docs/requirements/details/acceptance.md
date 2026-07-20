@@ -91,9 +91,9 @@ MVP 1は、個人用の学習計画・実績管理表として、プロジェク
 
 | ID | 論点 |
 | --- | --- |
-| DSG-TBD-01 | PC Webフロントエンドの構成と採用技術 |
-| DSG-TBD-02 | バックエンドの構成と採用技術 |
-| DSG-TBD-03 | データベース製品 |
+| DSG-TBD-01 | 解決済み。PC Webフロントエンドの構成と採用技術は `docs/basic-design/tech-stack.md` に従う |
+| DSG-TBD-02 | 解決済み。バックエンドの構成と採用技術は `docs/basic-design/tech-stack.md` に従う |
+| DSG-TBD-03 | 解決済み。データベース製品は `docs/basic-design/tech-stack.md` に従う |
 | DSG-TBD-04 | OCR・AI学習計画生成に利用するサービスとモデル |
 | DSG-TBD-05 | AI学習計画生成のタイムアウト値 |
 | DSG-TBD-06 | 未保存変更がある画面から離脱する場合の確認方法 |

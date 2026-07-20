@@ -127,9 +127,9 @@ related: docs/requirements/summary/README.md, docs/requirements/details/acceptan
 
 | ID | 論点 | 理由 |
 | --- | --- | --- |
-| DSG-TBD-01 | PC Webフロントエンドの構成と採用技術 | 画面設計、開発体験、保守性を比較して決定する |
-| DSG-TBD-02 | バックエンドの構成と採用技術 | REST API、認証、業務ロジックの実装方式として決定する |
-| DSG-TBD-03 | データベース製品 | 履歴管理、集計、運用方法を踏まえて決定する |
+| DSG-TBD-01 | 解決済み。PC Webフロントエンドの構成と採用技術 | `docs/basic-design/tech-stack.md` で決定済み |
+| DSG-TBD-02 | 解決済み。バックエンドの構成と採用技術 | `docs/basic-design/tech-stack.md` で決定済み |
+| DSG-TBD-03 | 解決済み。データベース製品 | `docs/basic-design/tech-stack.md` で決定済み |
 | DSG-TBD-04 | OCR・AI学習計画生成に利用するサービスとモデル | 費用、精度、API仕様を比較して決定する |
 | DSG-TBD-05 | AI学習計画生成のタイムアウト値 | 採用するAIサービスの特性に基づいて決定する |
 | DSG-TBD-06 | 未保存変更がある画面から離脱する場合の確認方法 | 画面遷移と入力方式に基づいて決定する |
