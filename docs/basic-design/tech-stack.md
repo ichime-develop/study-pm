@@ -65,6 +65,8 @@ study-pm/
 
 Flutterスマホアプリは既存方針どおり別リポジトリ `study-pm-mobile` とする。バックエンドは最初から独立したREST APIとして設計するため、Webフロントエンドと同一リポジトリに置くかどうかはFlutter対応に影響しない。
 
+本書はトップレベル構成の正本とする。`backend/` と `frontend/` 配下の内部構造と配置責務は `docs/detailed-design/implementation-policy.md` を正本とする。
+
 ### 5.2 モノレポを選ぶ理由
 
 - 1つのAIセッションでフロントエンド・バックエンド双方を横断して読み書きできる（例: APIのレスポンス変更とフロントの型定義変更を同時に行う）。

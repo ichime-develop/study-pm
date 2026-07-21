@@ -18,3 +18,4 @@ related: docs/INDEX.md, docs/basic-design/data-model.md, docs/basic-design/api-l
 
 - [DBスキーマ詳細設計](database-schema.md) - PostgreSQLテーブル、制約、インデックス、Flyway作成順を定義する。
 - [業務ロジック詳細設計](business-logic.md) - 集計、状態遷移、履歴保存、学習サマリー、EVM、バーンダウンの実装前提を定義する。
+- [実装方針詳細設計](implementation-policy.md) - エラー、例外、ログ、内部構造、設定管理、テスト分類の横断方針を定義する。

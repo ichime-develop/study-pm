@@ -10,7 +10,7 @@ related: docs/basic-design/screen-list.md, docs/basic-design/screen-flow.md, doc
 
 PC Web版 `study-pm` と将来のFlutterスマホアプリが共通利用するREST APIの基本方針とAPI一覧を定義する。
 
-本書ではAPIの責務、エンドポイント、使用画面、MVP、主要な入出力、関連業務ルールを整理する。詳細なリクエスト/レスポンスJSON、HTTPステータス、OpenAPI定義はAPI詳細設計または実装時に定義する。
+本書ではAPIの責務、エンドポイント、使用画面、MVP、主要な入出力、関連業務ルールを整理する。詳細なリクエスト/レスポンスJSON、OpenAPI定義はAPI詳細設計または実装時に定義する。HTTPステータスと例外変換の横断方針は `docs/detailed-design/implementation-policy.md` に従う。
 
 ## 2. 前提
 
