@@ -2,6 +2,7 @@ package com.studypm.common.api;
 
 import java.util.List;
 
+import com.studypm.common.error.ApplicationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(new ApiErrorResponse("VALIDATION_ERROR", "入力内容を確認してください。", details));
     }
 
+    // implementation-policy.md §5.2: 業務例外を4xx(400/404/409)へ変換する。
+    @ExceptionHandler(ApplicationException.class)
+    ResponseEntity<ApiErrorResponse> handleApplicationException(ApplicationException exception) {
+        return ResponseEntity.status(exception.status())
+                .body(new ApiErrorResponse(exception.code(), exception.getMessage(), exception.details()));
+    }
+
+    // implementation-policy.md §5.2: 予期せぬ例外は500へ丸める。
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleException(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

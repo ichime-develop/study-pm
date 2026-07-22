@@ -30,6 +30,7 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             AuthenticationException authException
     ) throws IOException {
+        // implementation-policy.md §5.4: 認証切れの401はフロントエンドでログインへ誘導する。
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

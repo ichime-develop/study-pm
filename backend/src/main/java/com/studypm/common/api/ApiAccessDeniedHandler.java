@@ -30,6 +30,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletResponse response,
             AccessDeniedException accessDeniedException
     ) throws IOException {
+        // implementation-policy.md §5.2: 403はMVP1では原則未使用。所有者不一致は404で秘匿する。
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

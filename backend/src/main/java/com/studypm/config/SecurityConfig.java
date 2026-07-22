@@ -32,7 +32,7 @@ public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        // coding-guidelines.md 6.1: ハッシュ方式の移行余地を残すため、Spring Securityの委譲方式を使う。
+        // 将来ハッシュ方式を移行できるよう委譲方式を使う。
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
