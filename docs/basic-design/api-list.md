@@ -49,6 +49,7 @@ API IDは画面IDとは別系統で採番する。
 - ログアウト時は対象のリフレッシュトークンを失効させる。
 - MVP1ではリフレッシュトークンのローテーション、再利用検知、デバイス一覧、全端末強制ログアウトは扱わない。
 - PC Webでは、アクセストークンはメモリ保持、リフレッシュトークンは `HttpOnly`, `Secure`, `SameSite=Lax` 属性付きCookieで保持する方針とする。localStorageにはトークンを保存しない。`Secure` は本番では必須、ローカル開発では環境設定で無効化できるようにする。
+- MVP1のPC Web向け登録・ログインAPIでは、リフレッシュトークンをレスポンス本文に含めずCookieでのみ返す。Flutter対応時は、クライアント種別を識別した上で本文返却を追加する。
 - Flutterスマホアプリでは、アクセストークンとリフレッシュトークンをセキュアストレージで保持する方針とする。
 - `/api/auth/refresh` は、PC WebではCookieから、Flutterではリクエスト本文からリフレッシュトークンを受け取れる設計にする。
 - PC WebでリフレッシュトークンをCookie送信するため、`/api/auth/refresh` と `/api/auth/logout` はCSRFを考慮する。MVP1では `SameSite=Lax` を前提とする。
@@ -109,8 +110,8 @@ API IDは画面IDとは別系統で採番する。
 
 | API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-AU-01 | POST | `/api/auth/signup` | アカウント登録 | AU01 | 1 | 不要 | email, password, displayName | アカウント概要、アクセストークン、リフレッシュトークンまたはCookie設定 | USR-01, USR-05, USR-06, USR-07 |
-| API-AU-02 | POST | `/api/auth/login` | ログイン | AU02 | 1 | 不要 | email, password | アカウント概要、アクセストークン、リフレッシュトークンまたはCookie設定 | USR-02, USR-08 |
+| API-AU-01 | POST | `/api/auth/signup` | アカウント登録 | AU01 | 1 | 不要 | email, password, displayName | アカウント概要、アクセストークン、Cookie設定 | USR-01, USR-05, USR-06, USR-07 |
+| API-AU-02 | POST | `/api/auth/login` | ログイン | AU02 | 1 | 不要 | email, password | アカウント概要、アクセストークン、Cookie設定 | USR-02, USR-08 |
 | API-AU-03 | POST | `/api/auth/logout` | ログアウト。リフレッシュトークンを失効させる | CM01 | 1 | 必須 | リフレッシュトークンまたはCookie | 成功結果 | USR-03 |
 | API-AU-04 | GET | `/api/me` | 認証中アカウント取得 | ログイン後共通 | 1 | 必須 | なし | accountId, email, displayName | USR-04 |
 | API-AU-05 | POST | `/api/auth/refresh` | アクセストークン再発行。リフレッシュトークンを検証し、新しいアクセストークンを返す | ログイン後共通（画面非依存） | 1 | 不要（リフレッシュトークンで検証） | リフレッシュトークンまたはCookie | 新しいアクセストークン | 4.0 認証方式 |

@@ -15,6 +15,7 @@ spring:
 app:
   security:
     jwt:
+      secret: ${JWT_SECRET:study-pm-development-secret-key-please-change-in-production}
       access-token-ttl: 15m
       refresh-token-ttl: 14d
     refresh-cookie:
