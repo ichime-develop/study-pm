@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * WBS一覧、タスク作成、詳細取得、更新、進捗更新、削除APIを提供する。
+ * WBS一覧、集計、タスク作成、詳細取得、更新、進捗更新、削除APIを提供する。
  */
 @RestController
 @RequestMapping
@@ -36,6 +36,14 @@ public class WbsTaskController {
             @PathVariable UUID projectId
     ) {
         return wbsTaskService.list(account.accountId(), projectId);
+    }
+
+    @GetMapping("/api/projects/{projectId}/wbs-summary")
+    WbsSummaryResponse summary(
+            @AuthenticationPrincipal AuthenticatedAccount account,
+            @PathVariable UUID projectId
+    ) {
+        return wbsTaskService.summary(account.accountId(), projectId);
     }
 
     @PostMapping("/api/projects/{projectId}/wbs-tasks")

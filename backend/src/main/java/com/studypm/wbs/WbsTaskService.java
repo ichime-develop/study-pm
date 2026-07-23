@@ -67,19 +67,21 @@ public class WbsTaskService {
         Project project = findOwnedProject(accountId, projectId);
         List<WbsTask> tasks = wbsTaskRepository.findAllByProject_IdAndProject_Account_Id(projectId, accountId);
         Map<UUID, WbsTaskMetrics> metrics = metricsFor(tasks);
-        ProjectAggregate aggregate = projectQueryRepository.aggregateFor(projectId, LocalDate.now(clock.withZone(JST)));
-        return new WbsListResponse(
-                project.id(),
+        WbsSummaryResponse summary = summaryFor(project.id());
+        return WbsListResponse.from(
+                summary,
                 project.startDate(),
                 project.targetEndDate(),
-                aggregate.plannedHours(),
-                aggregate.actualHours(),
-                aggregate.progressRate(),
-                aggregate.hasDelay(),
                 sortedTasks(tasks).stream()
                         .map(task -> WbsTaskResponse.from(task, metrics))
                         .toList()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public WbsSummaryResponse summary(UUID accountId, UUID projectId) {
+        Project project = findOwnedProject(accountId, projectId);
+        return summaryFor(project.id());
     }
 
     @Transactional
@@ -313,6 +315,11 @@ public class WbsTaskService {
                 .filter(WbsTask::isLeaf)
                 .map(WbsTask::id)
                 .toList());
+    }
+
+    private WbsSummaryResponse summaryFor(UUID projectId) {
+        ProjectAggregate aggregate = projectQueryRepository.aggregateFor(projectId, LocalDate.now(clock.withZone(JST)));
+        return WbsSummaryResponse.from(projectId, aggregate);
     }
 
     private List<WbsTask> sortedTasks(List<WbsTask> tasks) {

@@ -22,6 +22,7 @@ import com.studypm.account.Account;
 import com.studypm.account.AccountRepository;
 import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
+import com.studypm.common.error.ResourceNotFoundException;
 import com.studypm.project.Project;
 import com.studypm.project.ProjectAggregate;
 import com.studypm.project.ProjectQueryRepository;
@@ -97,6 +98,51 @@ class WbsTaskServiceTest {
         assertThat(response.name()).isEqualTo("Task");
         assertThat(response.progressRate()).isZero();
         verify(progressHistoryRepository).save(any(WbsTaskProgressHistory.class));
+    }
+
+    @Test
+    void summaryReturnsProjectAggregateValues() {
+        when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.of(project));
+        when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(new ProjectAggregate(
+                        2,
+                        new BigDecimal("3.00"),
+                        new BigDecimal("1.50"),
+                        new BigDecimal("25.0000"),
+                        true
+                ));
+
+        WbsSummaryResponse response = service.summary(accountId, project.id());
+
+        assertThat(response.projectId()).isEqualTo(project.id());
+        assertThat(response.plannedHours()).isEqualByComparingTo("3.00");
+        assertThat(response.actualHours()).isEqualByComparingTo("1.50");
+        assertThat(response.progressRate()).isEqualByComparingTo("25.0000");
+        assertThat(response.hasDelay()).isTrue();
+    }
+
+    @Test
+    void summaryReturnsEmptyAggregateForProjectWithoutLeafTasks() {
+        when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.of(project));
+        when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, null, false));
+
+        WbsSummaryResponse response = service.summary(accountId, project.id());
+
+        assertThat(response.projectId()).isEqualTo(project.id());
+        assertThat(response.plannedHours()).isNull();
+        assertThat(response.actualHours()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.progressRate()).isNull();
+        assertThat(response.hasDelay()).isFalse();
+    }
+
+    @Test
+    void summaryRejectsOtherAccountProjectAsNotFound() {
+        when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.summary(accountId, project.id()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("対象のプロジェクトが見つかりません。");
     }
 
     @Test

@@ -82,6 +82,11 @@ class WbsTaskControllerIT {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.details").isArray());
+
+        mockMvc.perform(get("/api/projects/{projectId}/wbs-summary", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.details").isArray());
     }
 
     @Test
@@ -122,6 +127,73 @@ class WbsTaskControllerIT {
                 .andExpect(jsonPath("$.wbsTaskId").value(childId.toString()))
                 .andExpect(jsonPath("$.actualHours").value(0))
                 .andExpect(jsonPath("$.hasStudyLogs").value(false));
+    }
+
+    @Test
+    void wbsSummaryReturnsSameAggregateAsWbsList() throws Exception {
+        Session session = signup("user@example.com");
+        UUID projectId = createProject(session);
+        UUID leafId = taskId(createLeaf(session, projectId, null, "Leaf", "2020-07-01", "2020-07-22", "4.00")
+                .andReturn());
+        mockMvc.perform(patch("/api/wbs-tasks/{taskId}/progress", leafId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"progressRate\": 50 }"))
+                .andExpect(status().isOk());
+        insertStudyLog(session.accountId(), projectId, leafId, new BigDecimal("1.50"));
+
+        MvcResult listResult = mockMvc.perform(get("/api/projects/{projectId}/wbs", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedHours").value(4.00))
+                .andExpect(jsonPath("$.actualHours").value(1.50))
+                .andExpect(jsonPath("$.progressRate").value(50.0000))
+                .andExpect(jsonPath("$.hasDelay").value(true))
+                .andReturn();
+
+        MvcResult summaryResult = mockMvc.perform(get("/api/projects/{projectId}/wbs-summary", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(projectId.toString()))
+                .andExpect(jsonPath("$.plannedHours").value(4.00))
+                .andExpect(jsonPath("$.actualHours").value(1.50))
+                .andExpect(jsonPath("$.progressRate").value(50.0000))
+                .andExpect(jsonPath("$.hasDelay").value(true))
+                .andReturn();
+
+        JsonNode listBody = objectMapper.readTree(listResult.getResponse().getContentAsString());
+        JsonNode summaryBody = objectMapper.readTree(summaryResult.getResponse().getContentAsString());
+        assertThat(summaryBody.get("plannedHours").decimalValue()).isEqualByComparingTo(listBody.get("plannedHours").decimalValue());
+        assertThat(summaryBody.get("actualHours").decimalValue()).isEqualByComparingTo(listBody.get("actualHours").decimalValue());
+        assertThat(summaryBody.get("progressRate").decimalValue()).isEqualByComparingTo(listBody.get("progressRate").decimalValue());
+        assertThat(summaryBody.get("hasDelay").booleanValue()).isEqualTo(listBody.get("hasDelay").booleanValue());
+    }
+
+    @Test
+    void wbsSummaryReturnsEmptyAggregateForProjectWithoutLeafTasks() throws Exception {
+        Session session = signup("user@example.com");
+        UUID projectId = createProject(session);
+
+        mockMvc.perform(get("/api/projects/{projectId}/wbs-summary", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(projectId.toString()))
+                .andExpect(jsonPath("$.plannedHours").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.actualHours").value(0))
+                .andExpect(jsonPath("$.progressRate").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.hasDelay").value(false));
+    }
+
+    @Test
+    void wbsSummaryForOtherAccountProjectReturnsNotFound() throws Exception {
+        Session owner = signup("owner@example.com");
+        Session other = signup("other@example.com");
+        UUID projectId = createProject(owner);
+
+        mockMvc.perform(get("/api/projects/{projectId}/wbs-summary", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(other)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROJECT_NOT_FOUND"));
     }
 
     @Test
@@ -458,6 +530,10 @@ class WbsTaskControllerIT {
     }
 
     private void insertStudyLog(UUID accountId, UUID projectId, UUID taskId) {
+        insertStudyLog(accountId, projectId, taskId, new BigDecimal("1.00"));
+    }
+
+    private void insertStudyLog(UUID accountId, UUID projectId, UUID taskId, BigDecimal studyHours) {
         Instant now = Instant.parse("2026-07-01T00:00:00Z");
         jdbcTemplate.update("""
                 insert into study_logs (
@@ -469,7 +545,7 @@ class WbsTaskControllerIT {
                 projectId,
                 taskId,
                 LocalDate.parse("2026-08-02"),
-                new BigDecimal("1.00"),
+                studyHours,
                 Timestamp.from(now),
                 Timestamp.from(now)
         );

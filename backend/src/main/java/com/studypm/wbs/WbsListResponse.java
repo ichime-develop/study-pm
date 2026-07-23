@@ -18,4 +18,22 @@ public record WbsListResponse(
         boolean hasDelay,
         List<WbsTaskResponse> tasks
 ) {
+
+    public static WbsListResponse from(
+            WbsSummaryResponse summary,
+            LocalDate ganttStartDate,
+            LocalDate ganttEndDate,
+            List<WbsTaskResponse> tasks
+    ) {
+        return new WbsListResponse(
+                summary.projectId(),
+                ganttStartDate,
+                ganttEndDate,
+                summary.plannedHours(),
+                summary.actualHours(),
+                summary.progressRate(),
+                summary.hasDelay(),
+                tasks
+        );
+    }
 }
