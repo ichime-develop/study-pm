@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -41,6 +42,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureMockMvc
 @Testcontainers
 class ProjectControllerIT {
+
+    private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
 
     @Container
     static final PostgreSQLContainer<?> POSTGRESQL = new PostgreSQLContainer<>("postgres:17");
@@ -289,6 +292,115 @@ class ProjectControllerIT {
     }
 
     @Test
+    void overviewReturnsMetricsWarningsContinuousDaysAndIncompleteTasks() throws Exception {
+        LocalDate today = LocalDate.now(JST);
+        Session session = signup("user@example.com");
+        Session other = signup("other@example.com");
+        UUID projectId = insertProject(
+                session.accountId(),
+                "Overview",
+                null,
+                "IN_PROGRESS",
+                "2026-07-01",
+                "2026-08-31",
+                1
+        );
+        UUID delayedTask = insertLeaf(
+                projectId,
+                "Delayed",
+                new BigDecimal("4.00"),
+                50,
+                today.minusDays(10).toString(),
+                today.minusDays(1).toString()
+        );
+        UUID upcomingTask = insertLeaf(
+                projectId,
+                "Upcoming",
+                new BigDecimal("6.00"),
+                0,
+                today.minusDays(3).toString(),
+                today.plusDays(10).toString()
+        );
+        insertLeaf(projectId, "Done", new BigDecimal("2.00"), 100, today.minusDays(10).toString(), today.plusDays(5).toString());
+        insertStudyLog(session.accountId(), projectId, delayedTask, today.toString(), "5.00");
+        insertStudyLog(session.accountId(), projectId, upcomingTask, today.minusDays(1).toString(), "8.00");
+
+        UUID otherProjectId = insertProject(
+                other.accountId(),
+                "Other",
+                null,
+                "IN_PROGRESS",
+                "2026-07-01",
+                "2026-08-31",
+                1
+        );
+        UUID otherTaskId = insertLeaf(otherProjectId, "Other Task", new BigDecimal("10.00"), 0);
+        insertStudyLog(other.accountId(), otherProjectId, otherTaskId, today.toString(), "100.00");
+
+        mockMvc.perform(get("/api/projects/{projectId}/overview", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(projectId.toString()))
+                .andExpect(jsonPath("$.progressRate").value(33.3333))
+                .andExpect(jsonPath("$.plannedHours").value(12.00))
+                .andExpect(jsonPath("$.remainingPlannedHours").value(8.00))
+                .andExpect(jsonPath("$.projectStudyHours").value(13.00))
+                .andExpect(jsonPath("$.projectContinuousStudyDays").value(2))
+                .andExpect(jsonPath("$.warnings[0].code").value("DELAYED_TASK_EXISTS"))
+                .andExpect(jsonPath("$.warnings[1].code").value("EFFORT_OVERRUN"))
+                .andExpect(jsonPath("$.incompleteTasks.length()").value(2))
+                .andExpect(jsonPath("$.incompleteTasks[0].name").value("Delayed"))
+                .andExpect(jsonPath("$.incompleteTasks[0].hasDelay").value(true))
+                .andExpect(jsonPath("$.incompleteTasks[1].name").value("Upcoming"))
+                .andExpect(jsonPath("$.incompleteTasks[1].hasDelay").value(false));
+    }
+
+    @Test
+    void overviewForProjectWithoutLeafTasksReturnsEmptyMetrics() throws Exception {
+        Session session = signup("user@example.com");
+        UUID projectId = insertProject(
+                session.accountId(),
+                "Empty",
+                null,
+                "NOT_STARTED",
+                "2026-07-01",
+                "2026-08-31",
+                1
+        );
+
+        mockMvc.perform(get("/api/projects/{projectId}/overview", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.progressRate").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.plannedHours").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.remainingPlannedHours").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.projectStudyHours").value(0))
+                .andExpect(jsonPath("$.projectContinuousStudyDays").value(0))
+                .andExpect(jsonPath("$.warnings").isEmpty())
+                .andExpect(jsonPath("$.incompleteTasks").isEmpty());
+    }
+
+    @Test
+    void overviewForOtherAccountProjectReturnsNotFound() throws Exception {
+        Session owner = signup("owner@example.com");
+        Session other = signup("other@example.com");
+        UUID projectId = insertProject(
+                owner.accountId(),
+                "Owner Project",
+                null,
+                "IN_PROGRESS",
+                "2026-07-01",
+                "2026-08-31",
+                1
+        );
+
+        mockMvc.perform(get("/api/projects/{projectId}/overview", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(other)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROJECT_NOT_FOUND"));
+    }
+
+    @Test
     void deleteProjectRemovesRelatedRowsIncludingParentAndLeafTasks() throws Exception {
         Session session = signup("user@example.com");
         MvcResult created = createProject(session, "Java", null, "2026-08-01", "2026-09-01")
@@ -388,6 +500,17 @@ class ProjectControllerIT {
     }
 
     private UUID insertLeaf(UUID projectId, String name, BigDecimal plannedHours, int progressRate) {
+        return insertLeaf(projectId, name, plannedHours, progressRate, "2026-08-01", "2026-09-01");
+    }
+
+    private UUID insertLeaf(
+            UUID projectId,
+            String name,
+            BigDecimal plannedHours,
+            int progressRate,
+            String plannedStartDate,
+            String plannedEndDate
+    ) {
         UUID taskId = UUID.randomUUID();
         Instant now = Instant.parse("2026-07-01T00:00:00Z");
         jdbcTemplate.update("""
@@ -399,14 +522,32 @@ class ProjectControllerIT {
                 taskId,
                 projectId,
                 name,
-                LocalDate.parse("2026-08-01"),
-                LocalDate.parse("2026-09-01"),
+                LocalDate.parse(plannedStartDate),
+                LocalDate.parse(plannedEndDate),
                 plannedHours,
                 progressRate,
                 Timestamp.from(now),
                 Timestamp.from(now)
         );
         return taskId;
+    }
+
+    private void insertStudyLog(UUID accountId, UUID projectId, UUID taskId, String studyDate, String studyHours) {
+        Instant now = Instant.parse("2026-07-01T00:00:00Z");
+        jdbcTemplate.update("""
+                insert into study_logs (
+                    id, account_id, project_id, wbs_task_id, study_date, study_hours, memo, created_at, updated_at
+                ) values (?, ?, ?, ?, ?, ?, null, ?, ?)
+                """,
+                UUID.randomUUID(),
+                accountId,
+                projectId,
+                taskId,
+                LocalDate.parse(studyDate),
+                new BigDecimal(studyHours),
+                Timestamp.from(now),
+                Timestamp.from(now)
+        );
     }
 
     private void seedRelatedRows(UUID accountId, UUID projectId) {

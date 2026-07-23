@@ -1,10 +1,12 @@
 package com.studypm.project;
 
+import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -16,6 +18,7 @@ import com.studypm.account.AccountRepository;
 import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
+import com.studypm.common.time.ContinuousStudyDays;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,6 +98,33 @@ public class ProjectService {
         return ProjectBasicResponse.from(findOwnedProject(accountId, projectId));
     }
 
+    @Transactional(readOnly = true)
+    public ProjectOverviewResponse overview(UUID accountId, UUID projectId) {
+        Project project = findOwnedProject(accountId, projectId);
+        LocalDate baseDate = LocalDate.now(clock.withZone(JST));
+        ProjectAggregate aggregate = projectQueryRepository.aggregateFor(project.id(), baseDate);
+        int continuousStudyDays = ContinuousStudyDays.count(
+                projectQueryRepository.distinctStudyDatesForProject(project.id()),
+                baseDate
+        );
+        List<ProjectOverviewTaskResponse> incompleteTasks = projectQueryRepository
+                .incompleteTasksForOverview(project.id(), baseDate)
+                .stream()
+                .map(ProjectOverviewTaskResponse::from)
+                .toList();
+
+        return new ProjectOverviewResponse(
+                project.id(),
+                aggregate.progressRate(),
+                aggregate.plannedHours(),
+                remainingPlannedHours(aggregate),
+                aggregate.actualHours(),
+                continuousStudyDays,
+                warnings(aggregate),
+                incompleteTasks
+        );
+    }
+
     @Transactional
     public ProjectBasicResponse update(UUID accountId, UUID projectId, ProjectUpdateCommand command) {
         validatePeriod(command.startDate(), command.targetEndDate());
@@ -152,6 +182,30 @@ public class ProjectService {
                     "完了条件を満たしていないため、プロジェクトを完了にできません。"
             );
         }
+    }
+
+    private BigDecimal remainingPlannedHours(ProjectAggregate aggregate) {
+        if (aggregate.leafCount() == 0) {
+            return null;
+        }
+        return aggregate.plannedHours().subtract(aggregate.earnedValue()).max(BigDecimal.ZERO);
+    }
+
+    private List<ProjectWarningResponse> warnings(ProjectAggregate aggregate) {
+        List<ProjectWarningResponse> warnings = new ArrayList<>();
+        if (aggregate.hasDelay()) {
+            warnings.add(new ProjectWarningResponse(
+                    "DELAYED_TASK_EXISTS",
+                    "遅延しているタスクがあります。"
+            ));
+        }
+        if (aggregate.leafCount() > 0 && aggregate.actualHours().compareTo(aggregate.plannedHours()) > 0) {
+            warnings.add(new ProjectWarningResponse(
+                    "EFFORT_OVERRUN",
+                    "実績工数が予定工数を超過しています。"
+            ));
+        }
+        return List.copyOf(warnings);
     }
 
     private void validatePeriod(LocalDate startDate, LocalDate targetEndDate) {

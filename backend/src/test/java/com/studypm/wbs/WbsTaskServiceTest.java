@@ -108,6 +108,7 @@ class WbsTaskServiceTest {
                         2,
                         new BigDecimal("3.00"),
                         new BigDecimal("1.50"),
+                        new BigDecimal("0.75"),
                         new BigDecimal("25.0000"),
                         true
                 ));
@@ -125,7 +126,7 @@ class WbsTaskServiceTest {
     void summaryReturnsEmptyAggregateForProjectWithoutLeafTasks() {
         when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.of(project));
         when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
-                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, null, false));
+                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, BigDecimal.ZERO, null, false));
 
         WbsSummaryResponse response = service.summary(accountId, project.id());
 

@@ -67,6 +67,14 @@ public class ProjectController {
         return projectService.get(account.accountId(), projectId);
     }
 
+    @GetMapping("/{projectId}/overview")
+    ProjectOverviewResponse overview(
+            @AuthenticationPrincipal AuthenticatedAccount account,
+            @PathVariable UUID projectId
+    ) {
+        return projectService.overview(account.accountId(), projectId);
+    }
+
     @PatchMapping("/{projectId}")
     ProjectBasicResponse update(
             @AuthenticationPrincipal AuthenticatedAccount account,

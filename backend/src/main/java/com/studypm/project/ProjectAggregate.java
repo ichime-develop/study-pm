@@ -9,6 +9,7 @@ public record ProjectAggregate(
         long leafCount,
         BigDecimal plannedHours,
         BigDecimal actualHours,
+        BigDecimal earnedValue,
         BigDecimal progressRate,
         boolean hasDelay
 ) {

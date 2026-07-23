@@ -182,11 +182,80 @@ class ProjectServiceTest {
     }
 
     @Test
+    void overviewReturnsMetricsWarningsContinuousDaysAndIncompleteTasks() {
+        Project project = project();
+        ProjectOverviewTaskRow delayedTask = new ProjectOverviewTaskRow(
+                UUID.randomUUID(),
+                "Delayed",
+                LocalDate.parse("2026-07-22"),
+                50,
+                true
+        );
+        ProjectOverviewTaskRow upcomingTask = new ProjectOverviewTaskRow(
+                UUID.randomUUID(),
+                "Upcoming",
+                LocalDate.parse("2026-08-01"),
+                0,
+                false
+        );
+        when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.of(project));
+        when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(new ProjectAggregate(
+                        2,
+                        new BigDecimal("10.00"),
+                        new BigDecimal("12.00"),
+                        new BigDecimal("4.00"),
+                        new BigDecimal("40.0000"),
+                        true
+                ));
+        when(projectQueryRepository.distinctStudyDatesForProject(project.id())).thenReturn(List.of(
+                LocalDate.parse("2026-07-23"),
+                LocalDate.parse("2026-07-22"),
+                LocalDate.parse("2026-07-20")
+        ));
+        when(projectQueryRepository.incompleteTasksForOverview(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(List.of(delayedTask, upcomingTask));
+
+        ProjectOverviewResponse response = projectService.overview(accountId, project.id());
+
+        assertThat(response.progressRate()).isEqualByComparingTo("40.0000");
+        assertThat(response.plannedHours()).isEqualByComparingTo("10.00");
+        assertThat(response.remainingPlannedHours()).isEqualByComparingTo("6.00");
+        assertThat(response.projectStudyHours()).isEqualByComparingTo("12.00");
+        assertThat(response.projectContinuousStudyDays()).isEqualTo(2);
+        assertThat(response.warnings()).extracting(ProjectWarningResponse::code)
+                .containsExactly("DELAYED_TASK_EXISTS", "EFFORT_OVERRUN");
+        assertThat(response.incompleteTasks()).extracting(ProjectOverviewTaskResponse::name)
+                .containsExactly("Delayed", "Upcoming");
+    }
+
+    @Test
+    void overviewReturnsEmptyMetricsForProjectWithoutLeafTasks() {
+        Project project = project();
+        when(projectRepository.findByIdAndAccount_Id(project.id(), accountId)).thenReturn(Optional.of(project));
+        when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, BigDecimal.ZERO, null, false));
+        when(projectQueryRepository.distinctStudyDatesForProject(project.id())).thenReturn(List.of());
+        when(projectQueryRepository.incompleteTasksForOverview(project.id(), LocalDate.parse("2026-07-23")))
+                .thenReturn(List.of());
+
+        ProjectOverviewResponse response = projectService.overview(accountId, project.id());
+
+        assertThat(response.progressRate()).isNull();
+        assertThat(response.plannedHours()).isNull();
+        assertThat(response.remainingPlannedHours()).isNull();
+        assertThat(response.projectStudyHours()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.projectContinuousStudyDays()).isZero();
+        assertThat(response.warnings()).isEmpty();
+        assertThat(response.incompleteTasks()).isEmpty();
+    }
+
+    @Test
     void listReturnsEmptyPageForHugePageWithoutOverflow() {
         Project project = project();
         when(projectRepository.findAllByAccount_Id(accountId)).thenReturn(List.of(project));
         when(projectQueryRepository.aggregateFor(project.id(), LocalDate.parse("2026-07-23")))
-                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, null, false));
+                .thenReturn(new ProjectAggregate(0, null, BigDecimal.ZERO, BigDecimal.ZERO, null, false));
 
         ProjectListResponse response = projectService.list(
                 accountId,

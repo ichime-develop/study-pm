@@ -3,6 +3,7 @@ package com.studypm.project;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,13 +56,14 @@ public class ProjectQueryRepository {
         long leafCount = number(row.get("leaf_count")).longValue();
         BigDecimal actualHours = decimal(row.get("actual_hours"));
         if (leafCount == 0) {
-            return new ProjectAggregate(0, null, actualHours, null, false);
+            return new ProjectAggregate(0, null, actualHours, BigDecimal.ZERO, null, false);
         }
         BigDecimal plannedHours = decimal(row.get("planned_hours"));
         BigDecimal weightedProgress = decimal(row.get("weighted_progress"));
+        BigDecimal earnedValue = weightedProgress.divide(new BigDecimal("100"));
         BigDecimal progressRate = weightedProgress.divide(plannedHours, 4, RoundingMode.HALF_UP);
         boolean hasDelay = Boolean.TRUE.equals(row.get("has_delay"));
-        return new ProjectAggregate(leafCount, plannedHours, actualHours, progressRate, hasDelay);
+        return new ProjectAggregate(leafCount, plannedHours, actualHours, earnedValue, progressRate, hasDelay);
     }
 
     public ProjectCompletionStats completionStats(UUID projectId) {
@@ -76,6 +78,57 @@ public class ProjectQueryRepository {
         return new ProjectCompletionStats(
                 number(row.get("leaf_count")).longValue(),
                 number(row.get("completed_leaf_count")).longValue()
+        );
+    }
+
+    public List<LocalDate> distinctStudyDatesForProject(UUID projectId) {
+        return jdbcTemplate.query("""
+                select distinct study_date
+                  from study_logs
+                 where project_id = :projectId
+                 order by study_date desc
+                """,
+                new MapSqlParameterSource("projectId", projectId),
+                (resultSet, rowNumber) -> resultSet.getObject("study_date", LocalDate.class)
+        );
+    }
+
+    public List<ProjectOverviewTaskRow> incompleteTasksForOverview(UUID projectId, LocalDate baseDate) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("projectId", projectId)
+                .addValue("baseDate", baseDate);
+        return jdbcTemplate.query("""
+                select
+                    id,
+                    name,
+                    planned_end_date,
+                    progress_rate,
+                    (planned_end_date is not null
+                        and planned_end_date < :baseDate
+                        and progress_rate < 100) as has_delay
+                  from wbs_tasks
+                 where project_id = :projectId
+                   and task_type = 'LEAF'
+                   and progress_rate < 100
+                 order by
+                    case
+                        when planned_end_date is not null
+                         and planned_end_date < :baseDate then 0
+                        else 1
+                    end,
+                    case when planned_end_date is null then 1 else 0 end,
+                    planned_end_date asc,
+                    created_at asc,
+                    id asc
+                """,
+                parameters,
+                (resultSet, rowNumber) -> new ProjectOverviewTaskRow(
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getString("name"),
+                        resultSet.getObject("planned_end_date", LocalDate.class),
+                        resultSet.getInt("progress_rate"),
+                        resultSet.getBoolean("has_delay")
+                )
         );
     }
 
