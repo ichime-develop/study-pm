@@ -3,7 +3,7 @@ package com.studypm.studylog;
 import java.math.BigDecimal;
 import java.util.List;
 
-import com.studypm.project.ProjectPageResponse;
+import com.studypm.common.api.PageResponse;
 
 /**
  * プロジェクト内学習記録一覧と合計学習時間を表す。
@@ -11,6 +11,6 @@ import com.studypm.project.ProjectPageResponse;
 public record StudyLogListResponse(
         List<StudyLogResponse> studyLogs,
         BigDecimal totalStudyHours,
-        ProjectPageResponse page
+        PageResponse page
 ) {
 }

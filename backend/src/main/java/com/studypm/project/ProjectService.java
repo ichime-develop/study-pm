@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import com.studypm.account.Account;
 import com.studypm.account.AccountRepository;
+import com.studypm.common.api.PageResponse;
 import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
@@ -73,7 +74,7 @@ public class ProjectService {
                 : (int) Math.ceil((double) filteredItems.size() / query.size());
         return new ProjectListResponse(
                 filteredItems.subList(fromIndex, toIndex),
-                new ProjectPageResponse(query.page(), query.size(), filteredItems.size(), totalPages)
+                new PageResponse(query.page(), query.size(), filteredItems.size(), totalPages)
         );
     }
 

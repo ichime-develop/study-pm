@@ -10,10 +10,10 @@ import java.util.UUID;
 
 import com.studypm.account.Account;
 import com.studypm.account.AccountRepository;
+import com.studypm.common.api.PageResponse;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
 import com.studypm.project.Project;
-import com.studypm.project.ProjectPageResponse;
 import com.studypm.project.ProjectRepository;
 import com.studypm.wbs.WbsTask;
 import com.studypm.wbs.WbsTaskRepository;
@@ -81,7 +81,7 @@ public class StudyLogService {
         return new StudyLogListResponse(
                 studyLogs.stream().map(StudyLogResponse::from).toList(),
                 studyLogQueryRepository.totalStudyHours(projectId, task == null ? null : task.id()),
-                new ProjectPageResponse(page, size, studyLogs.getTotalElements(), studyLogs.getTotalPages())
+                new PageResponse(page, size, studyLogs.getTotalElements(), studyLogs.getTotalPages())
         );
     }
 

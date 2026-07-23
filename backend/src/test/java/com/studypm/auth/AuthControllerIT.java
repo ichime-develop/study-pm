@@ -2,8 +2,10 @@ package com.studypm.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +58,7 @@ class AuthControllerIT {
         registry.add("spring.datasource.password", POSTGRESQL::getPassword);
         registry.add("app.security.jwt.secret", () -> "study-pm-integration-test-secret-key");
         registry.add("app.security.refresh-cookie.secure", () -> "false");
+        registry.add("app.cors.allowed-origins[0]", () -> "http://localhost:5173");
     }
 
     @BeforeEach
@@ -85,6 +88,19 @@ class AuthControllerIT {
         String tokenHash = jdbcTemplate.queryForObject("select token_hash from refresh_tokens", String.class);
         assertThat(passwordHash).isNotEqualTo("Password1");
         assertThat(tokenHash).hasSize(64).isNotEqualTo(rawRefreshToken);
+    }
+
+    @Test
+    void corsPreflightAllowsConfiguredFrontendOriginWithCredentials() throws Exception {
+        mockMvc.perform(options("/api/projects")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Authorization,Content-Type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, org.hamcrest.Matchers.containsString("GET")))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, org.hamcrest.Matchers.containsString("Authorization")));
     }
 
     @Test
