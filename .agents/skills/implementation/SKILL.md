@@ -42,7 +42,7 @@ description: Use when implementing study-pm features from approved basic design 
 
 ## Backend Rules
 
-- `tech-stack.md` の定義どおり、Java 21 + Spring Boot 3.x + Spring Data JPA + Flyway + PostgreSQL を使う。
+- `tech-stack.md` の定義どおり、Java 25 + Spring Boot 3.x + Spring Data JPA + Flyway + PostgreSQL を使う。
 - データベースオブジェクトは `docs/detailed-design/database-schema.md` に合わせる。
 - スキーマ変更はFlywayマイグレーションで行う。Hibernate のDDL生成に依存しない。
 - 学習工数を表す時間・計算値には `BigDecimal` を使う。

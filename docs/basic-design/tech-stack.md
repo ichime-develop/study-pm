@@ -33,7 +33,7 @@ related: docs/requirements/summary/README.md, docs/requirements/details/non-func
 | サーバー状態管理 | TanStack Query | APIデータの取得、キャッシュ、再取得を担当する。Reduxは採用しない |
 | ローカル状態管理 | React標準（`useState`等） | WBS編集などの画面内一時状態はReact標準で扱う |
 | UI | 独自CSS | UIモックで確立したデザインルールを継承する。UIライブラリは採用しない |
-| バックエンド | Java 21 LTS + Spring Boot 3.x | Spring Bootは3.xの最新安定版を実装開始時に固定する。Spring Web / Spring Security / Spring Data JPAを利用する |
+| バックエンド | Java 25 LTS + Spring Boot 3.x | Spring Bootは3.xの最新安定版を実装開始時に固定する。Spring Web / Spring Security / Spring Data JPAを利用する |
 | API仕様 | springdoc-openapi | OpenAPIを自動生成する。将来Flutterアプリが同じAPIを利用する前提のため必須とする |
 | DB | PostgreSQL 17 | AWS利用を見据え、実績と安定性を重視する。PostgreSQL 18固有機能は本用途では不要 |
 | マイグレーション | Flyway | DBスキーマ変更を履歴管理する |
