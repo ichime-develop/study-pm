@@ -23,6 +23,28 @@ export type ProjectListResponse = {
   page: PageResponse;
 };
 
+export type ProjectBasic = {
+  projectId: string;
+  name: string;
+  description: string | null;
+  startDate: string;
+  targetEndDate: string;
+  status: ProjectStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProjectCreateRequest = {
+  name: string;
+  description: string | null;
+  startDate: string;
+  targetEndDate: string;
+};
+
+export type ProjectUpdateRequest = ProjectCreateRequest & {
+  status: ProjectStatus;
+};
+
 export type ProjectListFilters = {
   keyword: string;
   status: ProjectStatus | "";

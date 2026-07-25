@@ -1,9 +1,18 @@
 // プロジェクト一覧とユーザー単位サマリーAPIを呼び出す。
 import { apiClient } from "../../shared/api/apiClient";
-import type { ProjectListFilters, ProjectListResponse, StudySummary } from "./projectTypes";
+import type {
+  ProjectBasic,
+  ProjectCreateRequest,
+  ProjectListFilters,
+  ProjectListResponse,
+  ProjectUpdateRequest,
+  StudySummary,
+} from "./projectTypes";
 
 export const projectQueryKeys = {
+  all: () => ["projects"] as const,
   list: (filters: ProjectListFilters) => ["projects", "list", filters] as const,
+  detail: (projectId: string) => ["projects", projectId] as const,
   studySummary: () => ["projects", "study-summary"] as const,
 };
 
@@ -12,6 +21,20 @@ export const projectsApi = {
     apiClient.request<ProjectListResponse>(`/api/projects?${projectListSearchParams(filters)}`),
 
   studySummary: () => apiClient.request<StudySummary>("/api/me/study-summary"),
+
+  get: (projectId: string) => apiClient.request<ProjectBasic>(`/api/projects/${projectId}`),
+
+  create: (request: ProjectCreateRequest) =>
+    apiClient.request<ProjectBasic>("/api/projects", {
+      method: "POST",
+      body: request,
+    }),
+
+  update: (projectId: string, request: ProjectUpdateRequest) =>
+    apiClient.request<ProjectBasic>(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      body: request,
+    }),
 };
 
 const projectListSearchParams = (filters: ProjectListFilters): URLSearchParams => {
