@@ -5,6 +5,7 @@ import type {
   ProjectCreateRequest,
   ProjectListFilters,
   ProjectListResponse,
+  ProjectOverview,
   ProjectUpdateRequest,
   StudySummary,
 } from "./projectTypes";
@@ -13,6 +14,7 @@ export const projectQueryKeys = {
   all: () => ["projects"] as const,
   list: (filters: ProjectListFilters) => ["projects", "list", filters] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
+  overview: (projectId: string) => ["projects", projectId, "overview"] as const,
   studySummary: () => ["projects", "study-summary"] as const,
 };
 
@@ -24,6 +26,9 @@ export const projectsApi = {
 
   get: (projectId: string) => apiClient.request<ProjectBasic>(`/api/projects/${projectId}`),
 
+  overview: (projectId: string) =>
+    apiClient.request<ProjectOverview>(`/api/projects/${projectId}/overview`),
+
   create: (request: ProjectCreateRequest) =>
     apiClient.request<ProjectBasic>("/api/projects", {
       method: "POST",
@@ -34,6 +39,11 @@ export const projectsApi = {
     apiClient.request<ProjectBasic>(`/api/projects/${projectId}`, {
       method: "PATCH",
       body: request,
+    }),
+
+  delete: (projectId: string) =>
+    apiClient.request<{ result: "OK" }>(`/api/projects/${projectId}`, {
+      method: "DELETE",
     }),
 };
 

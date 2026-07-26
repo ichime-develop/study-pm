@@ -5,6 +5,7 @@ import { LoginPage } from "../pages/AU02_LoginPage";
 import { SignupPage } from "../pages/AU01_SignupPage";
 import { ProjectsPage } from "../pages/PJ01_ProjectsPage";
 import { ProjectFormPage } from "../pages/PJ02_ProjectFormPage";
+import { ProjectOverviewPage } from "../pages/PJ03_ProjectOverviewPage";
 import { PlaceholderPage } from "../pages/PlaceholderPage";
 import { RequireAuth } from "./RequireAuth";
 
@@ -16,7 +17,7 @@ export const AppRoutes = () => (
       <Route element={<ProjectsPage />} path="/projects" />
       <Route element={<ProjectFormPage />} path="/projects/new" />
       <Route element={<ProjectFormPage />} path="/projects/:id/edit" />
-      <Route element={<PlaceholderPage screenId="PJ03" title="プロジェクト概要" />} path="/projects/:id" />
+      <Route element={<ProjectOverviewPage />} path="/projects/:id" />
       <Route element={<PlaceholderPage screenId="WB01" title="WBS・ガント" />} path="/projects/:id/wbs" />
       <Route element={<PlaceholderPage screenId="SL01" title="学習記録" />} path="/projects/:id/logs" />
     </Route>

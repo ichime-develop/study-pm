@@ -140,6 +140,7 @@ a {
 
 .primary-button,
 .secondary-button,
+.danger-button,
 .primary-link,
 .secondary-link {
   align-items: center;
@@ -169,6 +170,16 @@ a {
   background: #fff;
   border: 1px solid var(--color-border);
   color: var(--color-primary);
+}
+
+.danger-button {
+  background: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  color: #fff;
+}
+
+.danger-button:hover {
+  background: #88362d;
 }
 
 .primary-button:disabled,
@@ -225,6 +236,10 @@ a {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.overview-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .stat-card,
@@ -296,6 +311,173 @@ a {
   color: var(--color-danger);
 }
 
+.project-nav {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.project-nav-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.breadcrumb-link,
+.project-nav-period {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.project-nav-name-row,
+.project-tabs {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.project-nav-name-row h2,
+.project-nav-summary p,
+.overview-section h3,
+.empty-project-state h3,
+.empty-project-state p {
+  margin: 0;
+}
+
+.project-nav-summary p {
+  color: var(--color-muted);
+}
+
+.project-tab {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.project-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.project-tab.disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.overview-section {
+  display: grid;
+  gap: 12px;
+}
+
+.warning-list {
+  display: grid;
+  gap: 8px;
+}
+
+.notice {
+  border-radius: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.notice-success {
+  background: #e8f0e5;
+  color: #46694a;
+}
+
+.notice-warning {
+  background: var(--color-warning-soft);
+  color: #80510b;
+}
+
+.incomplete-task-list {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.incomplete-task-row {
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 140px 80px;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.incomplete-task-row:first-child {
+  border-top: 0;
+}
+
+.incomplete-task-header {
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.incomplete-task-row.is-delayed {
+  background: var(--color-danger-soft);
+}
+
+.incomplete-task-row small {
+  margin-left: 8px;
+}
+
+.empty-project-state {
+  align-items: center;
+  background: var(--color-surface-soft);
+  border-radius: 12px;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.empty-project-state p {
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(47, 42, 36, 0.45);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 10;
+}
+
+.modal-dialog {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  max-width: 520px;
+  padding: 28px;
+  width: 100%;
+}
+
+.modal-dialog h2,
+.modal-dialog p {
+  margin: 0;
+}
+
 .project-list {
   display: grid;
   gap: 14px;
@@ -365,6 +547,7 @@ a {
 @media (max-width: 820px) {
   .auth-page,
   .summary-grid,
+  .overview-summary-grid,
   .filter-row,
   .form-two-columns,
   .metric-grid {
@@ -376,8 +559,13 @@ a {
   }
 
   .app-header,
-  .panel-header {
+  .panel-header,
+  .empty-project-state {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .incomplete-task-row {
+    grid-template-columns: minmax(0, 1fr) 96px 64px;
   }
 }

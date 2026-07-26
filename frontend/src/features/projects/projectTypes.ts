@@ -45,6 +45,30 @@ export type ProjectUpdateRequest = ProjectCreateRequest & {
   status: ProjectStatus;
 };
 
+export type ProjectWarning = {
+  code: string;
+  message: string;
+};
+
+export type ProjectOverviewTask = {
+  wbsTaskId: string;
+  name: string;
+  plannedEndDate: string | null;
+  progressRate: number;
+  hasDelay: boolean;
+};
+
+export type ProjectOverview = {
+  projectId: string;
+  progressRate: number | null;
+  plannedHours: number | null;
+  remainingPlannedHours: number | null;
+  projectStudyHours: number;
+  projectContinuousStudyDays: number;
+  warnings: ProjectWarning[];
+  incompleteTasks: ProjectOverviewTask[];
+};
+
 export type ProjectListFilters = {
   keyword: string;
   status: ProjectStatus | "";

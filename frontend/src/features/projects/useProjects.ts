@@ -28,6 +28,18 @@ export const useProject = (projectId: string | undefined) =>
     },
   });
 
+export const useProjectOverview = (projectId: string | undefined) =>
+  useQuery({
+    enabled: projectId !== undefined,
+    queryKey: projectQueryKeys.overview(projectId ?? ""),
+    queryFn: () => {
+      if (projectId === undefined) {
+        throw new Error("projectId is required.");
+      }
+      return projectsApi.overview(projectId);
+    },
+  });
+
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
@@ -47,6 +59,18 @@ export const useUpdateProject = (projectId: string) => {
     mutationFn: (request: ProjectUpdateRequest) => projectsApi.update(projectId, request),
     onSuccess: async (project) => {
       queryClient.setQueryData(projectQueryKeys.detail(project.projectId), project);
+      await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all() });
+    },
+  });
+};
+
+export const useDeleteProject = (projectId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => projectsApi.delete(projectId),
+    onSuccess: async () => {
+      queryClient.removeQueries({ queryKey: projectQueryKeys.detail(projectId) });
       await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all() });
     },
   });
