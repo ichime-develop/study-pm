@@ -4,10 +4,11 @@ import type { WbsTask, WbsTaskType } from "./wbsTypes";
 
 type WbsTaskTableProps = {
   onCreate: (taskType: WbsTaskType) => void;
+  onSelect: (task: WbsTask) => void;
   tasks: WbsTask[];
 };
 
-export const WbsTaskTable = ({ onCreate, tasks }: WbsTaskTableProps) => {
+export const WbsTaskTable = ({ onCreate, onSelect, tasks }: WbsTaskTableProps) => {
   if (tasks.length === 0) {
     return (
       <div className="wbs-empty-table" role="status">
@@ -43,7 +44,13 @@ export const WbsTaskTable = ({ onCreate, tasks }: WbsTaskTableProps) => {
             return (
               <tr className={isParent ? "wbs-parent-row" : "wbs-leaf-row"} key={task.wbsTaskId}>
                 <td>
-                  <strong className={task.parentTaskId === null ? undefined : "wbs-child-task"}>{task.name}</strong>
+                  <button
+                    className={`wbs-task-select ${task.parentTaskId === null ? "" : "wbs-child-task"}`}
+                    onClick={() => onSelect(task)}
+                    type="button"
+                  >
+                    {task.name}
+                  </button>
                   <small>{isParent ? "親タスク（見出し）" : task.description ?? "説明は未設定です。"}</small>
                 </td>
                 <td>{isParent ? "-" : formatPeriod(task.plannedStartDate, task.plannedEndDate)}</td>

@@ -411,6 +411,22 @@ a {
   margin-top: 4px;
 }
 
+.wbs-task-select {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.wbs-task-select:hover {
+  color: var(--color-primary-dark);
+}
+
 .wbs-parent-row {
   background: var(--color-primary-soft);
 }
@@ -469,6 +485,37 @@ a {
   color: var(--color-muted);
   font-size: 13px;
   margin: 0;
+}
+
+.wbs-progress-section {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.wbs-progress-section h3 {
+  margin: 0;
+}
+
+.progress-update-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.progress-update-row select {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+.delete-target-list {
+  background: var(--color-surface-soft);
+  border-radius: 10px;
+  margin: 0;
+  padding: 12px 12px 12px 32px;
 }
 
 .project-nav-summary p {

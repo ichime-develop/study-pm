@@ -1,6 +1,6 @@
 // WB01の空状態、親/LEAFタスク作成、入力検証、404表示をユーザー操作で検証する。
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -27,7 +27,7 @@ describe("WbsPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /^追加$/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("第1章", { selector: "strong" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "第1章" })).toBeInTheDocument();
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/api/projects/project-id/wbs-tasks",
@@ -52,7 +52,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await screen.findByText("第1章", { selector: "strong" });
+    await screen.findByRole("button", { name: "第1章" });
     await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
     await userEvent.type(screen.getByLabelText(/タスク名/), "問題を解く");
     await userEvent.selectOptions(screen.getByLabelText(/親タスク/), "parent-id");
@@ -96,6 +96,130 @@ describe("WbsPage", () => {
     expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "POST")).toHaveLength(0);
   });
 
+  it("LEAFタスクの基本情報更新で未変更の計画値を含めて送信する", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    const nameInput = screen.getByLabelText(/^タスク名/);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "演習問題を解く");
+    await userEvent.click(screen.getByRole("button", { name: "基本情報を保存" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:8080/api/wbs-tasks/leaf-id",
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: "演習問題を解く",
+            description: null,
+            parentTaskId: "parent-id",
+            plannedStartDate: "2026-07-01",
+            plannedEndDate: "2026-07-03",
+            plannedHours: 2.5,
+          }),
+          method: "PATCH",
+        }),
+      );
+    });
+  });
+
+  it("親タスク更新では計画項目を明示的にnullで送信する", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask()] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    const nameInput = screen.getByLabelText(/^親タスク名/);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "第2章");
+    await userEvent.click(screen.getByRole("button", { name: "基本情報を保存" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:8080/api/wbs-tasks/parent-id",
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: "第2章",
+            description: null,
+            parentTaskId: null,
+            plannedStartDate: null,
+            plannedEndDate: null,
+            plannedHours: null,
+          }),
+          method: "PATCH",
+        }),
+      );
+    });
+    expect(screen.queryByLabelText("進捗率")).not.toBeInTheDocument();
+  });
+
+  it("LEAFタスクの進捗率を10%刻みで更新する", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "進捗率" }), "60");
+    await userEvent.click(screen.getByRole("button", { name: "進捗を更新" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:8080/api/wbs-tasks/leaf-id/progress",
+        expect.objectContaining({ body: JSON.stringify({ progressRate: 60 }), method: "PATCH" }),
+      );
+    });
+  });
+
+  it("親タスク削除の確認で配下LEAFを表示し、キャンセル時はAPIを呼ばない", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    await userEvent.click(screen.getByRole("button", { name: "削除" }));
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("問題を解く");
+    await userEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+    expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "DELETE")).toHaveLength(0);
+  });
+
+  it("LEAFタスクを削除すると一覧を再取得して表示から外す", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(screen.getByRole("button", { name: "削除" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "削除する" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "問題を解く" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("学習記録があるLEAFの削除拒否をモーダル内に表示する", async () => {
+    const fetchMock = fetchForWbsPage({
+      deleteError: errorBody("TASK_HAS_STUDY_LOGS", "学習記録があるタスクは削除できません。"),
+      initialTasks: [parentTask(), leafTask("問題を解く")],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(screen.getByRole("button", { name: "削除" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "削除する" }));
+
+    expect(await screen.findByText("学習記録があるタスクは削除できません。")).toBeInTheDocument();
+  });
+
   it("404の場合はプロジェクト一覧への導線を表示する", async () => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(errorBody(), 404)));
 
@@ -123,10 +247,11 @@ const renderWbsPage = () => {
 };
 
 type WbsFetchOptions = {
+  deleteError?: ReturnType<typeof errorBody>;
   initialTasks: WbsTask[];
 };
 
-const fetchForWbsPage = ({ initialTasks }: WbsFetchOptions) => {
+const fetchForWbsPage = ({ deleteError, initialTasks }: WbsFetchOptions) => {
   let tasks = initialTasks;
   return vi.fn<typeof fetch>((input, init) => {
     const url = String(input);
@@ -138,6 +263,35 @@ const fetchForWbsPage = ({ initialTasks }: WbsFetchOptions) => {
       const task = body.taskType === "PARENT" ? parentTask(body.name) : leafTask(body.name);
       tasks = [...tasks, task];
       return Promise.resolve(jsonResponse(task, 201));
+    }
+    if (url.endsWith("/progress") && init?.method === "PATCH") {
+      const taskId = url.split("/").at(-2);
+      const body = JSON.parse(String(init.body)) as { progressRate: number };
+      tasks = tasks.map((task) => (task.wbsTaskId === taskId ? { ...task, progressRate: body.progressRate } : task));
+      const task = tasks.find((candidate) => candidate.wbsTaskId === taskId);
+      if (task === undefined) {
+        return Promise.resolve(jsonResponse(errorBody("WBS_TASK_NOT_FOUND", "対象のWBSタスクが見つかりません。"), 404));
+      }
+      return Promise.resolve(jsonResponse({ task, historyAdded: true }));
+    }
+    if (url.includes("/api/wbs-tasks/") && init?.method === "PATCH") {
+      const taskId = url.split("/").at(-1);
+      const body = JSON.parse(String(init.body)) as Omit<WbsTask, "wbsTaskId" | "projectId" | "taskType" | "progressRate" | "actualHours" | "hasStudyLogs" | "createdAt" | "updatedAt">;
+      tasks = tasks.map((task) => (task.wbsTaskId === taskId ? { ...task, ...body } : task));
+      const task = tasks.find((candidate) => candidate.wbsTaskId === taskId);
+      if (task === undefined) {
+        return Promise.resolve(jsonResponse(errorBody("WBS_TASK_NOT_FOUND", "対象のWBSタスクが見つかりません。"), 404));
+      }
+      return Promise.resolve(jsonResponse(task));
+    }
+    if (url.includes("/api/wbs-tasks/") && init?.method === "DELETE") {
+      if (deleteError !== undefined) {
+        return Promise.resolve(jsonResponse(deleteError, 409));
+      }
+      const taskId = url.split("/").at(-1);
+      const deletedTask = tasks.find((task) => task.wbsTaskId === taskId);
+      tasks = tasks.filter((task) => task.wbsTaskId !== taskId && task.parentTaskId !== deletedTask?.wbsTaskId);
+      return Promise.resolve(jsonResponse({ result: "OK" }));
     }
     if (url.endsWith("/api/projects/project-id/wbs")) {
       return Promise.resolve(jsonResponse(wbsList(tasks)));
@@ -202,7 +356,7 @@ const wbsList = (tasks: WbsTask[]) => ({
   tasks,
 });
 
-const errorBody = () => ({ code: "PROJECT_NOT_FOUND", message: "対象が見つかりません。", details: [] });
+const errorBody = (code = "PROJECT_NOT_FOUND", message = "対象が見つかりません。") => ({ code, message, details: [] });
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

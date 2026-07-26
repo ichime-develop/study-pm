@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { useCurrentAccount } from "../features/auth/useAuth";
 import { useProject } from "../features/projects/useProjects";
 import { WbsTaskCreatePanel } from "../features/wbs/WbsTaskCreatePanel";
+import { WbsTaskDetailPanel } from "../features/wbs/WbsTaskDetailPanel";
 import { WbsTaskTable } from "../features/wbs/WbsTaskTable";
 import { useProjectWbs } from "../features/wbs/useWbs";
 import type { WbsTaskType } from "../features/wbs/wbsTypes";
@@ -23,6 +24,7 @@ export const WbsPage = () => {
   const projectQuery = useProject(projectId);
   const wbsQuery = useProjectWbs(projectId);
   const [createMode, setCreateMode] = useState<WbsTaskType | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const errors = [projectQuery.error, wbsQuery.error];
   const isProjectNotFound = errors.some((error) => isApiClientError(error) && error.status === 404);
   const isLoading = accountQuery.isLoading || projectQuery.isPending || wbsQuery.isPending;
@@ -61,6 +63,22 @@ export const WbsPage = () => {
   const project = projectQuery.data;
   const wbs = wbsQuery.data;
   const hasNoWbsTasks = wbs.tasks.length === 0;
+  const selectedTask = wbs.tasks.find((task) => task.wbsTaskId === selectedTaskId);
+
+  const handleCreate = (taskType: WbsTaskType) => {
+    setSelectedTaskId(null);
+    setCreateMode(taskType);
+  };
+
+  const handleSelectTask = (taskId: string) => {
+    setCreateMode(null);
+    setSelectedTaskId(taskId);
+  };
+
+  const handleTaskNotFound = () => {
+    setSelectedTaskId(null);
+    void wbsQuery.refetch();
+  };
 
   return (
     <main className="app-page">
@@ -84,18 +102,18 @@ export const WbsPage = () => {
             </p>
           </div>
           <div className="button-row">
-            <button className="secondary-button" onClick={() => setCreateMode("PARENT")} type="button">
+            <button className="secondary-button" onClick={() => handleCreate("PARENT")} type="button">
               親タスクを追加
             </button>
-            <button className="primary-button" onClick={() => setCreateMode("LEAF")} type="button">
+            <button className="primary-button" onClick={() => handleCreate("LEAF")} type="button">
               タスクを追加
             </button>
           </div>
         </div>
 
-        <div className={createMode === null ? "wbs-workspace" : "wbs-workspace with-side-panel"}>
+        <div className={createMode === null && selectedTask === undefined ? "wbs-workspace" : "wbs-workspace with-side-panel"}>
           <section className="wbs-table-panel" aria-label="WBSタスク一覧">
-            <WbsTaskTable onCreate={setCreateMode} tasks={wbs.tasks} />
+            <WbsTaskTable onCreate={handleCreate} onSelect={(task) => handleSelectTask(task.wbsTaskId)} tasks={wbs.tasks} />
             <section className="gantt-placeholder" aria-labelledby="gantt-placeholder-title">
               <h3 id="gantt-placeholder-title">ガントチャート</h3>
               <p>
@@ -110,6 +128,16 @@ export const WbsPage = () => {
               mode={createMode}
               onClose={() => setCreateMode(null)}
               projectId={project.projectId}
+              tasks={wbs.tasks}
+            />
+          )}
+          {selectedTask !== undefined && (
+            <WbsTaskDetailPanel
+              key={selectedTask.wbsTaskId}
+              onClose={() => setSelectedTaskId(null)}
+              onTaskNotFound={handleTaskNotFound}
+              projectId={project.projectId}
+              task={selectedTask}
               tasks={wbs.tasks}
             />
           )}

@@ -12,6 +12,7 @@ import type {
 
 export const projectQueryKeys = {
   all: () => ["projects"] as const,
+  lists: () => ["projects", "list"] as const,
   list: (filters: ProjectListFilters) => ["projects", "list", filters] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
   overview: (projectId: string) => ["projects", projectId, "overview"] as const,

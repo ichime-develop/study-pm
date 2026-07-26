@@ -92,7 +92,7 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
         </button>
       </div>
 
-      <form className="form" onSubmit={handleSubmit}>
+      <form className="form" noValidate onSubmit={handleSubmit}>
         <label>
           {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
           <input
@@ -157,7 +157,10 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
               <div className="input-with-unit">
                 <input
                   inputMode="decimal"
+                  max="9999.99"
+                  min="0.25"
                   onChange={(event) => handleChange(setPlannedHours, event.target.value)}
+                  step="0.25"
                   type="number"
                   value={plannedHours}
                 />
@@ -194,4 +197,4 @@ const isValidPlannedHours = (hours: number): boolean =>
   Number.isFinite(hours) &&
   hours >= 0.25 &&
   hours <= 9999.99 &&
-  Math.abs(hours * 4 - Math.round(hours * 4)) < Number.EPSILON;
+  Math.abs(hours * 4 - Math.round(hours * 4)) < 1e-9;

@@ -38,3 +38,14 @@ export type WbsTaskCreateRequest = {
   plannedEndDate: string | null;
   plannedHours: number | null;
 };
+
+export type WbsTaskUpdateRequest = Omit<WbsTaskCreateRequest, "taskType">;
+
+export type WbsProgressUpdateRequest = {
+  progressRate: number;
+};
+
+export type WbsProgressUpdateResponse = {
+  task: WbsTask;
+  historyAdded: boolean;
+};
