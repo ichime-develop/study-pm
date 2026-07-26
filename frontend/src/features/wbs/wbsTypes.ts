@@ -1,9 +1,11 @@
-// CM02とWB01で共有するWBS一覧APIのレスポンス型を表す。
+// CM02とWB01で共有するWBS一覧・作成APIのレスポンス型を表す。
+export type WbsTaskType = "PARENT" | "LEAF";
+
 export type WbsTask = {
   wbsTaskId: string;
   projectId: string;
   parentTaskId: string | null;
-  taskType: "PARENT" | "LEAF";
+  taskType: WbsTaskType;
   name: string;
   description: string | null;
   plannedStartDate: string | null;
@@ -25,4 +27,14 @@ export type WbsList = {
   progressRate: number | null;
   hasDelay: boolean;
   tasks: WbsTask[];
+};
+
+export type WbsTaskCreateRequest = {
+  taskType: WbsTaskType;
+  name: string;
+  description: string | null;
+  parentTaskId: string | null;
+  plannedStartDate: string | null;
+  plannedEndDate: string | null;
+  plannedHours: number | null;
 };

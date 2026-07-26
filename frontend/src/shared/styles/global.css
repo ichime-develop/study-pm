@@ -242,6 +242,10 @@ a {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.wbs-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .stat-card,
 .panel,
 .project-card {
@@ -345,6 +349,125 @@ a {
 .overview-section h3,
 .empty-project-state h3,
 .empty-project-state p {
+  margin: 0;
+}
+
+.section-description {
+  color: var(--color-muted);
+  margin: 8px 0 0;
+}
+
+.wbs-workspace {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wbs-workspace.with-side-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+}
+
+.wbs-table-panel,
+.wbs-task-panel,
+.gantt-placeholder {
+  display: grid;
+  gap: 16px;
+}
+
+.wbs-task-panel {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.wbs-table-scroll {
+  overflow-x: auto;
+}
+
+.wbs-table {
+  border-collapse: collapse;
+  min-width: 760px;
+  text-align: left;
+  width: 100%;
+}
+
+.wbs-table th,
+.wbs-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px;
+  vertical-align: top;
+}
+
+.wbs-table th {
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.wbs-table td small {
+  color: var(--color-muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.wbs-parent-row {
+  background: var(--color-primary-soft);
+}
+
+.wbs-child-task {
+  display: inline-block;
+  padding-left: 18px;
+  position: relative;
+}
+
+.wbs-child-task::before {
+  color: var(--color-muted);
+  content: "|-";
+  left: 0;
+  position: absolute;
+}
+
+.wbs-empty-table {
+  align-items: center;
+  background: var(--color-surface-soft);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  display: grid;
+  justify-items: start;
+  min-height: 180px;
+  padding: 24px;
+}
+
+.wbs-empty-table p,
+.gantt-placeholder p {
+  color: var(--color-muted);
+  margin: 6px 0 0;
+}
+
+.gantt-placeholder {
+  background: var(--color-surface-soft);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.gantt-placeholder h3,
+.gantt-placeholder p {
+  margin: 0;
+}
+
+.input-with-unit {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.input-with-unit span,
+.field-note {
+  color: var(--color-muted);
+  font-size: 13px;
   margin: 0;
 }
 
@@ -548,6 +671,7 @@ a {
   .auth-page,
   .summary-grid,
   .overview-summary-grid,
+  .wbs-summary-grid,
   .filter-row,
   .form-two-columns,
   .metric-grid {
@@ -563,6 +687,10 @@ a {
   .empty-project-state {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .wbs-workspace.with-side-panel {
+    grid-template-columns: 1fr;
   }
 
   .incomplete-task-row {
