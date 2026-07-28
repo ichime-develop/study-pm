@@ -1,9 +1,9 @@
 // ログイン画面が入力値を認証APIへ渡すことをユーザー操作で検証する。
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./AU02_LoginPage";
 
@@ -20,6 +20,10 @@ vi.mock("react-router-dom", async () => {
 describe("LoginPage", () => {
   beforeEach(() => {
     navigateMock.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("ログイン成功時にプロジェクト一覧へ遷移する", async () => {
@@ -48,6 +52,24 @@ describe("LoginPage", () => {
       }),
     );
     expect(navigateMock).toHaveBeenCalledWith("/projects", { replace: true });
+  });
+
+  it("パスワードの表示状態を切り替えられる", async () => {
+    const user = userEvent.setup();
+    renderLoginPage();
+
+    const passwordInput = screen.getByLabelText("パスワード");
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    await user.click(screen.getByRole("button", { name: "パスワードを表示" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "パスワードを隠す" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "パスワードを隠す" }));
+    expect(passwordInput).toHaveAttribute("type", "password");
   });
 });
 

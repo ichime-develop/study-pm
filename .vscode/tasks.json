@@ -1,0 +1,153 @@
+// frontend uses fixed port 5173 to match backend CORS; mock uses fixed port 5174.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. DB起動 (PostgreSQL)",
+      "type": "shell",
+      "command": "docker compose up -d && docker compose ps",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "group": "build"
+    },
+    {
+      "label": "2. backend起動 (:8080)",
+      "type": "shell",
+      "command": "export JAVA_HOME=$(/usr/libexec/java_home -v 25) && export PATH=\"$JAVA_HOME/bin:$PATH\" && ./mvnw -f backend/pom.xml spring-boot:run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "dependsOn": "1. DB起動 (PostgreSQL)",
+      "dependsOrder": "sequence",
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": [],
+        "background": {
+          "activeOnStart": true,
+          "endsPattern": "Started StudyPmApplication in"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated"
+      },
+      "group": "build"
+    },
+    {
+      "label": "3. frontend起動 (:5173)",
+      "type": "shell",
+      "command": "if lsof -nP -iTCP:5173 -sTCP:LISTEN >/dev/null; then echo \"frontend is already running at http://localhost:5173\"; else npm run dev; fi",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": [],
+        "background": {
+          "activeOnStart": true,
+          "endsPattern": "(Local:\\s+http://localhost:5173/|frontend is already running at http://localhost:5173)"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated"
+      },
+      "group": "build"
+    },
+    {
+      "label": "mock起動 (:5174)",
+      "type": "shell",
+      "command": "if lsof -nP -iTCP:5174 -sTCP:LISTEN >/dev/null; then echo \"mock is already running at http://localhost:5174\"; else npm run dev; fi",
+      "options": {
+        "cwd": "${workspaceFolder}/mock"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": [],
+        "background": {
+          "activeOnStart": true,
+          "endsPattern": "(Local:\\s+http://localhost:5174/|mock is already running at http://localhost:5174)"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated"
+      },
+      "group": "build"
+    },
+    {
+      "label": "DB停止",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "frontend検証 (typecheck+test+build)",
+      "type": "shell",
+      "command": "npm run typecheck && npm run test && npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "group": "test"
+    },
+    {
+      "label": "backend検証 (test)",
+      "type": "shell",
+      "command": "export JAVA_HOME=$(/usr/libexec/java_home -v 25) && export PATH=\"$JAVA_HOME/bin:$PATH\" && ./mvnw -f backend/pom.xml test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "group": "test"
+    },
+    {
+      "label": "backend検証 (verify: IT含む・Docker必須)",
+      "type": "shell",
+      "command": "export JAVA_HOME=$(/usr/libexec/java_home -v 25) && export PATH=\"$JAVA_HOME/bin:$PATH\" && ./mvnw -f backend/pom.xml verify",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "group": "test"
+    },
+    {
+      "label": "アプリ一式を起動 (DB→backend→frontend)",
+      "dependsOn": [
+        "2. backend起動 (:8080)",
+        "3. frontend起動 (:5173)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      },
+      "group": "build"
+    }
+  ]
+}

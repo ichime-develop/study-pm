@@ -36,6 +36,7 @@ related: docs/setup/frontend.md, docs/setup/github.md, docs/basic-design/tech-st
 | 3 | PostgreSQL開発環境 | PostgreSQL、接続確認、ローカルDB作成 | 未作成 |
 | 4 | [Webフロントエンド開発環境](./frontend.md) | Node.js、React UIモック、npm | 作成済み |
 | 5 | 開発用設定 | 環境変数、秘密情報、ログ設定 | 方針作成済み（詳細は `docs/detailed-design/implementation-policy.md`） |
+| 6 | [ローカル起動と画面確認](./run-local.md) | PostgreSQL、バックエンド、frontend、UIモックの起動と確認 | 作成済み |
 
 ## 4. 共通ルール
 

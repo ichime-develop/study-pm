@@ -7,9 +7,18 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "localhost に対して Chrome を起動する",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
+            "name": "frontendを起動してChromeを開く (:5173)",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "3. frontend起動 (:5173)"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "UIモックを起動してChromeを開く (:5174)",
+            "url": "http://localhost:5174",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "mock起動 (:5174)"
         }
     ]
 }

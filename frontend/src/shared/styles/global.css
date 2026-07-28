@@ -139,6 +139,7 @@ small {
 }
 
 .form label,
+.form-field,
 .filter-row label {
   color: var(--color-muted);
   display: grid;
@@ -157,6 +158,35 @@ small {
   border-radius: 10px;
   color: var(--color-text);
   padding: 11px 12px;
+}
+
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  box-sizing: border-box;
+  padding-right: 64px;
+  width: 100%;
+}
+
+.password-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  padding: 4px 8px;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .form textarea {

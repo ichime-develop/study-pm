@@ -6,6 +6,7 @@ import { useSignup } from "../features/auth/useAuth";
 import { fieldMessageOf, messageOf } from "../shared/api/errorMessages";
 import { AuthLayout } from "../shared/components/AuthLayout";
 import { FieldError } from "../shared/components/FieldError";
+import { PasswordInput } from "../shared/components/PasswordInput";
 
 export const SignupPage = () => {
   const navigate = useNavigate();
@@ -51,16 +52,16 @@ export const SignupPage = () => {
           />
           <FieldError message={fieldMessageOf(signup.error, "email")} />
         </label>
-        <label>
-          パスワード
-          <input
+        <div className="form-field">
+          <label htmlFor="signup-password">パスワード</label>
+          <PasswordInput
             autoComplete="new-password"
+            id="signup-password"
             onChange={(event) => setPassword(event.target.value)}
-            type="password"
             value={password}
           />
           <FieldError message={fieldMessageOf(signup.error, "password")} />
-        </label>
+        </div>
         {signup.isError && <p className="form-message error-text">{messageOf(signup.error)}</p>}
         <button className="primary-button" disabled={signup.isPending} type="submit">
           登録する

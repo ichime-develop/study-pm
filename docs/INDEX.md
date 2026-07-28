@@ -48,6 +48,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 ## 6. セットアップ
 
 - [セットアップREADME](setup/README.md) - 開発環境構築の入口をまとめる。
+- [ローカル起動と画面確認](setup/run-local.md) - PostgreSQL、バックエンド、frontend、UIモックの起動と画面確認の手順をまとめる。
 - [フロントエンドセットアップ](setup/frontend.md) - フロントエンド開発環境の構築手順をまとめる。
 - [GitHubセットアップ](setup/github.md) - GitHub利用時の初期設定や運用メモをまとめる。
 

@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLogin } from "../features/auth/useAuth";
 import { FieldError } from "../shared/components/FieldError";
 import { AuthLayout } from "../shared/components/AuthLayout";
+import { PasswordInput } from "../shared/components/PasswordInput";
 import { fieldMessageOf, messageOf } from "../shared/api/errorMessages";
 
 type LoginLocationState = {
@@ -47,16 +48,16 @@ export const LoginPage = () => {
           />
           <FieldError message={fieldMessageOf(login.error, "email")} />
         </label>
-        <label>
-          パスワード
-          <input
+        <div className="form-field">
+          <label htmlFor="login-password">パスワード</label>
+          <PasswordInput
             autoComplete="current-password"
+            id="login-password"
             onChange={(event) => setPassword(event.target.value)}
-            type="password"
             value={password}
           />
           <FieldError message={fieldMessageOf(login.error, "password")} />
-        </label>
+        </div>
         {login.isError && <p className="form-message error-text">{messageOf(login.error)}</p>}
         <button className="primary-button" disabled={login.isPending} type="submit">
           ログイン
