@@ -3,9 +3,9 @@ import { type SubmitEvent, useEffect, useState } from "react";
 
 import { isApiClientError } from "../../shared/api/apiTypes";
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
-import { FieldError } from "../../shared/components/FieldError";
 import { WbsTaskDeleteModal } from "./WbsTaskDeleteModal";
 import { useDeleteWbsTask, useUpdateWbsTask } from "./useWbs";
+import { WbsTaskFields, type WbsTaskFieldName } from "./WbsTaskFields";
 import { buildWbsTaskUpdateRequest } from "./wbsTaskUpdateRequest";
 import type { WbsTask } from "./wbsTypes";
 
@@ -96,6 +96,17 @@ export const WbsTaskDetailPanel = ({
     setClientError(null);
     setter(value);
   };
+  const handleWbsFieldChange = (field: WbsTaskFieldName, value: string) => {
+    const setters: Record<WbsTaskFieldName, (nextValue: string) => void> = {
+      description: setDescription,
+      name: setName,
+      parentTaskId: setParentTaskId,
+      plannedEndDate: setPlannedEndDate,
+      plannedHours: setPlannedHours,
+      plannedStartDate: setPlannedStartDate,
+    };
+    handleFieldChange(setters[field], value);
+  };
   const formError = clientError ?? (updateWbsTask.error === null ? undefined : messageOf(updateWbsTask.error));
 
   return (
@@ -103,7 +114,7 @@ export const WbsTaskDetailPanel = ({
       <div className="panel-header">
         <div>
           <p className="eyebrow">{isParent ? "親タスク" : "LEAFタスク"}</p>
-          <h2>{task.name}</h2>
+          <h2 title={task.name}>{task.name}</h2>
         </div>
         <button aria-label="編集パネルを閉じる" className="secondary-button" onClick={onClose} type="button">
           閉じる
@@ -112,85 +123,22 @@ export const WbsTaskDetailPanel = ({
 
       <form className="form" noValidate onSubmit={handleSave}>
         {successMessage !== undefined && <p className="notice notice-success">{successMessage}</p>}
-        <label>
-          <span className="wbs-field-label">
-            {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
-          </span>
-          <input
-            maxLength={100}
-            onChange={(event) => handleFieldChange(setName, event.target.value)}
-            type="text"
-            value={name}
-          />
-          <FieldError message={fieldMessageOf(updateWbsTask.error, "name")} />
-        </label>
-
-        <label>
-          説明（任意）
-          <textarea
-            maxLength={5000}
-            onChange={(event) => handleFieldChange(setDescription, event.target.value)}
-            rows={4}
-            value={description}
-          />
-          <FieldError message={fieldMessageOf(updateWbsTask.error, "description")} />
-        </label>
-
-        {isParent ? (
-          <p className="status-note">親タスクは見出しです。予定日、予定工数、進捗率は持ちません。</p>
-        ) : (
-          <>
-            <label>
-              親タスク（任意）
-              <select onChange={(event) => handleFieldChange(setParentTaskId, event.target.value)} value={parentTaskId}>
-                <option value="">親なしで配置</option>
-                {parentTasks.map((parentTask) => (
-                  <option key={parentTask.wbsTaskId} value={parentTask.wbsTaskId}>
-                    {parentTask.name}
-                  </option>
-                ))}
-              </select>
-              <FieldError message={fieldMessageOf(updateWbsTask.error, "parentTaskId")} />
-            </label>
-
-            <div className="form-two-columns">
-              <label>
-                予定開始日（任意）
-                <input
-                  onChange={(event) => handleFieldChange(setPlannedStartDate, event.target.value)}
-                  type="date"
-                  value={plannedStartDate}
-                />
-              </label>
-              <label>
-                予定終了日（任意）
-                <input
-                  onChange={(event) => handleFieldChange(setPlannedEndDate, event.target.value)}
-                  type="date"
-                  value={plannedEndDate}
-                />
-              </label>
-            </div>
-            <label>
-              <span className="wbs-field-label">
-                予定工数 <RequiredMark />
-              </span>
-              <div className="input-with-unit">
-                <input
-                  inputMode="decimal"
-                  max="9999.99"
-                  min="0.25"
-                  onChange={(event) => handleFieldChange(setPlannedHours, event.target.value)}
-                  step="0.25"
-                  type="number"
-                  value={plannedHours}
-                />
-                <span>時間</span>
-              </div>
-              <FieldError message={fieldMessageOf(updateWbsTask.error, "plannedHours")} />
-            </label>
-          </>
-        )}
+        <WbsTaskFields
+          descriptionRows={4}
+          fieldErrors={{
+            description: fieldMessageOf(updateWbsTask.error, "description"),
+            name: fieldMessageOf(updateWbsTask.error, "name"),
+            parentTaskId: fieldMessageOf(updateWbsTask.error, "parentTaskId"),
+            plannedHours: fieldMessageOf(updateWbsTask.error, "plannedHours"),
+          }}
+          isParent={isParent}
+          onChange={handleWbsFieldChange}
+          parentTaskEmptyLabel="親なしで配置"
+          parentTaskNote="親タスクは見出しです。予定日、予定工数、進捗率は持ちません。"
+          parentTasks={parentTasks}
+          showInitialProgressNote={false}
+          values={{ description, name, parentTaskId, plannedEndDate, plannedHours, plannedStartDate }}
+        />
 
         {!isParent && (
           <div className="wbs-task-actual-hours">
@@ -238,5 +186,3 @@ export const WbsTaskDetailPanel = ({
     </aside>
   );
 };
-
-const RequiredMark = () => <span aria-label="必須" className="required-mark">*</span>;

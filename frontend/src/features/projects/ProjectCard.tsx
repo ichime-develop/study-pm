@@ -1,7 +1,7 @@
 // プロジェクト一覧の1件を比較可能な行として表示し、概要への選択操作を提供する。
 import { useNavigate } from "react-router-dom";
 
-import { formatHours, formatMonthDay, formatProgressRate, formatProjectStatus } from "../../shared/types/formatters";
+import { formatHours, formatMonthDay, formatProgressRate, formatProjectStatus } from "../../shared/format/formatters";
 import type { ProjectListItem } from "./projectTypes";
 
 type ProjectCardProps = {

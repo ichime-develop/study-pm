@@ -386,6 +386,8 @@ const ProjectList = ({
 
 const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const projectTasks = tasks.filter((task) => task.projectId === project.id);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [studyLogTaskId, setStudyLogTaskId] = useState<string | null>(null);
   const summary = buildProjectSummary(project, tasks, studyLogs);
   const projectLogs = studyLogs.filter((log) => log.projectId === project.id);
   const projectContinuousDays = getContinuousStudyDays(projectLogs.map((log) => log.studyDate), today);
@@ -405,6 +407,7 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
     });
   const hasCostOverrun = summary.actualHours > summary.plannedHours && summary.plannedHours > 0;
   const delayedTasks = incompleteTasks.filter((item) => item.summary.isDelayed);
+  const selectedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? null;
 
   if (projectTasks.length === 0) {
     return <EmptyProjectOverview project={project} onMove={onMove} />;
@@ -414,81 +417,108 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
     <section className="screen-grid project-detail-grid">
       <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={false} onMove={onMove} project={project} />
 
-      <ProjectReadmePanel project={project} />
+      <div className={selectedTask ? "project-overview-workspace with-side-panel" : "project-overview-workspace"}>
+        <section className="panel project-overview-panel">
+          <ProjectReadmePanel onEdit={() => onMove("projectForm")} project={project} />
 
-      <div className="metric-row compact-metrics">
-        <Metric label="進捗率" value={formatProgress(summary.progress)} />
-        <Metric
-          label="予定 / 残工数"
-          value={`${formatHours(summary.plannedHours)} / ${formatHours(remainingHours)}`}
-          tone={hasCostOverrun ? "danger" : "normal"}
-        />
-        <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
-        <Metric label="プロジェクト連続日数" value={`${projectContinuousDays}日`} tone={projectContinuousDays > 0 ? "good" : "normal"} />
+          <section className="project-overview-status" aria-labelledby="project-status-title">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">PJ03</p>
+                <h2 id="project-status-title">プロジェクトの状況</h2>
+              </div>
+            </div>
+
+            <div className="metric-row compact-metrics">
+              <Metric label="進捗率" value={formatProgress(summary.progress)} />
+              <Metric
+                label="予定 / 残工数"
+                value={`${formatHours(summary.plannedHours)} / ${formatHours(remainingHours)}`}
+                tone={hasCostOverrun ? "danger" : "normal"}
+              />
+              <Metric label="プロジェクト学習時間" value={formatHours(summary.actualHours)} />
+              <Metric label="プロジェクト連続日数" value={`${projectContinuousDays}日`} tone={projectContinuousDays > 0 ? "good" : "normal"} />
+            </div>
+
+            <section className="project-overview-section" aria-labelledby="project-warning-title">
+              <h3 id="project-warning-title">警告</h3>
+              <div className="warning-banner-list">
+                {delayedTasks.length > 0 && (
+                  <div className="warning-banner danger">
+                    <strong>進捗遅延</strong>
+                    <span>{delayedTasks.length}件のタスクが終了予定日を過ぎています。</span>
+                  </div>
+                )}
+                {hasCostOverrun && (
+                  <div className="warning-banner danger">
+                    <strong>工数超過</strong>
+                    <span>実績工数が予定工数を超えています。</span>
+                  </div>
+                )}
+                {delayedTasks.length === 0 && !hasCostOverrun && (
+                  <div className="warning-banner good">
+                    <strong>警告なし</strong>
+                    <span>進捗遅延、工数超過はありません。</span>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="project-overview-section" aria-labelledby="incomplete-task-title">
+              <div className="panel-header">
+                <h3 id="incomplete-task-title">未完了タスク</h3>
+                <button className="text-button" onClick={() => onMove("wbs")} type="button">
+                  WBSで確認
+                </button>
+              </div>
+              <div className="data-list incomplete-task-list">
+                {incompleteTasks.length > 0 && (
+                  <div className="data-list-row data-list-head incomplete-task-row">
+                    <span>タスク</span>
+                    <span>終了予定</span>
+                    <span>進捗</span>
+                  </div>
+                )}
+                {incompleteTasks.slice(0, 8).map(({ task, summary: taskSummary }) => (
+                  <button
+                    className={taskSummary.isDelayed ? "data-list-row incomplete-task-row clickable delayed" : "data-list-row incomplete-task-row clickable"}
+                    key={task.id}
+                    onClick={() => setSelectedTaskId(task.id)}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{task.name}</strong>
+                      {taskSummary.isDelayed && <span className="badge warning">遅延</span>}
+                    </span>
+                    <span>{formatDate(taskSummary.plannedEndDate)}</span>
+                    <span>{formatProgress(taskSummary.progress)}</span>
+                  </button>
+                ))}
+                {incompleteTasks.length === 0 && (
+                  <div className="empty-state">未完了タスクはありません。</div>
+                )}
+              </div>
+            </section>
+          </section>
+        </section>
+
+        {selectedTask && (studyLogTaskId === selectedTask.id ? (
+          <StudyLogEditorPanel
+            initialTaskId={selectedTask.id}
+            onCancel={() => setStudyLogTaskId(null)}
+            onSave={() => setStudyLogTaskId(null)}
+            taskList={projectTasks}
+          />
+        ) : (
+          <TaskSidePanel
+            onAddStudyLog={setStudyLogTaskId}
+            onClose={() => setSelectedTaskId(null)}
+            project={project}
+            task={selectedTask}
+            taskList={projectTasks}
+          />
+        ))}
       </div>
-
-      <section className="panel wide project-overview-panel">
-        <div className="panel-header">
-          <h2>警告</h2>
-          <span className="badge neutral">概要</span>
-        </div>
-        <div className="warning-banner-list">
-          {delayedTasks.length > 0 && (
-            <div className="warning-banner danger">
-              <strong>進捗遅延</strong>
-              <span>{delayedTasks.length}件のタスクが終了予定日を過ぎています。</span>
-            </div>
-          )}
-          {hasCostOverrun && (
-            <div className="warning-banner danger">
-              <strong>工数超過</strong>
-              <span>実績工数が予定工数を超えています。</span>
-            </div>
-          )}
-          {delayedTasks.length === 0 && !hasCostOverrun && (
-            <div className="warning-banner good">
-              <strong>警告なし</strong>
-              <span>進捗遅延、工数超過はありません。</span>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="panel wide project-overview-panel">
-        <div className="panel-header">
-          <h2>未完了タスク</h2>
-          <button className="text-button" onClick={() => onMove("wbs")} type="button">
-            WBSで確認
-          </button>
-        </div>
-        <div className="data-list incomplete-task-list">
-          {incompleteTasks.length > 0 && (
-            <div className="data-list-row data-list-head incomplete-task-row">
-              <span>タスク</span>
-              <span>終了予定</span>
-              <span>進捗</span>
-            </div>
-          )}
-          {incompleteTasks.slice(0, 8).map(({ task, summary: taskSummary }) => (
-            <button
-              className={taskSummary.isDelayed ? "data-list-row incomplete-task-row clickable delayed" : "data-list-row incomplete-task-row clickable"}
-              key={task.id}
-              onClick={() => onMove("wbs")}
-              type="button"
-            >
-              <span>
-                <strong>{task.name}</strong>
-                {taskSummary.isDelayed && <span className="badge warning">遅延</span>}
-              </span>
-              <span>{formatDate(taskSummary.plannedEndDate)}</span>
-              <span>{formatProgress(taskSummary.progress)}</span>
-            </button>
-          ))}
-          {incompleteTasks.length === 0 && (
-            <div className="empty-state">未完了タスクはありません。</div>
-          )}
-        </div>
-      </section>
 
     </section>
   );
@@ -504,30 +534,39 @@ const EmptyProjectOverview = ({
   <section className="screen-grid project-detail-grid">
     <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={true} onMove={onMove} project={project} />
 
-    <ProjectReadmePanel project={project} />
+    <section className="panel wide project-overview-panel">
+      <ProjectReadmePanel onEdit={() => onMove("projectForm")} project={project} />
 
-    <div className="metric-row compact-metrics">
-      <Metric label="進捗率" value="-" />
-      <Metric label="予定 / 実績" value="- / 0h" />
-      <Metric label="WBSタスク" value="0件" />
-      <Metric label="プロジェクト状態" value="未着手" />
-    </div>
-
-    <section className="panel wide empty-project-onboarding">
-      <div className="empty-project-copy">
-        <span className="empty-project-icon">WBS</span>
-        <div>
-          <p className="eyebrow">次に行うこと</p>
-          <h2>学習内容をWBSへ分解する</h2>
-          <p>
-            プロジェクトは作成されました。最初に章や学習テーマを親タスクとして登録し、
-            その配下へ実際に学習するタスクを追加します。
-          </p>
+      <section className="project-overview-status" aria-labelledby="project-status-title">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">PJ03</p>
+            <h2 id="project-status-title">プロジェクトの状況</h2>
+          </div>
         </div>
-      </div>
-      <button className="primary-button" onClick={() => onMove("wbs")} type="button">
-        WBSを作成する
-      </button>
+        <div className="metric-row compact-metrics">
+          <Metric label="進捗率" value="-" />
+          <Metric label="予定 / 実績" value="- / 0h" />
+          <Metric label="WBSタスク" value="0件" />
+          <Metric label="プロジェクト状態" value="未着手" />
+        </div>
+        <section className="empty-project-onboarding">
+          <div className="empty-project-copy">
+            <span className="empty-project-icon">WBS</span>
+            <div>
+              <p className="eyebrow">次に行うこと</p>
+              <h2>学習内容をWBSへ分解する</h2>
+              <p>
+                プロジェクトは作成されました。最初に章や学習テーマを親タスクとして登録し、
+                その配下へ実際に学習するタスクを追加します。
+              </p>
+            </div>
+          </div>
+          <button className="primary-button" onClick={() => onMove("wbs")} type="button">
+            WBSを作成する
+          </button>
+        </section>
+      </section>
     </section>
 
     <section className="panel wide">
@@ -558,13 +597,17 @@ const EmptyProjectOverview = ({
   </section>
 );
 
-const ProjectReadmePanel = ({ project }: { project: Project }) => {
+const ProjectReadmePanel = ({ onEdit, project }: { onEdit: () => void; project: Project }) => {
   const hasSummary = project.summary.trim().length > 0;
 
   return (
-    <section className="panel wide project-overview-panel project-readme-panel" aria-labelledby="project-readme-title">
+    <section className="project-readme-panel" aria-labelledby="project-readme-title">
       <div className="panel-header">
         <h2 id="project-readme-title">プロジェクトについて</h2>
+        <div className="project-readme-actions">
+          <button className="secondary-button" onClick={onEdit} type="button">プロジェクトを編集</button>
+          <button className="danger-button" onClick={() => window.confirm("このプロジェクトを削除しますか？")} type="button">プロジェクトを削除</button>
+        </div>
       </div>
       <p className={hasSummary ? "project-readme-copy" : "project-readme-copy is-empty"}>
         {hasSummary ? project.summary : "説明は未設定です。"}

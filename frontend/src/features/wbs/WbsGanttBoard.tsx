@@ -1,15 +1,15 @@
 // WBS一覧と日単位ガントを同じ行構造で表示し、LEAFの直接操作を提供する。
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { messageOf } from "../../shared/api/errorMessages";
 import { currentJstDate } from "../../shared/time/jstDate";
-import { formatHours } from "../../shared/types/formatters";
 import {
   ganttBarPlacement,
   ganttDayWidth,
   ganttTimelineDates,
 } from "./ganttDates";
 import { useUpdateWbsProgress, useUpdateWbsTask } from "./useWbs";
+import { WbsGanttFixedRow, type WbsGanttHourEditor } from "./WbsGanttFixedRow";
 import { buildWbsTaskUpdateRequest, updateFieldsForTask } from "./wbsTaskUpdateRequest";
 import type { WbsTask, WbsTaskType } from "./wbsTypes";
 
@@ -23,13 +23,6 @@ type WbsGanttBoardProps = {
   tasks: WbsTask[];
 };
 
-type HourEditor = {
-  taskId: string;
-  value: string;
-};
-
-const progressRates = Array.from({ length: 11 }, (_, index) => index * 10);
-
 export const WbsGanttBoard = ({
   endDate,
   onCreate,
@@ -41,11 +34,12 @@ export const WbsGanttBoard = ({
 }: WbsGanttBoardProps) => {
   const updateWbsTask = useUpdateWbsTask(projectId);
   const updateWbsProgress = useUpdateWbsProgress(projectId);
-  const [hourEditor, setHourEditor] = useState<HourEditor | null>(null);
+  const [hourEditor, setHourEditor] = useState<WbsGanttHourEditor | null>(null);
   const [isManagementColumnsCollapsed, setIsManagementColumnsCollapsed] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
   const [pendingProgressRates, setPendingProgressRates] = useState<Record<string, number>>({});
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const timelineHeaderPaneRef = useRef<HTMLDivElement>(null);
   const timelineDates = startDate === null || endDate === null ? [] : ganttTimelineDates(startDate, endDate);
   const isTimelineAvailable = timelineDates.length > 0;
   const timelineWidth = timelineDates.length * ganttDayWidth;
@@ -98,7 +92,8 @@ export const WbsGanttBoard = ({
       setRowErrors((current) => ({ ...current, [task.wbsTaskId]: messageOf(error) }));
     } finally {
       setPendingProgressRates((current) => {
-        const { [task.wbsTaskId]: _, ...remaining } = current;
+        const remaining = { ...current };
+        delete remaining[task.wbsTaskId];
         return remaining;
       });
       updatePendingState(task.wbsTaskId, false);
@@ -119,134 +114,61 @@ export const WbsGanttBoard = ({
         {tasks.length === 0 ? (
           <EmptyFixedRow onCreate={onCreate} />
         ) : (
-          tasks.map((task) => {
-            const isParent = task.taskType === "PARENT";
-            const isPending = pendingTaskIds.has(task.wbsTaskId);
-            const isSelected = task.wbsTaskId === selectedTaskId;
-            const progressRate = pendingProgressRates[task.wbsTaskId] ?? task.progressRate ?? 0;
-            return (
-              <div
-                className={`wbs-gantt-fixed-row${isParent ? " is-parent" : ""}${isSelected ? " is-selected" : ""}`}
-                key={task.wbsTaskId}
-                role="row"
-              >
-                <div className="wbs-gantt-task-cell" role="cell">
-                  <button
-                    aria-label={`${task.name}の詳細を開く`}
-                    className={`wbs-gantt-task-name${task.parentTaskId === null ? "" : " is-child"}`}
-                    onClick={() => onSelect(task)}
-                    title={task.name}
-                    type="button"
-                  >
-                    <span aria-hidden="true">{isParent ? "▾" : "↳"}</span>
-                    <span>{task.name}</span>
-                    {isParent && <small>親タスク</small>}
-                  </button>
-                </div>
-                {!isManagementColumnsCollapsed && (
-                  <>
-                    <div className="wbs-gantt-hour-cell" role="cell">
-                      {isParent ? (
-                        <span className="wbs-gantt-muted-value">-</span>
-                      ) : (
-                        <>
-                          <button
-                            aria-label={`${task.name}の予定工数を編集`}
-                            className="wbs-gantt-hour-button"
-                            disabled={isPending}
-                            onClick={() => {
-                              setRowErrors((current) => ({ ...current, [task.wbsTaskId]: "" }));
-                              setHourEditor({ taskId: task.wbsTaskId, value: task.plannedHours?.toString() ?? "" });
-                            }}
-                            type="button"
-                          >
-                            {formatHours(task.plannedHours)}
-                          </button>
-                          {hourEditor?.taskId === task.wbsTaskId && (
-                            <div aria-label={`${task.name}の予定工数を編集`} className="wbs-gantt-hour-popover" role="dialog">
-                              <label htmlFor={`planned-hours-${task.wbsTaskId}`}>
-                                予定工数
-                                <div className="input-with-unit">
-                                  <input
-                                    aria-label="予定工数"
-                                    autoFocus
-                                    id={`planned-hours-${task.wbsTaskId}`}
-                                    inputMode="decimal"
-                                    max="9999.99"
-                                    min="0.25"
-                                    onChange={(event) => setHourEditor({ taskId: task.wbsTaskId, value: event.target.value })}
-                                    step="0.25"
-                                    type="number"
-                                    value={hourEditor.value}
-                                  />
-                                  <span>時間</span>
-                                </div>
-                              </label>
-                              <div className="button-row">
-                                <button className="secondary-button" disabled={isPending} onClick={() => setHourEditor(null)} type="button">
-                                  キャンセル
-                                </button>
-                                <button className="primary-button" disabled={isPending} onClick={() => void handlePlannedHoursSave(task)} type="button">
-                                  {isPending ? "保存中..." : "保存"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <div className="wbs-gantt-hour-cell" role="cell">
-                      <span className={isParent ? "wbs-gantt-muted-value" : "wbs-gantt-readonly-value"}>{formatHours(task.actualHours)}</span>
-                    </div>
-                    <div className="wbs-gantt-progress-cell" role="cell">
-                      {isParent ? (
-                        <span className="wbs-gantt-muted-value">対象外</span>
-                      ) : (
-                        <select
-                          aria-label={`${task.name}の進捗率`}
-                          disabled={isPending}
-                          onChange={(event) => void handleProgressChange(task, Number(event.target.value))}
-                          value={progressRate}
-                        >
-                          {progressRates.map((value) => (
-                            <option key={value} value={value}>
-                              {value}%
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </>
-                )}
-                {rowErrors[task.wbsTaskId] !== undefined && rowErrors[task.wbsTaskId].length > 0 && (
-                  <p className="wbs-gantt-row-error" role="alert">
-                    {rowErrors[task.wbsTaskId]}
-                  </p>
-                )}
-              </div>
-            );
-          })
+          tasks.map((task) => (
+            <WbsGanttFixedRow
+              hourEditor={hourEditor}
+              isManagementColumnsCollapsed={isManagementColumnsCollapsed}
+              isPending={pendingTaskIds.has(task.wbsTaskId)}
+              isSelected={task.wbsTaskId === selectedTaskId}
+              key={task.wbsTaskId}
+              onHourEditorChange={(value) => setHourEditor({ taskId: task.wbsTaskId, value })}
+              onHourEditorClose={() => setHourEditor(null)}
+              onHourEditorOpen={(selectedTask) => {
+                setRowErrors((current) => ({ ...current, [selectedTask.wbsTaskId]: "" }));
+                setHourEditor({ taskId: selectedTask.wbsTaskId, value: selectedTask.plannedHours?.toString() ?? "" });
+              }}
+              onPlannedHoursSave={(selectedTask) => void handlePlannedHoursSave(selectedTask)}
+              onProgressChange={(selectedTask, progressRate) => void handleProgressChange(selectedTask, progressRate)}
+              onSelect={onSelect}
+              progressRate={pendingProgressRates[task.wbsTaskId] ?? task.progressRate ?? 0}
+              rowError={rowErrors[task.wbsTaskId]}
+              task={task}
+            />
+          ))
         )}
       </div>
 
-      <div className="wbs-gantt-timeline-scroll">
-        <div className="wbs-gantt-timeline-pane" role="rowgroup" style={{ width: `${timelineWidth}px` }}>
-          <TimelineHeader isTimelineAvailable={isTimelineAvailable} timelineDates={timelineDates} today={today} />
-          {tasks.length === 0 ? (
-            <EmptyTimelineRow isTimelineAvailable={isTimelineAvailable} />
-          ) : (
-            tasks.map((task) => (
-              <TimelineRow
-                endDate={endDate}
-                isSelected={task.wbsTaskId === selectedTaskId}
-                key={task.wbsTaskId}
-                startDate={startDate}
-                task={task}
-                timelineWidth={timelineWidth}
-                today={today}
-              />
-            ))
-          )}
+      <div className="wbs-gantt-timeline-column">
+        <div className="wbs-gantt-timeline-header-viewport" role="rowgroup">
+          <div className="wbs-gantt-timeline-header-pane" ref={timelineHeaderPaneRef} role="presentation" style={{ width: `${timelineWidth}px` }}>
+            <TimelineHeader isTimelineAvailable={isTimelineAvailable} timelineDates={timelineDates} today={today} />
+          </div>
+        </div>
+        <div
+          className="wbs-gantt-timeline-scroll"
+          onScroll={(event) => {
+            if (timelineHeaderPaneRef.current !== null) {
+              timelineHeaderPaneRef.current.style.transform = `translateX(-${event.currentTarget.scrollLeft}px)`;
+            }
+          }}
+        >
+          <div className="wbs-gantt-timeline-pane" role="rowgroup" style={{ width: `${timelineWidth}px` }}>
+            {tasks.length === 0 ? (
+              <EmptyTimelineRow isTimelineAvailable={isTimelineAvailable} />
+            ) : (
+              tasks.map((task) => (
+                <TimelineRow
+                  endDate={endDate}
+                  isSelected={task.wbsTaskId === selectedTaskId}
+                  key={task.wbsTaskId}
+                  startDate={startDate}
+                  task={task}
+                  timelineWidth={timelineWidth}
+                  today={today}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </section>

@@ -1,7 +1,7 @@
 // プロジェクト内WBSの取得・作成・更新・削除状態をCM02とWB01で共有する。
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { projectQueryKeys } from "../projects/projectsApi";
+import { invalidateProjectWbsQueries } from "../projects/projectQueryInvalidation";
 import { wbsApi, wbsQueryKeys } from "./wbsApi";
 import type { WbsProgressUpdateRequest, WbsTaskCreateRequest, WbsTaskUpdateRequest } from "./wbsTypes";
 
@@ -32,7 +32,7 @@ export const useCreateWbsTask = (projectId: string) => {
 
   return useMutation({
     mutationFn: (request: WbsTaskCreateRequest) => wbsApi.create(projectId, request),
-    onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId),
+    onSuccess: () => invalidateProjectWbsQueries(queryClient, projectId),
   });
 };
 
@@ -41,7 +41,7 @@ export const useUpdateWbsTask = (projectId: string) => {
 
   return useMutation({
     mutationFn: ({ request, taskId }: WbsTaskUpdateVariables) => wbsApi.update(taskId, request),
-    onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId),
+    onSuccess: () => invalidateProjectWbsQueries(queryClient, projectId),
   });
 };
 
@@ -50,7 +50,7 @@ export const useUpdateWbsProgress = (projectId: string) => {
 
   return useMutation({
     mutationFn: ({ request, taskId }: WbsProgressUpdateVariables) => wbsApi.updateProgress(taskId, request),
-    onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId, true),
+    onSuccess: () => invalidateProjectWbsQueries(queryClient, projectId, { includeProjectDetail: true }),
   });
 };
 
@@ -59,22 +59,6 @@ export const useDeleteWbsTask = (projectId: string, taskId: string) => {
 
   return useMutation({
     mutationFn: () => wbsApi.delete(taskId),
-    onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId),
+    onSuccess: () => invalidateProjectWbsQueries(queryClient, projectId),
   });
-};
-
-export const invalidateWbsRelatedQueries = async (
-  queryClient: ReturnType<typeof useQueryClient>,
-  projectId: string,
-  includesProjectDetail = false,
-) => {
-  const invalidations = [
-    queryClient.invalidateQueries({ queryKey: wbsQueryKeys.list(projectId) }),
-    queryClient.invalidateQueries({ queryKey: projectQueryKeys.overview(projectId) }),
-    queryClient.invalidateQueries({ queryKey: projectQueryKeys.lists() }),
-  ];
-  if (includesProjectDetail) {
-    invalidations.push(queryClient.invalidateQueries({ queryKey: projectQueryKeys.detail(projectId) }));
-  }
-  await Promise.all(invalidations);
 };

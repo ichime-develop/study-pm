@@ -2,10 +2,9 @@
 import { type SubmitEvent, useState } from "react";
 
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
-import { FieldError } from "../../shared/components/FieldError";
-import { currentJstDate } from "../../shared/time/jstDate";
 import { useCreateStudyLog } from "./useStudyLogs";
 import { buildStudyLogRequest, newStudyLogFormValues } from "./studyLogRequest";
+import { StudyLogFields, type StudyLogFieldName } from "./StudyLogFields";
 
 type StudyLogCreatePanelProps = {
   onCancel: () => void;
@@ -30,19 +29,9 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
     createStudyLog.mutate(result.request, { onSuccess: onCreated });
   };
 
-  const handleStudyDateChange = (value: string) => {
+  const handleFieldChange = (field: StudyLogFieldName, value: string) => {
     setClientError(null);
-    setValues((current) => ({ ...current, studyDate: value }));
-  };
-
-  const handleStudyHoursChange = (value: string) => {
-    setClientError(null);
-    setValues((current) => ({ ...current, studyHours: value }));
-  };
-
-  const handleMemoChange = (value: string) => {
-    setClientError(null);
-    setValues((current) => ({ ...current, memo: value }));
+    setValues((current) => ({ ...current, [field]: value }));
   };
 
   const formError = clientError ?? (createStudyLog.error === null ? undefined : messageOf(createStudyLog.error));
@@ -66,34 +55,15 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
           <span className="field-note">WBSから開始した登録では、選択中のLEAFタスクへ記録します。</span>
         </label>
 
-        <label>
-          学習日 <RequiredMark />
-          <input max={currentJstDate()} onChange={(event) => handleStudyDateChange(event.target.value)} type="date" value={values.studyDate} />
-          <FieldError message={fieldMessageOf(createStudyLog.error, "studyDate")} />
-        </label>
-
-        <label>
-          学習時間 <RequiredMark />
-          <div className="input-with-unit">
-            <input
-              inputMode="decimal"
-              max="9999.99"
-              min="0.25"
-              onChange={(event) => handleStudyHoursChange(event.target.value)}
-              step="0.25"
-              type="number"
-              value={values.studyHours}
-            />
-            <span>時間</span>
-          </div>
-          <FieldError message={fieldMessageOf(createStudyLog.error, "studyHours")} />
-        </label>
-
-        <label>
-          メモ（任意）
-          <textarea maxLength={5000} onChange={(event) => handleMemoChange(event.target.value)} rows={4} value={values.memo} />
-          <FieldError message={fieldMessageOf(createStudyLog.error, "memo")} />
-        </label>
+        <StudyLogFields
+          fieldErrors={{
+            memo: fieldMessageOf(createStudyLog.error, "memo"),
+            studyDate: fieldMessageOf(createStudyLog.error, "studyDate"),
+            studyHours: fieldMessageOf(createStudyLog.error, "studyHours"),
+          }}
+          onChange={handleFieldChange}
+          values={values}
+        />
 
         {formError !== undefined && <p className="error-text form-message">{formError}</p>}
         <div className="button-row">
@@ -108,5 +78,3 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
     </aside>
   );
 };
-
-const RequiredMark = () => <span aria-label="必須" className="required-mark">*</span>;

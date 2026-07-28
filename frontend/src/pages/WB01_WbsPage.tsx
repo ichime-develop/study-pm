@@ -1,8 +1,10 @@
 // WB01のWBS一覧、基礎集計、親タスク・LEAFタスク作成を提供する。
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
-import { useCurrentAccount } from "../features/auth/useAuth";
+import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { ProjectPageGate } from "../features/projects/ProjectPageGate";
+import { ProjectNav } from "../features/projects/ProjectNav";
 import { useProject } from "../features/projects/useProjects";
 import { WbsTaskCreatePanel } from "../features/wbs/WbsTaskCreatePanel";
 import { WbsTaskDetailPanel } from "../features/wbs/WbsTaskDetailPanel";
@@ -11,60 +13,25 @@ import { useProjectWbs } from "../features/wbs/useWbs";
 import type { WbsTaskType } from "../features/wbs/wbsTypes";
 import { StudyLogCreatePanel } from "../features/studyLogs/StudyLogCreatePanel";
 import { isApiClientError } from "../shared/api/apiTypes";
-import { messageOf } from "../shared/api/errorMessages";
 import { AppHeader } from "../shared/components/AppHeader";
-import { ProjectNav } from "../shared/components/CM02_ProjectNav";
-import { ErrorPanel } from "../shared/components/ErrorPanel";
-import { LoadingPanel } from "../shared/components/LoadingPanel";
 import { Panel, PanelHeader } from "../shared/components/Panel";
 
 export const WbsPage = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const accountQuery = useCurrentAccount();
+  const logout = useLogout();
   const projectQuery = useProject(projectId);
   const wbsQuery = useProjectWbs(projectId);
   const [panel, setPanel] = useState<WbsPanel>({ kind: "none" });
-  const errors = [projectQuery.error, wbsQuery.error];
-  const isProjectNotFound = errors.some((error) => isApiClientError(error) && error.status === 404);
+  const projectPageError = [accountQuery, projectQuery, wbsQuery].find((query) => query.isError)?.error;
+  const isProjectNotFound = [projectQuery.error, wbsQuery.error].some(
+    (error) => isApiClientError(error) && error.status === 404,
+  );
   const isLoading = accountQuery.isLoading || projectQuery.isPending || wbsQuery.isPending;
-
-  if (isLoading) {
-    return <LoadingPanel message="WBSを読み込んでいます。" />;
-  }
-
-  if (isProjectNotFound) {
-    return (
-      <main className="app-page">
-        <ErrorPanel message="対象のプロジェクトは存在しません。" />
-        <Link className="primary-link" to="/projects">
-          プロジェクト一覧へ戻る
-        </Link>
-      </main>
-    );
-  }
-
-  if (accountQuery.data === undefined || projectQuery.data === undefined || wbsQuery.data === undefined) {
-    const queryWithError = [accountQuery, projectQuery, wbsQuery].find((query) => query.isError);
-    return (
-      <main className="app-page">
-        <ErrorPanel
-          message={messageOf(queryWithError?.error)}
-          onRetry={() => {
-            void accountQuery.refetch();
-            void projectQuery.refetch();
-            void wbsQuery.refetch();
-          }}
-        />
-      </main>
-    );
-  }
-
-  const project = projectQuery.data;
-  const wbs = wbsQuery.data;
-  const hasNoWbsTasks = wbs.tasks.length === 0;
-  const selectedTaskId = panel.kind === "taskDetail" || panel.kind === "studyLogCreate" ? panel.taskId : null;
-  const selectedTask = wbs.tasks.find((task) => task.wbsTaskId === selectedTaskId);
-  const isSidePanelOpen = panel.kind === "taskCreate" || selectedTask !== undefined;
+  const pageData =
+    accountQuery.data !== undefined && projectQuery.data !== undefined && wbsQuery.data !== undefined
+      ? { account: accountQuery.data, project: projectQuery.data, wbs: wbsQuery.data }
+      : undefined;
 
   const handleCreate = (taskType: WbsTaskType) => {
     setPanel({ kind: "taskCreate", taskType });
@@ -88,11 +55,30 @@ export const WbsPage = () => {
   };
 
   return (
-    <main className="app-page">
-      <AppHeader account={accountQuery.data} title="WBS・ガント" />
-      <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
+    <ProjectPageGate
+      data={pageData}
+      error={projectPageError}
+      isLoading={isLoading}
+      isProjectNotFound={isProjectNotFound}
+      loadingMessage="WBSを読み込んでいます。"
+      onRetry={() => {
+        void accountQuery.refetch();
+        void projectQuery.refetch();
+        void wbsQuery.refetch();
+      }}
+    >
+      {({ account, project, wbs }) => {
+        const hasNoWbsTasks = wbs.tasks.length === 0;
+        const selectedTaskId = panel.kind === "taskDetail" || panel.kind === "studyLogCreate" ? panel.taskId : null;
+        const selectedTask = wbs.tasks.find((task) => task.wbsTaskId === selectedTaskId);
+        const isSidePanelOpen = panel.kind === "taskCreate" || selectedTask !== undefined;
 
-      <Panel>
+        return (
+          <main className="app-page">
+            <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="WBS・ガント" />
+            <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
+
+            <Panel>
         <PanelHeader
           actions={
             <div className="button-row">
@@ -150,8 +136,11 @@ export const WbsPage = () => {
             />
           )}
         </div>
-      </Panel>
-    </main>
+            </Panel>
+          </main>
+        );
+      }}
+    </ProjectPageGate>
   );
 };
 

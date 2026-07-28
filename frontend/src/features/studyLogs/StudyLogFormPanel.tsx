@@ -3,9 +3,9 @@ import { type SubmitEvent, useEffect, useState } from "react";
 
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
 import { FieldError } from "../../shared/components/FieldError";
-import { currentJstDate } from "../../shared/time/jstDate";
 import type { WbsTask } from "../wbs/wbsTypes";
 import { buildStudyLogRequest, newStudyLogFormValues, studyLogFormValuesFor, type StudyLogFormValues } from "./studyLogRequest";
+import { StudyLogFields } from "./StudyLogFields";
 import type { StudyLog } from "./studyLogTypes";
 import { useCreateStudyLog, useUpdateStudyLog } from "./useStudyLogs";
 
@@ -97,44 +97,15 @@ export const StudyLogFormPanel = ({
           <FieldError message={fieldMessageOf(mutationError, "wbsTaskId")} />
         </label>
 
-        <label>
-          学習日 <RequiredMark />
-          <input
-            max={currentJstDate()}
-            onChange={(event) => handleValueChange("studyDate", event.target.value)}
-            type="date"
-            value={values.studyDate}
-          />
-          <FieldError message={fieldMessageOf(mutationError, "studyDate")} />
-        </label>
-
-        <label>
-          学習時間 <RequiredMark />
-          <div className="input-with-unit">
-            <input
-              inputMode="decimal"
-              max="9999.99"
-              min="0.25"
-              onChange={(event) => handleValueChange("studyHours", event.target.value)}
-              step="0.25"
-              type="number"
-              value={values.studyHours}
-            />
-            <span>時間</span>
-          </div>
-          <FieldError message={fieldMessageOf(mutationError, "studyHours")} />
-        </label>
-
-        <label>
-          メモ（任意）
-          <textarea
-            maxLength={5000}
-            onChange={(event) => handleValueChange("memo", event.target.value)}
-            rows={4}
-            value={values.memo}
-          />
-          <FieldError message={fieldMessageOf(mutationError, "memo")} />
-        </label>
+        <StudyLogFields
+          fieldErrors={{
+            memo: fieldMessageOf(mutationError, "memo"),
+            studyDate: fieldMessageOf(mutationError, "studyDate"),
+            studyHours: fieldMessageOf(mutationError, "studyHours"),
+          }}
+          onChange={handleValueChange}
+          values={values}
+        />
 
         {formError !== undefined && <p className="error-text form-message">{formError}</p>}
         <div className="button-row">

@@ -1,11 +1,11 @@
 // SL01の一覧、登録、編集、削除とLEAFタスクがない状態をユーザー操作で検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import type { WbsTask } from "../features/wbs/wbsTypes";
+import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { StudyLogsPage } from "./SL01_StudyLogsPage";
 
 describe("StudyLogsPage", () => {
@@ -127,18 +127,12 @@ describe("StudyLogsPage", () => {
 });
 
 const renderStudyLogsPage = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/projects/project-id/logs"]}>
-        <Routes>
-          <Route element={<StudyLogsPage />} path="/projects/:id/logs" />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+  renderWithQueryClient(
+    <MemoryRouter initialEntries={["/projects/project-id/logs"]}>
+      <Routes>
+        <Route element={<StudyLogsPage />} path="/projects/:id/logs" />
+      </Routes>
+    </MemoryRouter>,
   );
 };
 

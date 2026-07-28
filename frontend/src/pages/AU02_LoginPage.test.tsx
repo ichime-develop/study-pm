@@ -1,11 +1,11 @@
 // ログイン画面が入力値を認証APIへ渡すことをユーザー操作で検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./AU02_LoginPage";
+import { renderWithQueryClient } from "../test/renderWithQueryClient";
 
 const navigateMock = vi.fn();
 
@@ -74,15 +74,9 @@ describe("LoginPage", () => {
 });
 
 const renderLoginPage = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
+  renderWithQueryClient(
+    <MemoryRouter>
+      <LoginPage />
+    </MemoryRouter>,
   );
 };

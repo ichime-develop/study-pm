@@ -1,10 +1,10 @@
 // 一体型ガントテーブルが固定列、タイムライン、空状態の操作を同期して表示することを検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WbsGanttBoard } from "./WbsGanttBoard";
 import type { WbsTask } from "./wbsTypes";
+import { renderWithQueryClient } from "../../test/renderWithQueryClient";
 
 describe("WbsGanttBoard", () => {
   afterEach(cleanup);
@@ -39,6 +39,26 @@ describe("WbsGanttBoard", () => {
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ wbsTaskId: "leaf-id" }));
   });
 
+  it("選択中のタスクを支援技術へ伝える", () => {
+    renderBoard({ selectedTaskId: "leaf-id", tasks: [leafTask()] });
+
+    expect(screen.getByRole("button", { name: "問題を解くの詳細を開く" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("タイムラインの横スクロールに合わせて日付ヘッダーを同期する", () => {
+    const { container } = renderBoard({ tasks: [leafTask()] });
+    const timelineScroll = container.querySelector<HTMLDivElement>(".wbs-gantt-timeline-scroll");
+    const headerPane = container.querySelector<HTMLDivElement>(".wbs-gantt-timeline-header-pane");
+
+    if (timelineScroll === null || headerPane === null) {
+      throw new Error("タイムラインのスクロール領域またはヘッダーがありません。");
+    }
+    Object.defineProperty(timelineScroll, "scrollLeft", { configurable: true, value: 68 });
+    fireEvent.scroll(timelineScroll);
+
+    expect(headerPane).toHaveStyle({ transform: "translateX(-68px)" });
+  });
+
   it("工数・進捗列を隠した場合も件名とガントを表示する", () => {
     renderBoard({ tasks: [leafTask()] });
     fireEvent.click(screen.getByRole("button", { name: "工数・進捗を隠す" }));
@@ -53,25 +73,24 @@ describe("WbsGanttBoard", () => {
 const renderBoard = ({
   onCreate = vi.fn(),
   onSelect = vi.fn(),
+  selectedTaskId = null,
   tasks,
 }: {
   onCreate?: (taskType: "PARENT" | "LEAF") => void;
   onSelect?: (task: WbsTask) => void;
+  selectedTaskId?: string | null;
   tasks: WbsTask[];
 }) => {
-  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  render(
-    <QueryClientProvider client={queryClient}>
-      <WbsGanttBoard
-        endDate="2026-07-03"
-        onCreate={onCreate}
-        onSelect={onSelect}
-        projectId="project-id"
-        selectedTaskId={null}
-        startDate="2026-07-01"
-        tasks={tasks}
-      />
-    </QueryClientProvider>,
+  return renderWithQueryClient(
+    <WbsGanttBoard
+      endDate="2026-07-03"
+      onCreate={onCreate}
+      onSelect={onSelect}
+      projectId="project-id"
+      selectedTaskId={selectedTaskId}
+      startDate="2026-07-01"
+      tasks={tasks}
+    />,
   );
 };
 

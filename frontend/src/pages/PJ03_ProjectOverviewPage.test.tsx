@@ -1,10 +1,11 @@
 // PJ03の概要表示、CM02状態、404、削除確認をユーザー操作として検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
+import type { WbsTask } from "../features/wbs/wbsTypes";
+import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { ProjectOverviewPage } from "./PJ03_ProjectOverviewPage";
 
 const navigateMock = vi.fn();
@@ -76,14 +77,14 @@ describe("ProjectOverviewPage", () => {
     renderProjectOverview();
 
     await screen.findByRole("heading", { name: "Java Silver学習" });
-    await userEvent.click(screen.getByRole("button", { name: "削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "プロジェクトを削除" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("復元できません");
 
     await userEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "DELETE")).toHaveLength(0);
 
-    await userEvent.click(screen.getByRole("button", { name: "削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "プロジェクトを削除" }));
     await userEvent.click(screen.getByRole("button", { name: "削除する" }));
 
     await waitFor(() => {
@@ -94,28 +95,102 @@ describe("ProjectOverviewPage", () => {
       expect.objectContaining({ method: "DELETE" }),
     );
   });
-});
 
-const renderProjectOverview = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  it("未完了タスクを選択するとPJ03内で詳細パネルを開き、URLにtaskIdを保持する", async () => {
+    vi.stubGlobal("fetch", fetchForProject());
+
+    renderProjectOverview();
+
+    await userEvent.click(await screen.findByRole("button", { name: "遅延タスクの詳細を開く" }));
+
+    expect(await screen.findByLabelText("遅延タスクを編集")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "遅延タスクの詳細を開く" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id?taskId=task-id");
+    expect(screen.getByRole("link", { name: "WBSで確認" })).toHaveAttribute("href", "/projects/project-id/wbs");
+
+    await userEvent.click(screen.getByRole("button", { name: "編集パネルを閉じる" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("遅延タスクを編集")).not.toBeInTheDocument();
+      expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id");
+    });
   });
 
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/projects/project-id"]}>
-        <Routes>
-          <Route element={<ProjectOverviewPage />} path="/projects/:id" />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+  it("存在しないtaskIdは一覧の取得後にURLから除去する", async () => {
+    vi.stubGlobal("fetch", fetchForProject());
+
+    renderProjectOverview("/projects/project-id?taskId=missing-task");
+
+    await screen.findByRole("heading", { name: "Java Silver学習" });
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/を編集$/)).not.toBeInTheDocument();
+      expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id");
+    });
+  });
+
+  it("詳細パネルから学習記録登録へ進み、キャンセルすると同じタスクの詳細へ戻る", async () => {
+    vi.stubGlobal("fetch", fetchForProject());
+
+    renderProjectOverview();
+
+    await userEvent.click(await screen.findByRole("button", { name: "遅延タスクの詳細を開く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "学習記録を追加" }));
+
+    expect(await screen.findByLabelText("遅延タスクへの学習記録を追加")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "学習記録登録をキャンセル" }));
+
+    expect(await screen.findByLabelText("遅延タスクを編集")).toBeInTheDocument();
+    expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id?taskId=task-id");
+  });
+
+  it("詳細パネルの保存と削除の成功後は選択状態を解除する", async () => {
+    const fetchMock = fetchForProject();
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderProjectOverview();
+
+    await userEvent.click(await screen.findByRole("button", { name: "遅延タスクの詳細を開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("遅延タスクを編集")).not.toBeInTheDocument();
+      expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id");
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "遅延タスクの詳細を開く" }));
+    await userEvent.click(within(await screen.findByLabelText("遅延タスクを編集")).getByRole("button", { name: "削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "削除する" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("遅延タスクを編集")).not.toBeInTheDocument();
+      expect(screen.getByTestId("current-location")).toHaveTextContent("/projects/project-id");
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/wbs-tasks/task-id",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/wbs-tasks/task-id",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+});
+
+const renderProjectOverview = (initialEntry = "/projects/project-id") => {
+  renderWithQueryClient(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route element={<ProjectOverviewPage />} path="/projects/:id" />
+      </Routes>
+      <CurrentLocation />
+    </MemoryRouter>,
   );
 };
 
 type ProjectFetchOverrides = {
   deleteResult?: Response;
   overview?: object;
-  tasks?: Array<{ wbsTaskId: string }>;
+  tasks?: WbsTask[];
 };
 
 const fetchForProject = (overrides: ProjectFetchOverrides = {}) =>
@@ -129,6 +204,12 @@ const fetchForProject = (overrides: ProjectFetchOverrides = {}) =>
     }
     if (url.endsWith("/wbs")) {
       return Promise.resolve(jsonResponse(wbsList(overrides.tasks)));
+    }
+    if (url.endsWith("/api/wbs-tasks/task-id") && init?.method === "PATCH") {
+      return Promise.resolve(jsonResponse(wbsTask()));
+    }
+    if (url.endsWith("/api/wbs-tasks/task-id") && init?.method === "DELETE") {
+      return Promise.resolve(jsonResponse({ result: "OK" }));
     }
     if (url.endsWith("/api/projects/project-id") && init?.method === "DELETE") {
       return Promise.resolve(overrides.deleteResult ?? jsonResponse({ result: "OK" }));
@@ -183,7 +264,7 @@ const emptyOverview = () => ({
   incompleteTasks: [],
 });
 
-const wbsList = (tasks = [{ wbsTaskId: "task-id" }]) => ({
+const wbsList = (tasks: WbsTask[] = [wbsTask()]) => ({
   projectId: "project-id",
   ganttStartDate: "2026-07-01",
   ganttEndDate: "2026-08-31",
@@ -193,6 +274,30 @@ const wbsList = (tasks = [{ wbsTaskId: "task-id" }]) => ({
   hasDelay: true,
   tasks,
 });
+
+const wbsTask = (overrides: Partial<WbsTask> = {}): WbsTask => ({
+  actualHours: 3,
+  createdAt: "2026-07-01T00:00:00Z",
+  description: null,
+  hasStudyLogs: false,
+  name: "遅延タスク",
+  parentTaskId: null,
+  plannedEndDate: "2026-07-20",
+  plannedHours: 2.5,
+  plannedStartDate: "2026-07-01",
+  progressRate: 40,
+  projectId: "project-id",
+  taskType: "LEAF",
+  updatedAt: "2026-07-25T00:00:00Z",
+  wbsTaskId: "task-id",
+  ...overrides,
+});
+
+const CurrentLocation = () => {
+  const location = useLocation();
+
+  return <output data-testid="current-location">{`${location.pathname}${location.search}`}</output>;
+};
 
 const errorBody = (code: string) => ({ code, message: "対象が見つかりません。", details: [] });
 

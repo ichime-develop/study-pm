@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { useCurrentAccount } from "../features/auth/useAuth";
+import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { ProjectPageGate } from "../features/projects/ProjectPageGate";
 import { useProject } from "../features/projects/useProjects";
+import { ProjectNav } from "../features/projects/ProjectNav";
 import { StudyLogDeleteModal } from "../features/studyLogs/StudyLogDeleteModal";
 import { StudyLogFormPanel } from "../features/studyLogs/StudyLogFormPanel";
 import { StudyLogList } from "../features/studyLogs/StudyLogList";
@@ -11,13 +13,9 @@ import { useDeleteStudyLog, useProjectStudyLogs } from "../features/studyLogs/us
 import type { StudyLog, StudyLogListFilters } from "../features/studyLogs/studyLogTypes";
 import { useProjectWbs } from "../features/wbs/useWbs";
 import { isApiClientError } from "../shared/api/apiTypes";
-import { messageOf } from "../shared/api/errorMessages";
 import { AppHeader } from "../shared/components/AppHeader";
-import { ProjectNav } from "../shared/components/CM02_ProjectNav";
-import { ErrorPanel } from "../shared/components/ErrorPanel";
-import { LoadingPanel } from "../shared/components/LoadingPanel";
 import { Panel, PanelHeader } from "../shared/components/Panel";
-import { formatHours } from "../shared/types/formatters";
+import { formatHours } from "../shared/format/formatters";
 
 const initialFilters: StudyLogListFilters = {
   page: 0,
@@ -33,6 +31,7 @@ type EditorState =
 export const StudyLogsPage = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const accountQuery = useCurrentAccount();
+  const logout = useLogout();
   const projectQuery = useProject(projectId);
   const wbsQuery = useProjectWbs(projectId);
   const [filters, setFilters] = useState<StudyLogListFilters>(initialFilters);
@@ -41,9 +40,23 @@ export const StudyLogsPage = () => {
   const [studyLogToDelete, setStudyLogToDelete] = useState<StudyLog | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const deleteStudyLog = useDeleteStudyLog(projectId ?? "");
-  const errors = [projectQuery.error, wbsQuery.error, studyLogsQuery.error];
-  const isProjectNotFound = errors.some((error) => isApiClientError(error) && error.status === 404);
+  const projectPageError = [accountQuery, projectQuery, wbsQuery, studyLogsQuery].find((query) => query.isError)?.error;
+  const isProjectNotFound = [projectQuery.error, wbsQuery.error, studyLogsQuery.error].some(
+    (error) => isApiClientError(error) && error.status === 404,
+  );
   const isLoading = accountQuery.isLoading || projectQuery.isPending || wbsQuery.isPending || studyLogsQuery.isPending;
+  const pageData =
+    accountQuery.data !== undefined &&
+    projectQuery.data !== undefined &&
+    wbsQuery.data !== undefined &&
+    studyLogsQuery.data !== undefined
+      ? {
+          account: accountQuery.data,
+          project: projectQuery.data,
+          studyLogs: studyLogsQuery.data,
+          wbs: wbsQuery.data,
+        }
+      : undefined;
 
   const handleTaskFilterChange = (taskId: string) => {
     setFilters((current) => ({ ...current, page: 0, taskId }));
@@ -71,50 +84,30 @@ export const StudyLogsPage = () => {
     });
   };
 
-  if (isLoading) {
-    return <LoadingPanel message="学習記録を読み込んでいます。" />;
-  }
-
-  if (isProjectNotFound) {
-    return (
-      <main className="app-page">
-        <ErrorPanel message="対象のプロジェクトは存在しません。" />
-        <Link className="primary-link" to="/projects">
-          プロジェクト一覧へ戻る
-        </Link>
-      </main>
-    );
-  }
-
-  if (accountQuery.data === undefined || projectQuery.data === undefined || wbsQuery.data === undefined || studyLogsQuery.data === undefined) {
-    const queryWithError = [accountQuery, projectQuery, wbsQuery, studyLogsQuery].find((query) => query.isError);
-    return (
-      <main className="app-page">
-        <ErrorPanel
-          message={messageOf(queryWithError?.error)}
-          onRetry={() => {
-            void accountQuery.refetch();
-            void projectQuery.refetch();
-            void wbsQuery.refetch();
-            void studyLogsQuery.refetch();
-          }}
-        />
-      </main>
-    );
-  }
-
-  const project = projectQuery.data;
-  const wbs = wbsQuery.data;
-  const leafTasks = wbs.tasks.filter((task) => task.taskType === "LEAF");
-  const hasNoLeafTasks = leafTasks.length === 0;
-  const studyLogs = studyLogsQuery.data;
-  const isEditorOpen = editor.kind !== "closed";
-  const totalLabel = filters.taskId === "" ? "プロジェクト合計学習時間" : "絞り込み中の合計学習時間";
-
   return (
-    <main className="app-page">
-      <AppHeader account={accountQuery.data} title="学習記録" />
-      <ProjectNav hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
+    <ProjectPageGate
+      data={pageData}
+      error={projectPageError}
+      isLoading={isLoading}
+      isProjectNotFound={isProjectNotFound}
+      loadingMessage="学習記録を読み込んでいます。"
+      onRetry={() => {
+        void accountQuery.refetch();
+        void projectQuery.refetch();
+        void wbsQuery.refetch();
+        void studyLogsQuery.refetch();
+      }}
+    >
+      {({ account, project, studyLogs, wbs }) => {
+        const leafTasks = wbs.tasks.filter((task) => task.taskType === "LEAF");
+        const hasNoLeafTasks = leafTasks.length === 0;
+        const isEditorOpen = editor.kind !== "closed";
+        const totalLabel = filters.taskId === "" ? "プロジェクト合計学習時間" : "絞り込み中の合計学習時間";
+
+        return (
+          <main className="app-page">
+            <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="学習記録" />
+            <ProjectNav hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
 
       {hasNoLeafTasks ? (
         <Panel className="state-panel">
@@ -173,7 +166,7 @@ export const StudyLogsPage = () => {
         </div>
       )}
 
-      {studyLogToDelete !== null && (
+            {studyLogToDelete !== null && (
         <StudyLogDeleteModal
           error={deleteStudyLog.error}
           isDeleting={deleteStudyLog.isPending}
@@ -181,8 +174,11 @@ export const StudyLogsPage = () => {
           onConfirm={handleDelete}
           studyLog={studyLogToDelete}
         />
-      )}
-    </main>
+            )}
+          </main>
+        );
+      }}
+    </ProjectPageGate>
   );
 };
 

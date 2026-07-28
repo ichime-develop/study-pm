@@ -1,6 +1,6 @@
 // 学習記録削除前に対象と再計算の影響を確認するモーダルを表示する。
 import { messageOf } from "../../shared/api/errorMessages";
-import { formatHours, formatMonthDay } from "../../shared/types/formatters";
+import { formatHours, formatMonthDay } from "../../shared/format/formatters";
 import type { StudyLog } from "./studyLogTypes";
 
 type StudyLogDeleteModalProps = {

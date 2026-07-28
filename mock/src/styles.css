@@ -467,9 +467,82 @@ button {
   align-self: start;
 }
 
+.project-overview-workspace {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.project-overview-workspace.with-side-panel {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.45fr);
+}
+
+.project-overview-workspace .project-overview-panel {
+  display: grid;
+  gap: 18px;
+  padding: 16px 18px;
+}
+
+.project-overview-workspace .task-side-panel {
+  max-height: calc(100vh - 200px);
+  position: sticky;
+  right: auto;
+  top: 16px;
+  width: auto;
+}
+
 .project-readme-panel {
   display: grid;
   gap: 8px;
+}
+
+.project-readme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.project-overview-status {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 16px;
+  padding-top: 18px;
+}
+
+.project-overview-status > .panel-header {
+  margin-bottom: 0;
+}
+
+.project-overview-status h3 {
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.project-overview-section {
+  display: grid;
+  gap: 10px;
+}
+
+.project-overview-panel .compact-metrics {
+  border-bottom: 1px solid var(--color-border);
+  gap: 0;
+  padding-bottom: 16px;
+}
+
+.project-overview-panel .compact-metrics .metric-card {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 12px;
+}
+
+.project-overview-panel .compact-metrics .metric-card:first-child {
+  border-left: 0;
+  padding-left: 0;
 }
 
 .project-readme-copy {
@@ -2171,6 +2244,17 @@ button {
   border-bottom: 1px solid #edf0f4;
   display: grid;
   min-height: 52px;
+}
+
+.gantt-head {
+  box-shadow: 0 2px 4px rgb(71 48 30 / 10%);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.gantt-fixed-pane .gantt-head {
+  z-index: 5;
 }
 
 .gantt-timeline-row {
@@ -4575,5 +4659,20 @@ input[type="checkbox"] {
     max-height: none;
     position: static;
     width: 100%;
+  }
+
+  .project-overview-workspace.with-side-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .project-overview-panel .compact-metrics .metric-card {
+    border-left: 0;
+    border-top: 1px solid var(--color-border);
+    padding: 10px 0 0;
+  }
+
+  .project-overview-panel .compact-metrics .metric-card:first-child {
+    border-top: 0;
+    padding-top: 0;
   }
 }

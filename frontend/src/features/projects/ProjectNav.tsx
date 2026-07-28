@@ -1,8 +1,8 @@
-// プロジェクト内の概要、WBS、学習記録、進捗分析への共通ナビゲーションを表示する。
+// プロジェクト機能に属する画面間ナビゲーションを表示する。
 import { Link, NavLink } from "react-router-dom";
 
-import { formatProjectStatus } from "../types/formatters";
-import type { ProjectBasic } from "../../features/projects/projectTypes";
+import { formatProjectStatus } from "../../shared/format/formatters";
+import type { ProjectBasic } from "./projectTypes";
 
 type ProjectNavProps = {
   hasNoWbsTasks: boolean;
@@ -16,7 +16,7 @@ export const ProjectNav = ({ hasNoWbsTasks, project }: ProjectNavProps) => {
     <section className="project-nav" aria-label="プロジェクト内ナビゲーション">
       <div className="project-nav-summary">
         <Link className="breadcrumb-link" to="/projects">
-          プロジェクト一覧
+          プロジェクト一覧へ戻る
         </Link>
         <div className="project-nav-name-row">
           <h2>{project.name}</h2>

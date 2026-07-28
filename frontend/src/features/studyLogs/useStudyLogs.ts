@@ -1,8 +1,7 @@
 // 学習記録CRUDと、変更後に必要なWBS・プロジェクト集計の再取得を提供する。
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { projectQueryKeys } from "../projects/projectsApi";
-import { invalidateWbsRelatedQueries } from "../wbs/useWbs";
+import { invalidateProjectStudyLogQueries } from "../projects/projectQueryInvalidation";
 import { studyLogQueryKeys, studyLogsApi } from "./studyLogsApi";
 import type { StudyLogCreateRequest, StudyLogListFilters, StudyLogUpdateRequest } from "./studyLogTypes";
 
@@ -28,7 +27,7 @@ export const useCreateStudyLog = (projectId: string) => {
 
   return useMutation({
     mutationFn: (request: StudyLogCreateRequest) => studyLogsApi.create(projectId, request),
-    onSuccess: () => invalidateStudyLogRelatedQueries(queryClient, projectId),
+    onSuccess: () => invalidateProjectStudyLogQueries(queryClient, projectId),
   });
 };
 
@@ -39,7 +38,7 @@ export const useUpdateStudyLog = (projectId: string) => {
     mutationFn: ({ request, studyLogId }: StudyLogUpdateVariables) => studyLogsApi.update(studyLogId, request),
     onSuccess: async (response) => {
       queryClient.setQueryData(studyLogQueryKeys.detail(response.studyLog.studyLogId), response.studyLog);
-      await invalidateStudyLogRelatedQueries(queryClient, projectId);
+      await invalidateProjectStudyLogQueries(queryClient, projectId);
     },
   });
 };
@@ -51,18 +50,7 @@ export const useDeleteStudyLog = (projectId: string) => {
     mutationFn: (studyLogId: string) => studyLogsApi.delete(studyLogId),
     onSuccess: async (_response, studyLogId) => {
       queryClient.removeQueries({ queryKey: studyLogQueryKeys.detail(studyLogId) });
-      await invalidateStudyLogRelatedQueries(queryClient, projectId);
+      await invalidateProjectStudyLogQueries(queryClient, projectId);
     },
   });
-};
-
-const invalidateStudyLogRelatedQueries = async (
-  queryClient: ReturnType<typeof useQueryClient>,
-  projectId: string,
-) => {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: studyLogQueryKeys.all(projectId) }),
-    invalidateWbsRelatedQueries(queryClient, projectId),
-    queryClient.invalidateQueries({ queryKey: projectQueryKeys.studySummary() }),
-  ]);
 };

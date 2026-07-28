@@ -1,11 +1,11 @@
 // PJ02の作成・編集における保存、期間エラー、完了条件エラーの表示を検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { ProjectFormPage } from "./PJ02_ProjectFormPage";
+import { renderWithQueryClient } from "../test/renderWithQueryClient";
 
 const navigateMock = vi.fn();
 
@@ -111,18 +111,12 @@ describe("ProjectFormPage", () => {
 });
 
 const renderProjectForm = (initialEntry: string, routePath: string) => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route element={<ProjectFormPage />} path={routePath} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+  renderWithQueryClient(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route element={<ProjectFormPage />} path={routePath} />
+      </Routes>
+    </MemoryRouter>,
   );
 };
 

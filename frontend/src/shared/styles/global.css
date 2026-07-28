@@ -509,6 +509,16 @@ small {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
 }
 
+.project-overview-workspace {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.project-overview-workspace.with-side-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+}
+
 .wbs-task-panel {
   align-self: start;
   display: grid;
@@ -528,6 +538,15 @@ small {
 
 .wbs-task-panel .panel-header > div {
   min-width: 0;
+}
+
+.wbs-task-panel .panel-header h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .wbs-task-panel .secondary-button {
@@ -563,6 +582,10 @@ small {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.45fr);
 }
 
+.study-log-workspace.with-side-panel > * {
+  min-width: 0;
+}
+
 .study-log-panel {
   align-self: start;
   background: var(--color-surface-soft);
@@ -570,7 +593,21 @@ small {
   border-radius: 12px;
   display: grid;
   gap: 16px;
+  min-width: 0;
   padding: 18px;
+}
+
+.study-log-panel .form,
+.study-log-panel .form label {
+  min-width: 0;
+}
+
+.study-log-panel .form input,
+.study-log-panel .form select,
+.study-log-panel .form textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
 }
 
 .wbs-gantt-board {
@@ -579,12 +616,13 @@ small {
   border-radius: 12px;
   display: flex;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .wbs-gantt-fixed-pane {
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
+  border-radius: 11px 0 0 11px;
   flex: 0 0 500px;
   min-width: 500px;
   position: relative;
@@ -605,6 +643,26 @@ small {
   overflow-x: auto;
   overflow-y: clip;
   width: 100%;
+}
+
+.wbs-gantt-timeline-column {
+  border-radius: 0 11px 11px 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.wbs-gantt-timeline-header-viewport {
+  background: var(--color-surface-soft);
+  border-radius: 0 11px 0 0;
+  min-width: 0;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.wbs-gantt-timeline-header-pane {
+  will-change: transform;
 }
 
 .wbs-gantt-timeline-pane {
@@ -637,6 +695,17 @@ small {
   font-size: var(--font-size-caption);
   font-weight: 800;
   min-height: 44px;
+}
+
+.wbs-gantt-fixed-row.is-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+
+.wbs-gantt-fixed-row.is-header,
+.wbs-gantt-timeline-header-viewport {
+  box-shadow: 0 2px 4px rgb(71 48 30 / 10%);
 }
 
 .wbs-gantt-fixed-row.is-header > span {
@@ -760,7 +829,7 @@ small {
   position: absolute;
   top: calc(100% - 4px);
   width: 240px;
-  z-index: 3;
+  z-index: 10;
 }
 
 .wbs-gantt-hour-popover label {
@@ -1097,17 +1166,24 @@ small {
   gap: 12px;
 }
 
-.project-description-panel {
+.project-description {
+  display: grid;
   gap: 8px;
-  padding: 16px 18px;
 }
 
-.project-description-panel h2,
+.project-description-header {
+  align-items: center;
+  display: flex;
+  gap: var(--space-control);
+  justify-content: space-between;
+}
+
+.project-description h2,
 .project-description-content {
   margin: 0;
 }
 
-.project-description-panel h2 {
+.project-description h2 {
   font-size: var(--font-size-subsection-title);
 }
 
@@ -1121,6 +1197,37 @@ small {
 
 .project-description-content.is-empty {
   color: var(--color-muted);
+}
+
+.project-overview-panel {
+  gap: 20px;
+}
+
+.overview-embedded-metrics {
+  border-bottom: 1px solid var(--color-border);
+  gap: 0;
+  padding-bottom: 18px;
+}
+
+.project-overview-panel .overview-embedded-metrics .stat-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 16px;
+}
+
+.project-overview-panel .overview-embedded-metrics .stat-card:first-child {
+  padding-left: 0;
+}
+
+.project-overview-panel .overview-embedded-metrics .stat-card + .stat-card {
+  border-left: 1px solid var(--color-border);
+}
+
+.project-overview-status {
+  display: grid;
+  gap: var(--space-page-gap);
 }
 
 .warning-list {
@@ -1174,6 +1281,34 @@ small {
 
 .incomplete-task-row.is-delayed {
   background: var(--color-danger-soft);
+}
+
+.incomplete-task-select {
+  background: transparent;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.incomplete-task-select:hover {
+  background: var(--color-primary-soft);
+}
+
+.incomplete-task-select.is-delayed:hover {
+  background: var(--color-danger-soft);
+}
+
+.incomplete-task-select.is-selected {
+  box-shadow: inset 3px 0 var(--color-primary);
+}
+
+.incomplete-task-name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .incomplete-task-row small {
@@ -1354,6 +1489,7 @@ small {
 
   .app-header,
   .panel-header,
+  .project-description-header,
   .empty-project-state {
     align-items: flex-start;
     flex-direction: column;
@@ -1361,6 +1497,19 @@ small {
 
   .wbs-workspace.with-side-panel {
     grid-template-columns: 1fr;
+  }
+
+  .project-overview-workspace.with-side-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .project-overview-panel .overview-embedded-metrics .stat-card {
+    border-left: 0;
+    padding: 0;
+  }
+
+  .project-overview-panel .overview-embedded-metrics .stat-card + .stat-card {
+    border-left: 0;
   }
 
   .study-log-workspace.with-side-panel {

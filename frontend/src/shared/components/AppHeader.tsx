@@ -1,15 +1,15 @@
-// ログイン後画面の共通ヘッダーとログアウト導線を表示する。
-import type { Account } from "../../features/auth/authTypes";
-import { useLogout } from "../../features/auth/useAuth";
+// ログイン後画面の共通ヘッダーと、呼び出し元が渡すログアウト導線を表示する。
 
 type AppHeaderProps = {
-  account: Account;
+  account: {
+    displayName: string;
+  };
+  isLoggingOut: boolean;
+  onLogout: () => void;
   title: string;
 };
 
-export const AppHeader = ({ account, title }: AppHeaderProps) => {
-  const logout = useLogout();
-
+export const AppHeader = ({ account, isLoggingOut, onLogout, title }: AppHeaderProps) => {
   return (
     <header className="app-header">
       <div>
@@ -18,7 +18,7 @@ export const AppHeader = ({ account, title }: AppHeaderProps) => {
       </div>
       <div className="header-account">
         <span>{account.displayName}</span>
-        <button className="secondary-button" disabled={logout.isPending} onClick={() => logout.mutate()} type="button">
+        <button className="secondary-button" disabled={isLoggingOut} onClick={onLogout} type="button">
           ログアウト
         </button>
       </div>

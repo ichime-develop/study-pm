@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { useCurrentAccount } from "../features/auth/useAuth";
+import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
 import { ProjectCard } from "../features/projects/ProjectCard";
 import { useProjectList, useStudySummary } from "../features/projects/useProjects";
 import type { ProjectListFilters, ProjectSort, ProjectStatus } from "../features/projects/projectTypes";
@@ -12,7 +12,7 @@ import { Panel, PanelHeader } from "../shared/components/Panel";
 import { StatCard } from "../shared/components/StatCard";
 import { AppHeader } from "../shared/components/AppHeader";
 import { messageOf } from "../shared/api/errorMessages";
-import { formatHours } from "../shared/types/formatters";
+import { formatHours } from "../shared/format/formatters";
 
 const initialFilters: ProjectListFilters = {
   keyword: "",
@@ -24,6 +24,7 @@ const initialFilters: ProjectListFilters = {
 
 export const ProjectsPage = () => {
   const accountQuery = useCurrentAccount();
+  const logout = useLogout();
   const [filters, setFilters] = useState<ProjectListFilters>(initialFilters);
   const projectList = useProjectList(filters);
   const studySummary = useStudySummary();
@@ -46,7 +47,7 @@ export const ProjectsPage = () => {
 
   return (
     <main className="app-page">
-      <AppHeader account={accountQuery.data} title="プロジェクト一覧" />
+      <AppHeader account={accountQuery.data} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="プロジェクト一覧" />
       <section className="summary-grid projects-summary-grid">
         {studySummary.isLoading && <LoadingPanel message="学習サマリーを読み込んでいます。" />}
         {studySummary.isError && <ErrorPanel message={messageOf(studySummary.error)} onRetry={() => studySummary.refetch()} />}

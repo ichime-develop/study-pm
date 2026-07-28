@@ -1,5 +1,5 @@
 // プロジェクト内の学習記録を日付順に一覧表示し、編集対象の選択を提供する。
-import { formatHours, formatMonthDay } from "../../shared/types/formatters";
+import { formatHours, formatMonthDay } from "../../shared/format/formatters";
 import type { StudyLog } from "./studyLogTypes";
 
 type StudyLogListProps = {

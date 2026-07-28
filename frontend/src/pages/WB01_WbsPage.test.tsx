@@ -1,11 +1,11 @@
 // WB01の空状態、親/LEAFタスク作成、入力検証、404表示をユーザー操作で検証する。
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import type { WbsTask } from "../features/wbs/wbsTypes";
+import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { WbsPage } from "./WB01_WbsPage";
 
 describe("WbsPage", () => {
@@ -317,18 +317,12 @@ describe("WbsPage", () => {
 });
 
 const renderWbsPage = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/projects/project-id/wbs"]}>
-        <Routes>
-          <Route element={<WbsPage />} path="/projects/:id/wbs" />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+  renderWithQueryClient(
+    <MemoryRouter initialEntries={["/projects/project-id/wbs"]}>
+      <Routes>
+        <Route element={<WbsPage />} path="/projects/:id/wbs" />
+      </Routes>
+    </MemoryRouter>,
   );
 };
 
