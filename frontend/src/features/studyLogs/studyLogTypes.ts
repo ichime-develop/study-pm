@@ -1,9 +1,19 @@
 // API-SL-02で登録する学習記録と登録後の再計算サマリーを表す。
+import type { PageResponse } from "../../shared/api/apiTypes";
+
 export type StudyLogCreateRequest = {
   memo: string | null;
   studyDate: string;
   studyHours: number;
   wbsTaskId: string;
+};
+
+export type StudyLogUpdateRequest = StudyLogCreateRequest;
+
+export type StudyLogListFilters = {
+  page: number;
+  size: number;
+  taskId: string;
 };
 
 export type StudyLog = {
@@ -29,5 +39,16 @@ export type StudyLogRecalculation = {
 
 export type StudyLogMutationResponse = {
   studyLog: StudyLog;
+  summary: StudyLogRecalculation;
+};
+
+export type StudyLogListResponse = {
+  page: PageResponse;
+  studyLogs: StudyLog[];
+  totalStudyHours: number;
+};
+
+export type StudyLogDeleteResponse = {
+  result: "OK";
   summary: StudyLogRecalculation;
 };

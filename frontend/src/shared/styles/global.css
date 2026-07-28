@@ -481,6 +481,26 @@ small {
   padding: 18px;
 }
 
+.study-log-workspace {
+  display: grid;
+  gap: var(--space-page-gap);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.study-log-workspace.with-side-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.45fr);
+}
+
+.study-log-panel {
+  align-self: start;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
 .wbs-gantt-board {
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
@@ -808,6 +828,91 @@ small {
   margin: 0;
 }
 
+.study-log-filter {
+  max-width: 340px;
+}
+
+.study-log-filter label {
+  color: var(--color-muted);
+  display: grid;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  gap: 8px;
+}
+
+.study-log-filter select {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  padding: 11px 12px;
+}
+
+.study-log-total {
+  margin: 0;
+}
+
+.study-log-list {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.study-log-row {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(92px, 0.75fr) minmax(180px, 2fr) minmax(96px, 0.8fr) minmax(72px, 0.6fr);
+  min-width: 560px;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.study-log-header {
+  background: var(--color-surface-soft);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+}
+
+.study-log-item {
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.study-log-item:last-child {
+  border-bottom: 0;
+}
+
+.study-log-item:hover {
+  background: var(--color-surface-soft);
+}
+
+.study-log-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.study-log-task-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-log-pagination {
+  align-items: center;
+  display: flex;
+  gap: var(--space-control);
+  justify-content: flex-end;
+}
+
 .wbs-progress-section {
   border-top: 1px solid var(--color-border);
   display: grid;
@@ -1104,6 +1209,10 @@ small {
   }
 
   .wbs-workspace.with-side-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .study-log-workspace.with-side-panel {
     grid-template-columns: 1fr;
   }
 

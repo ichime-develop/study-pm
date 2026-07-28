@@ -5,7 +5,7 @@ import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
 import { FieldError } from "../../shared/components/FieldError";
 import { currentJstDate } from "../../shared/time/jstDate";
 import { useCreateStudyLog } from "./useStudyLogs";
-import type { StudyLogCreateRequest } from "./studyLogTypes";
+import { buildStudyLogRequest, newStudyLogFormValues } from "./studyLogRequest";
 
 type StudyLogCreatePanelProps = {
   onCancel: () => void;
@@ -17,33 +17,32 @@ type StudyLogCreatePanelProps = {
 
 export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, taskName }: StudyLogCreatePanelProps) => {
   const createStudyLog = useCreateStudyLog(projectId);
-  const [studyDate, setStudyDate] = useState(currentJstDate());
-  const [studyHours, setStudyHours] = useState("");
-  const [memo, setMemo] = useState("");
+  const [values, setValues] = useState(() => newStudyLogFormValues(taskId));
   const [clientError, setClientError] = useState<string | null>(null);
 
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const request = buildStudyLogCreateRequest({ memo, setClientError, studyDate, studyHours, taskId });
-    if (request === undefined) {
+    const result = buildStudyLogRequest(values);
+    if ("validationMessage" in result) {
+      setClientError(result.validationMessage);
       return;
     }
-    createStudyLog.mutate(request, { onSuccess: onCreated });
+    createStudyLog.mutate(result.request, { onSuccess: onCreated });
   };
 
   const handleStudyDateChange = (value: string) => {
     setClientError(null);
-    setStudyDate(value);
+    setValues((current) => ({ ...current, studyDate: value }));
   };
 
   const handleStudyHoursChange = (value: string) => {
     setClientError(null);
-    setStudyHours(value);
+    setValues((current) => ({ ...current, studyHours: value }));
   };
 
   const handleMemoChange = (value: string) => {
     setClientError(null);
-    setMemo(value);
+    setValues((current) => ({ ...current, memo: value }));
   };
 
   const formError = clientError ?? (createStudyLog.error === null ? undefined : messageOf(createStudyLog.error));
@@ -69,7 +68,7 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
 
         <label>
           学習日 <RequiredMark />
-          <input max={currentJstDate()} onChange={(event) => handleStudyDateChange(event.target.value)} type="date" value={studyDate} />
+          <input max={currentJstDate()} onChange={(event) => handleStudyDateChange(event.target.value)} type="date" value={values.studyDate} />
           <FieldError message={fieldMessageOf(createStudyLog.error, "studyDate")} />
         </label>
 
@@ -83,7 +82,7 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
               onChange={(event) => handleStudyHoursChange(event.target.value)}
               step="0.25"
               type="number"
-              value={studyHours}
+              value={values.studyHours}
             />
             <span>時間</span>
           </div>
@@ -92,7 +91,7 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
 
         <label>
           メモ（任意）
-          <textarea maxLength={5000} onChange={(event) => handleMemoChange(event.target.value)} rows={4} value={memo} />
+          <textarea maxLength={5000} onChange={(event) => handleMemoChange(event.target.value)} rows={4} value={values.memo} />
           <FieldError message={fieldMessageOf(createStudyLog.error, "memo")} />
         </label>
 
@@ -109,54 +108,5 @@ export const StudyLogCreatePanel = ({ onCancel, onCreated, projectId, taskId, ta
     </aside>
   );
 };
-
-type BuildStudyLogCreateRequestInput = {
-  memo: string;
-  setClientError: (message: string | null) => void;
-  studyDate: string;
-  studyHours: string;
-  taskId: string;
-};
-
-const buildStudyLogCreateRequest = ({
-  memo,
-  setClientError,
-  studyDate,
-  studyHours,
-  taskId,
-}: BuildStudyLogCreateRequestInput): StudyLogCreateRequest | undefined => {
-  if (studyDate.length === 0) {
-    setClientError("学習日を入力してください。");
-    return undefined;
-  }
-  if (studyDate > currentJstDate()) {
-    setClientError("未来日の学習記録は登録できません。");
-    return undefined;
-  }
-
-  const parsedStudyHours = Number(studyHours);
-  if (!isValidStudyHours(parsedStudyHours)) {
-    setClientError("学習時間は0.25時間以上9999.99時間以下の0.25時間刻みで入力してください。");
-    return undefined;
-  }
-
-  return {
-    wbsTaskId: taskId,
-    studyDate,
-    studyHours: parsedStudyHours,
-    memo: emptyToNull(memo),
-  };
-};
-
-const emptyToNull = (value: string): string | null => {
-  const trimmedValue = value.trim();
-  return trimmedValue.length === 0 ? null : trimmedValue;
-};
-
-const isValidStudyHours = (hours: number): boolean =>
-  Number.isFinite(hours) &&
-  hours >= 0.25 &&
-  hours <= 9999.99 &&
-  Math.abs(hours * 4 - Math.round(hours * 4)) < 1e-9;
 
 const RequiredMark = () => <span aria-label="必須" className="required-mark">*</span>;
