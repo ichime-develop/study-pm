@@ -78,6 +78,9 @@ describe("WbsPage", () => {
         }),
       );
     });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+    });
   });
 
   it("0.25時間刻みではない予定工数を送信前に拒否する", async () => {
@@ -106,7 +109,7 @@ describe("WbsPage", () => {
     const nameInput = screen.getByLabelText(/^タスク名/);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "演習問題を解く");
-    await userEvent.click(screen.getByRole("button", { name: "基本情報を保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -136,7 +139,7 @@ describe("WbsPage", () => {
     const nameInput = screen.getByLabelText(/^親タスク名/);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "第2章");
-    await userEvent.click(screen.getByRole("button", { name: "基本情報を保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -286,20 +289,21 @@ describe("WbsPage", () => {
     });
   });
 
-  it("学習記録があるLEAFの削除拒否をモーダル内に表示する", async () => {
+  it("学習記録があるLEAFでは削除理由を表示して削除を無効化する", async () => {
     const fetchMock = fetchForWbsPage({
-      deleteError: errorBody("TASK_HAS_STUDY_LOGS", "学習記録があるタスクは削除できません。"),
-      initialTasks: [parentTask(), leafTask("問題を解く")],
+      initialTasks: [{ ...leafTask("問題を解く"), actualHours: 1.5, hasStudyLogs: true }, parentTask()],
     });
     vi.stubGlobal("fetch", fetchMock);
 
     renderWbsPage();
 
     await userEvent.click(await screen.findByRole("button", { name: "問題を解くの詳細を開く" }));
-    await userEvent.click(screen.getByRole("button", { name: "削除" }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "削除する" }));
 
-    expect(await screen.findByText("学習記録があるタスクは削除できません。")).toBeInTheDocument();
+    expect(screen.getByText("実績工数（任意）")).toBeInTheDocument();
+    expect(screen.queryByText("1.5h / 学習記録から集計")).not.toBeInTheDocument();
+    expect(screen.getByText("学習記録があるタスクは削除できません。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "削除不可" })).toBeDisabled();
+    expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "DELETE")).toHaveLength(0);
   });
 
   it("404の場合はプロジェクト一覧への導線を表示する", async () => {

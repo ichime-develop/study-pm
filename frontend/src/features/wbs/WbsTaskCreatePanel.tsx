@@ -85,7 +85,7 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
       <div className="panel-header">
         <div>
           <p className="eyebrow">{isParent ? "親タスクを追加" : "タスクを追加"}</p>
-          <h2>{isParent ? "学習範囲の見出しを作る" : "実際に学習する作業を作る"}</h2>
+          {isParent && <h2>学習範囲の見出しを作る</h2>}
         </div>
         <button aria-label="作成パネルを閉じる" className="secondary-button" onClick={onClose} type="button">
           閉じる
@@ -94,7 +94,9 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
 
       <form className="form" noValidate onSubmit={handleSubmit}>
         <label>
-          {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
+          <span className="wbs-field-label">
+            {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
+          </span>
           <input
             maxLength={100}
             onChange={(event) => handleChange(setName, event.target.value)}
@@ -109,7 +111,7 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
           <textarea
             maxLength={5000}
             onChange={(event) => handleChange(setDescription, event.target.value)}
-            rows={4}
+            rows={2}
             value={description}
           />
           <FieldError message={fieldMessageOf(createWbsTask.error, "description")} />
@@ -153,7 +155,9 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
               </label>
             </div>
             <label>
-              予定工数 <RequiredMark />
+              <span className="wbs-field-label">
+                予定工数 <RequiredMark />
+              </span>
               <div className="input-with-unit">
                 <input
                   inputMode="decimal"

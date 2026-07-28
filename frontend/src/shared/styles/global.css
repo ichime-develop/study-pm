@@ -425,6 +425,12 @@ small {
   color: var(--color-danger);
 }
 
+.wbs-field-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
 .project-nav {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -504,15 +510,47 @@ small {
 }
 
 .wbs-task-panel {
+  align-self: start;
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
 
 .wbs-task-panel {
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 18px;
+  padding: 14px;
+}
+
+.wbs-task-panel .panel-header {
+  align-items: flex-start;
+}
+
+.wbs-task-panel .panel-header > div {
+  min-width: 0;
+}
+
+.wbs-task-panel .secondary-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.wbs-task-panel .form {
+  gap: 12px;
+}
+
+.wbs-task-panel .form label {
+  gap: 4px;
+}
+
+.wbs-task-panel .form input,
+.wbs-task-panel .form select,
+.wbs-task-panel .form textarea {
+  padding: 8px 10px;
+}
+
+.wbs-task-panel .form-two-columns {
+  gap: 8px;
 }
 
 .study-log-workspace {
@@ -674,6 +712,8 @@ small {
 
 .wbs-gantt-task-name > span:nth-child(2) {
   overflow: hidden;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -982,14 +1022,30 @@ small {
   justify-content: flex-end;
 }
 
-.wbs-progress-section {
-  border-top: 1px solid var(--color-border);
+.wbs-task-constraint {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   display: grid;
-  gap: 12px;
-  padding-top: 18px;
+  gap: 6px;
+  padding: 12px;
 }
 
-.wbs-progress-section h3 {
+.wbs-task-actual-hours {
+  display: grid;
+  gap: 4px;
+}
+
+.wbs-task-actual-hours .secondary-button {
+  justify-self: start;
+}
+
+.wbs-task-constraint {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+
+.wbs-task-constraint h3,
+.wbs-task-constraint p {
   margin: 0;
 }
 

@@ -41,6 +41,9 @@ export const WbsTaskDetailPanel = ({
   const isParent = task.taskType === "PARENT";
   const parentTasks = tasks.filter((candidate) => candidate.taskType === "PARENT");
   const childTasks = tasks.filter((candidate) => candidate.parentTaskId === task.wbsTaskId);
+  const hasRelatedStudyLogs = isParent
+    ? childTasks.some((childTask) => childTask.hasStudyLogs)
+    : task.hasStudyLogs;
   const isSaving = updateWbsTask.isPending || deleteWbsTask.isPending;
 
   useEffect(() => {
@@ -73,7 +76,13 @@ export const WbsTaskDetailPanel = ({
       setClientError(result.error);
       return;
     }
-    updateWbsTask.mutate({ request: result.request, taskId: task.wbsTaskId }, { onError: handleTaskNotFound });
+    updateWbsTask.mutate(
+      { request: result.request, taskId: task.wbsTaskId },
+      {
+        onError: handleTaskNotFound,
+        onSuccess: onClose,
+      },
+    );
   };
 
   const handleDelete = () => {
@@ -104,7 +113,9 @@ export const WbsTaskDetailPanel = ({
       <form className="form" noValidate onSubmit={handleSave}>
         {successMessage !== undefined && <p className="notice notice-success">{successMessage}</p>}
         <label>
-          {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
+          <span className="wbs-field-label">
+            {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
+          </span>
           <input
             maxLength={100}
             onChange={(event) => handleFieldChange(setName, event.target.value)}
@@ -161,7 +172,9 @@ export const WbsTaskDetailPanel = ({
               </label>
             </div>
             <label>
-              予定工数 <RequiredMark />
+              <span className="wbs-field-label">
+                予定工数 <RequiredMark />
+              </span>
               <div className="input-with-unit">
                 <input
                   inputMode="decimal"
@@ -179,24 +192,38 @@ export const WbsTaskDetailPanel = ({
           </>
         )}
 
+        {!isParent && (
+          <div className="wbs-task-actual-hours">
+            <span className="wbs-field-label">実績工数（任意）</span>
+            <button className="secondary-button" disabled={isSaving} onClick={onCreateStudyLog} type="button">
+              学習記録を追加
+            </button>
+          </div>
+        )}
+
+        {hasRelatedStudyLogs && (
+          <section className="wbs-task-constraint" aria-label="削除できない理由">
+            <h3>削除できない理由</h3>
+            <p>{isParent ? "配下タスクに学習記録があるため削除できません。" : "学習記録があるタスクは削除できません。"}</p>
+          </section>
+        )}
+
         {formError !== undefined && <p className="error-text form-message">{formError}</p>}
         <div className="button-row">
           <button className="primary-button" disabled={isSaving} type="submit">
-            {updateWbsTask.isPending ? "保存しています..." : "基本情報を保存"}
+            {updateWbsTask.isPending ? "保存しています..." : "保存"}
           </button>
-          <button className="danger-button" disabled={isSaving} onClick={() => setIsDeleteModalOpen(true)} type="button">
-            削除
+          <button
+            className="danger-button"
+            disabled={isSaving || hasRelatedStudyLogs}
+            onClick={() => setIsDeleteModalOpen(true)}
+            title={hasRelatedStudyLogs ? "学習記録があるタスクは削除できません。" : undefined}
+            type="button"
+          >
+            {hasRelatedStudyLogs ? "削除不可" : "削除"}
           </button>
         </div>
       </form>
-
-      {!isParent && (
-        <section className="wbs-progress-section" aria-label="学習記録">
-          <button className="secondary-button" disabled={isSaving} onClick={onCreateStudyLog} type="button">
-            学習記録を追加
-          </button>
-        </section>
-      )}
 
       {isDeleteModalOpen && (
         <WbsTaskDeleteModal
