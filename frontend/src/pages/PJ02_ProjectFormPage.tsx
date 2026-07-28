@@ -13,6 +13,7 @@ import { isApiClientError } from "../shared/api/apiTypes";
 import { ErrorPanel } from "../shared/components/ErrorPanel";
 import { FieldError } from "../shared/components/FieldError";
 import { LoadingPanel } from "../shared/components/LoadingPanel";
+import { Panel, PanelHeader } from "../shared/components/Panel";
 
 type ProjectFormValues = {
   name: string;
@@ -128,16 +129,17 @@ export const ProjectFormPage = () => {
 
   return (
     <main className="app-page">
-      <section className="panel project-form-panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">PJ02</p>
-            <h1>{title}</h1>
-          </div>
-          <Link className="secondary-link" to={cancelPath}>
-            キャンセル
-          </Link>
-        </div>
+      <Panel className="project-form-panel">
+        <PanelHeader
+          actions={
+            <Link className="secondary-link" to={cancelPath}>
+              キャンセル
+            </Link>
+          }
+          eyebrow="PJ02"
+          title={title}
+          titleAs="h1"
+        />
 
         {!isEditMode && (
           <p className="status-note">
@@ -222,7 +224,7 @@ export const ProjectFormPage = () => {
             </Link>
           </div>
         </form>
-      </section>
+      </Panel>
     </main>
   );
 };

@@ -58,6 +58,8 @@ description: Use when implementing study-pm features from approved basic design 
 - `any` を避け、型付きのAPIモデルを使い、`unknown` は絞り込む。
 - サーバー状態はTanStack Query、ローカルUI状態はReactのstateに置く。
 - 設計ドキュメントが別途指示しない限り、承認済みUIモックのUI用語・レイアウト意図・操作パターンを維持する。
+- 通常画面の表面コンテナとセクション見出しには `shared/components/Panel.tsx` の `Panel` / `PanelHeader` を使う。複数画面で使う余白、枠線、見出し構造を画面固有のCSSで再定義しない。
+- 文字サイズ、行間、フォント、色、角丸、共通余白は `shared/styles/global.css` のトークンを使う。通常画面での直接的な値指定は、画面固有の構造上必要な場合に限定する。
 
 ## Testing And Validation
 

@@ -157,6 +157,7 @@ React 19 + TypeScript + TanStack Query + React Router + 独自CSSの前提で、
 - booleanはバックエンドと同様、`is...` / `has...` / `can...` を優先する。
 - TanStack Queryの `queryKey` は `["リソース名", ...識別子, "サブリソース"]` を基本形にする。
 - CSSの文字サイズ、行間、フォントは `frontend/src/shared/styles/global.css` の共通トークンを使う。通常画面で画面固有の直接的なpx指定はしない。認証画面など、独自UIで必要な例外も、専用トークンを追加して扱う。
+- 通常画面の表面コンテナとセクション見出しは `shared/components/Panel.tsx` の `Panel` / `PanelHeader` を使う。複数画面で使う余白、枠線、見出し構造を画面ごとに再定義しない。
 
 例:
 

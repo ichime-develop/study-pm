@@ -12,6 +12,7 @@ import { AppHeader } from "../shared/components/AppHeader";
 import { ProjectNav } from "../shared/components/CM02_ProjectNav";
 import { ErrorPanel } from "../shared/components/ErrorPanel";
 import { LoadingPanel } from "../shared/components/LoadingPanel";
+import { Panel, PanelHeader } from "../shared/components/Panel";
 import { StatCard } from "../shared/components/StatCard";
 import { formatHours, formatProgressRate } from "../shared/types/formatters";
 
@@ -97,21 +98,21 @@ export const ProjectOverviewPage = () => {
         <StatCard label="プロジェクト連続日数" value={`${overview.projectContinuousStudyDays}日`} />
       </section>
 
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">PJ03</p>
-            <h2>プロジェクトの状況</h2>
-          </div>
-          <div className="button-row">
-            <Link className="secondary-link" to={`/projects/${project.projectId}/edit`}>
-              編集
-            </Link>
-            <button className="danger-button" onClick={() => setIsDeleteModalOpen(true)} type="button">
-              削除
-            </button>
-          </div>
-        </div>
+      <Panel>
+        <PanelHeader
+          actions={
+            <div className="button-row">
+              <Link className="secondary-link" to={`/projects/${project.projectId}/edit`}>
+                編集
+              </Link>
+              <button className="danger-button" onClick={() => setIsDeleteModalOpen(true)} type="button">
+                削除
+              </button>
+            </div>
+          }
+          eyebrow="PJ03"
+          title="プロジェクトの状況"
+        />
 
         <OverviewWarnings warnings={overview.warnings} />
         {hasNoWbsTasks ? (
@@ -127,7 +128,7 @@ export const ProjectOverviewPage = () => {
         ) : (
           <IncompleteTaskList projectId={project.projectId} tasks={overview.incompleteTasks} />
         )}
-      </section>
+      </Panel>
 
       {isDeleteModalOpen && (
         <ProjectDeleteModal

@@ -8,6 +8,7 @@ import { useProjectList, useStudySummary } from "../features/projects/useProject
 import type { ProjectListFilters, ProjectSort, ProjectStatus } from "../features/projects/projectTypes";
 import { ErrorPanel } from "../shared/components/ErrorPanel";
 import { LoadingPanel } from "../shared/components/LoadingPanel";
+import { Panel, PanelHeader } from "../shared/components/Panel";
 import { StatCard } from "../shared/components/StatCard";
 import { AppHeader } from "../shared/components/AppHeader";
 import { messageOf } from "../shared/api/errorMessages";
@@ -58,13 +59,15 @@ export const ProjectsPage = () => {
         )}
       </section>
 
-      <section className="panel project-list-panel">
-        <div className="panel-header">
-          <h2>プロジェクト一覧</h2>
-          <Link className="primary-link" to="/projects/new">
-            新規作成
-          </Link>
-        </div>
+      <Panel className="project-list-panel">
+        <PanelHeader
+          actions={
+            <Link className="primary-link" to="/projects/new">
+              新規作成
+            </Link>
+          }
+          title="プロジェクト一覧"
+        />
 
         <div className="filter-row">
           <label>
@@ -127,7 +130,7 @@ export const ProjectsPage = () => {
             </p>
           </>
         )}
-      </section>
+      </Panel>
     </main>
   );
 };

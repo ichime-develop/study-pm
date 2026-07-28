@@ -18,6 +18,9 @@
   --shadow-soft: 0 8px 20px rgba(74, 55, 36, 0.06);
   --radius-card: 18px;
   --radius-button: 10px;
+  --space-control: 12px;
+  --space-page-gap: 18px;
+  --space-panel: 22px;
   --font-family-base:
     -apple-system, BlinkMacSystemFont, "Hiragino Sans",
     "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, Meiryo,
@@ -232,7 +235,7 @@ small {
 
 .app-page {
   display: grid;
-  gap: 18px;
+  gap: var(--space-page-gap);
   margin: 0 auto;
   max-width: 1180px;
   padding: 24px;
@@ -246,7 +249,7 @@ small {
 .card-actions {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: var(--space-control);
 }
 
 .app-header,
@@ -332,8 +335,8 @@ small {
 
 .panel {
   display: grid;
-  gap: 18px;
-  padding: 22px;
+  gap: var(--space-page-gap);
+  padding: var(--space-panel);
 }
 
 .project-list-panel {

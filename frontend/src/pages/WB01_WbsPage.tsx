@@ -16,6 +16,7 @@ import { AppHeader } from "../shared/components/AppHeader";
 import { ProjectNav } from "../shared/components/CM02_ProjectNav";
 import { ErrorPanel } from "../shared/components/ErrorPanel";
 import { LoadingPanel } from "../shared/components/LoadingPanel";
+import { Panel, PanelHeader } from "../shared/components/Panel";
 
 export const WbsPage = () => {
   const { id: projectId } = useParams<{ id: string }>();
@@ -91,24 +92,22 @@ export const WbsPage = () => {
       <AppHeader account={accountQuery.data} title="WBS・ガント" />
       <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
 
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">WB01</p>
-            <h2>WBS・ガントチャート</h2>
-            <p className="section-description">
-              親タスクは見出し、LEAFタスクは予定と進捗の管理対象です。実績工数は学習記録から集計します。
-            </p>
-          </div>
-          <div className="button-row">
-            <button className="secondary-button" onClick={() => handleCreate("PARENT")} type="button">
-              親タスクを追加
-            </button>
-            <button className="primary-button" onClick={() => handleCreate("LEAF")} type="button">
-              タスクを追加
-            </button>
-          </div>
-        </div>
+      <Panel>
+        <PanelHeader
+          actions={
+            <div className="button-row">
+              <button className="secondary-button" onClick={() => handleCreate("PARENT")} type="button">
+                親タスクを追加
+              </button>
+              <button className="primary-button" onClick={() => handleCreate("LEAF")} type="button">
+                タスクを追加
+              </button>
+            </div>
+          }
+          description="親タスクは見出し、LEAFタスクは予定と進捗の管理対象です。実績工数は学習記録から集計します。"
+          eyebrow="WB01"
+          title="WBS・ガントチャート"
+        />
 
         <div className={isSidePanelOpen ? "wbs-workspace with-side-panel" : "wbs-workspace"}>
           <WbsGanttBoard
@@ -151,7 +150,7 @@ export const WbsPage = () => {
             />
           )}
         </div>
-      </section>
+      </Panel>
     </main>
   );
 };
