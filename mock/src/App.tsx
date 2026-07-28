@@ -414,6 +414,8 @@ const ProjectOverview = ({ project, onMove }: { project: Project; onMove: (scree
     <section className="screen-grid project-detail-grid">
       <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={false} onMove={onMove} project={project} />
 
+      <ProjectReadmePanel project={project} />
+
       <div className="metric-row compact-metrics">
         <Metric label="進捗率" value={formatProgress(summary.progress)} />
         <Metric
@@ -502,6 +504,8 @@ const EmptyProjectOverview = ({
   <section className="screen-grid project-detail-grid">
     <ProjectWorkspaceHeader active="projectDetail" hasNoTasks={true} onMove={onMove} project={project} />
 
+    <ProjectReadmePanel project={project} />
+
     <div className="metric-row compact-metrics">
       <Metric label="進捗率" value="-" />
       <Metric label="予定 / 実績" value="- / 0h" />
@@ -553,6 +557,21 @@ const EmptyProjectOverview = ({
     </section>
   </section>
 );
+
+const ProjectReadmePanel = ({ project }: { project: Project }) => {
+  const hasSummary = project.summary.trim().length > 0;
+
+  return (
+    <section className="panel wide project-overview-panel project-readme-panel" aria-labelledby="project-readme-title">
+      <div className="panel-header">
+        <h2 id="project-readme-title">プロジェクトについて</h2>
+      </div>
+      <p className={hasSummary ? "project-readme-copy" : "project-readme-copy is-empty"}>
+        {hasSummary ? project.summary : "説明は未設定です。"}
+      </p>
+    </section>
+  );
+};
 
 const projectTabItems: Array<{
   label: string;
@@ -621,7 +640,6 @@ const ProjectWorkspaceHeader = ({
           <h2>{project.name}</h2>
           <StatusPill status={project.status} />
         </div>
-        <p>{project.summary}</p>
       </div>
       <div className="project-workspace-meta" aria-label="プロジェクト期間">
         <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
@@ -682,7 +700,7 @@ const ProgressAnalysis = ({ project, onMove }: { project: Project; onMove: (scre
   );
 };
 
-const dayWidth = 34;
+const dayWidth = 42;
 const dayMs = 24 * 60 * 60 * 1000;
 
 const toDate = (value: string) => new Date(`${value}T00:00:00+09:00`);
@@ -883,6 +901,7 @@ const GanttWbsTable = ({
   onSelectTask: (taskId: string) => void;
   emptyContent?: React.ReactNode;
 }) => {
+  const [isMetricsVisible, setIsMetricsVisible] = useState(false);
   const [openHourEditor, setOpenHourEditor] = useState<{ taskId: string; field: HourField } | null>(null);
   const [hourValues, setHourValues] = useState<Record<string, string>>({});
   const taskOrder = new Map(taskList.map((task, index) => [task.id, index]));
@@ -914,7 +933,7 @@ const GanttWbsTable = ({
   const timelineEnd = timelineEndCandidates[timelineEndCandidates.length - 1] ?? project.targetEndDate;
   const timelineDays = buildTimeline(timelineStart, timelineEnd);
   const timelineWidth = timelineDays.length * dayWidth;
-  const fixedColumns = "280px 64px 64px 84px";
+  const fixedColumns = isMetricsVisible ? "280px 64px 64px 84px" : "minmax(300px, 1fr)";
   const todayOffset = Math.round((toDate(today).getTime() - toDate(timelineStart).getTime()) / dayMs);
   const showToday = todayOffset >= 0 && todayOffset < timelineDays.length;
   const getHourKey = (taskId: string, field: HourField) => `${taskId}:${field}`;
@@ -945,13 +964,27 @@ const GanttWbsTable = ({
   });
 
   return (
-    <div className="gantt-board">
+    <>
+      <div className={`gantt-board ${isMetricsVisible ? "gantt-metrics-expanded" : "gantt-metrics-collapsed"}`}>
       <div className="gantt-fixed-pane">
         <div className="gantt-row gantt-head gantt-fixed-row" style={{ gridTemplateColumns: fixedColumns }}>
-          <span>件名</span>
-          <span>予定(h)</span>
-          <span>実績(h)</span>
-          <span>進捗</span>
+          <div className="gantt-column-heading">
+            <span>件名</span>
+            <button
+              aria-expanded={isMetricsVisible}
+              className="gantt-metrics-toggle"
+              onClick={() => {
+                setIsMetricsVisible((current) => !current);
+                setOpenHourEditor(null);
+              }}
+              type="button"
+            >
+              {isMetricsVisible ? "工数・進捗を隠す" : "工数・進捗を表示"}
+            </button>
+          </div>
+          {isMetricsVisible && <span>予定(h)</span>}
+          {isMetricsVisible && <span>実績(h)</span>}
+          {isMetricsVisible && <span>進捗</span>}
         </div>
         {rows.map(({ task, summary, level, isParent, plannedHours, actualHours }) => (
           <div
@@ -979,58 +1012,62 @@ const GanttWbsTable = ({
               <span className="gantt-task-label">{task.name}</span>
               {isParent && <span className="gantt-task-type">親タスク</span>}
             </button>
-            <div className="gantt-hour-cell">
-              {isParent ? (
-                <span className="gantt-empty-value">—</span>
-              ) : (
-                <button
-                  aria-label={`${task.name}の予定工数を編集`}
-                  className="gantt-hour-value"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setOpenHourEditor({ taskId: task.id, field: "planned" });
-                  }}
-                  title="予定工数を編集"
-                  type="button"
-                >
-                  {plannedHours}
-                </button>
-              )}
-              {!isParent && openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
-                <div className="gantt-hour-popover" role="dialog" aria-label="予定工数を編集">
-                  <label>
-                    予定
-                    <span className="hour-input-row">
-                      <input autoFocus min="0" onChange={(event) => updateHourValue(task.id, "planned", event.target.value)} step="0.25" type="number" value={plannedHours} />
-                      <span>時間</span>
-                    </span>
-                  </label>
-                  <button className="primary-button" onClick={() => setOpenHourEditor(null)} type="button">保存</button>
+            {isMetricsVisible && (
+              <>
+                <div className="gantt-hour-cell">
+                  {isParent ? (
+                    <span className="gantt-empty-value">—</span>
+                  ) : (
+                    <button
+                      aria-label={`${task.name}の予定工数を編集`}
+                      className="gantt-hour-value"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenHourEditor({ taskId: task.id, field: "planned" });
+                      }}
+                      title="予定工数を編集"
+                      type="button"
+                    >
+                      {plannedHours}
+                    </button>
+                  )}
+                  {!isParent && openHourEditor?.taskId === task.id && openHourEditor.field === "planned" && (
+                    <div className="gantt-hour-popover" role="dialog" aria-label="予定工数を編集">
+                      <label>
+                        予定
+                        <span className="hour-input-row">
+                          <input autoFocus min="0" onChange={(event) => updateHourValue(task.id, "planned", event.target.value)} step="0.25" type="number" value={plannedHours} />
+                          <span>時間</span>
+                        </span>
+                      </label>
+                      <button className="primary-button" onClick={() => setOpenHourEditor(null)} type="button">保存</button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="gantt-hour-cell">
-              {isParent ? (
-                <span className="gantt-empty-value">—</span>
-              ) : (
-                <span className="gantt-readonly-value" title="学習記録から集計した実績工数です。">
-                  {actualHours}
-                </span>
-              )}
-            </div>
-            {isParent ? (
-              <span className="gantt-muted-cell">対象外</span>
-            ) : (
-              <select
-                aria-label={`${task.name}の進捗率`}
-                className="gantt-progress-select"
-                defaultValue={Math.round(summary.progress / 10) * 10}
-                onClick={(event) => event.stopPropagation()}
-              >
-                {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
-                  <option key={progress} value={progress}>{progress}%</option>
-                ))}
-              </select>
+                <div className="gantt-hour-cell">
+                  {isParent ? (
+                    <span className="gantt-empty-value">—</span>
+                  ) : (
+                    <span className="gantt-readonly-value" title="学習記録から集計した実績工数です。">
+                      {actualHours}
+                    </span>
+                  )}
+                </div>
+                {isParent ? (
+                  <span className="gantt-muted-cell">対象外</span>
+                ) : (
+                  <select
+                    aria-label={`${task.name}の進捗率`}
+                    className="gantt-progress-select"
+                    defaultValue={Math.round(summary.progress / 10) * 10}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {Array.from({ length: 11 }, (_, index) => index * 10).map((progress) => (
+                      <option key={progress} value={progress}>{progress}%</option>
+                    ))}
+                  </select>
+                )}
+              </>
             )}
           </div>
         ))}
@@ -1065,7 +1102,7 @@ const GanttWbsTable = ({
                     className={`gantt-bar ${summary.status}${summary.isDelayed ? " delayed" : ""}`}
                     style={{ left: `${barLeft}px`, width: `${barWidth}px` }}
                   >
-                    {formatIntegerProgress(summary.progress)}
+                    {isMetricsVisible && formatIntegerProgress(summary.progress)}
                   </span>
                 )}
               </div>
@@ -1076,7 +1113,8 @@ const GanttWbsTable = ({
       {rows.length === 0 && emptyContent && (
         <div className="gantt-empty-body">{emptyContent}</div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
@@ -1404,7 +1442,6 @@ const WbsEditor = ({ project, onMove }: { project: Project; onMove: (screen: Scr
           <div className="button-group">
             <button className="secondary-button" onClick={() => openAdd("parent")} type="button">親タスクを追加</button>
             <button className="primary-button" onClick={() => openAdd("task")} type="button">タスクを追加</button>
-            <button className="secondary-button" disabled={isEmpty} type="button">表示期間</button>
           </div>
         </div>
         {saveNotice && <div className="save-notice" role="status">{saveNotice}</div>}

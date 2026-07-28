@@ -24,7 +24,6 @@ export const ProjectNav = ({ hasNoWbsTasks, project }: ProjectNavProps) => {
             {formatProjectStatus(project.status)}
           </span>
         </div>
-        <p>{project.description ?? "概要は未設定です。"}</p>
         <span className="project-nav-period">
           {project.startDate} - {project.targetEndDate}
         </span>

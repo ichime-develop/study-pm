@@ -38,6 +38,16 @@ describe("WbsGanttBoard", () => {
     fireEvent.click(screen.getByRole("button", { name: "問題を解くの詳細を開く" }));
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ wbsTaskId: "leaf-id" }));
   });
+
+  it("工数・進捗列を隠した場合も件名とガントを表示する", () => {
+    renderBoard({ tasks: [leafTask()] });
+    fireEvent.click(screen.getByRole("button", { name: "工数・進捗を隠す" }));
+
+    expect(screen.getByRole("columnheader", { name: "件名" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "予定(h)" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "問題を解くの進捗率" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("問題を解く: 2026-07-01 から 2026-07-03")).toBeInTheDocument();
+  });
 });
 
 const renderBoard = ({

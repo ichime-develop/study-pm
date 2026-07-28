@@ -33,6 +33,8 @@ describe("ProjectOverviewPage", () => {
     renderProjectOverview();
 
     expect(await screen.findByRole("heading", { name: "Java Silver学習" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "プロジェクトについて" })).toBeInTheDocument();
+    expect(screen.getByText("資格学習")).toBeInTheDocument();
     expect(screen.getByText("40%", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("10h / 6h", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("3h", { selector: "strong" })).toBeInTheDocument();

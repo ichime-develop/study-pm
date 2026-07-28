@@ -292,7 +292,22 @@ small {
 }
 
 .overview-summary-grid {
+  gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* PJ03の状況把握用指標は、モックと同じコンパクトな表示密度にする。 */
+.overview-summary-grid .stat-card {
+  gap: 2px;
+  padding: 6px 12px;
+}
+
+.overview-summary-grid .stat-card span {
+  font-size: var(--font-size-caption);
+}
+
+.overview-summary-grid .stat-card strong {
+  font-size: var(--font-size-subsection-title);
 }
 
 .wbs-summary-grid {
@@ -416,7 +431,6 @@ small {
 }
 
 .project-nav-name-row h2,
-.project-nav-summary p,
 .overview-section h3,
 .empty-project-state h3,
 .empty-project-state p {
@@ -427,22 +441,12 @@ small {
   font-size: var(--font-size-section-title);
 }
 
-.project-nav-summary p {
-  color: var(--color-muted);
-  font-size: var(--font-size-body);
-  grid-column: 1;
-  grid-row: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .project-nav-period {
   align-self: center;
   color: var(--color-muted);
   font-size: var(--font-size-caption);
   grid-column: 2;
-  grid-row: 2 / span 2;
+  grid-row: 2;
   white-space: nowrap;
 }
 
@@ -519,6 +523,15 @@ small {
   z-index: 1;
 }
 
+.wbs-gantt-board.is-management-columns-collapsed .wbs-gantt-fixed-pane {
+  flex-basis: 280px;
+  min-width: 280px;
+}
+
+.wbs-gantt-board.is-management-columns-collapsed .wbs-gantt-fixed-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .wbs-gantt-timeline-scroll {
   min-width: 0;
   overflow-x: auto;
@@ -560,6 +573,32 @@ small {
 
 .wbs-gantt-fixed-row.is-header > span {
   padding: 0 10px;
+}
+
+.wbs-gantt-task-column-header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.wbs-gantt-column-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  padding: 4px 0;
+  white-space: nowrap;
+}
+
+.wbs-gantt-column-toggle:hover,
+.wbs-gantt-column-toggle:focus-visible {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 .wbs-gantt-fixed-row.is-parent,
@@ -970,6 +1009,32 @@ small {
 .overview-section {
   display: grid;
   gap: 12px;
+}
+
+.project-description-panel {
+  gap: 8px;
+  padding: 16px 18px;
+}
+
+.project-description-panel h2,
+.project-description-content {
+  margin: 0;
+}
+
+.project-description-panel h2 {
+  font-size: var(--font-size-subsection-title);
+}
+
+.project-description-content {
+  color: var(--color-text);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.project-description-content.is-empty {
+  color: var(--color-muted);
 }
 
 .warning-list {

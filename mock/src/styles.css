@@ -310,8 +310,7 @@ button {
   margin: 0;
 }
 
-.flow-header p,
-.project-workspace-copy > p:last-child {
+.flow-header p {
   color: var(--color-muted);
   font-size: var(--text-md);
   font-weight: 500;
@@ -466,6 +465,24 @@ button {
 
 .project-overview-panel {
   align-self: start;
+}
+
+.project-readme-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.project-readme-copy {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  line-height: 1.75;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.project-readme-copy.is-empty {
+  color: var(--color-muted);
 }
 
 .warning-banner-list,
@@ -2077,6 +2094,52 @@ button {
   overflow-y: auto;
 }
 
+/* Keep the Gantt timeline primary; task metrics are available on demand. */
+.gantt-column-heading {
+  align-items: center;
+  border-right: 1px solid #edf0f4;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.gantt-column-heading > span {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gantt-metrics-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  padding: 4px 0;
+  white-space: nowrap;
+}
+
+.gantt-metrics-toggle:hover,
+.gantt-metrics-toggle:focus-visible {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.gantt-board.gantt-metrics-collapsed {
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+}
+
+.gantt-board.gantt-metrics-collapsed .gantt-bar {
+  border-radius: 8px;
+  height: 26px;
+  top: 13px;
+}
+
 .gantt-empty-body {
   align-items: center;
   display: flex;
@@ -3634,7 +3697,6 @@ select:focus-visible {
 }
 
 /* Remove legacy blue accents from the calm theme. */
-.project-workspace-copy > p:last-child,
 .field-hint,
 .project-workspace-meta,
 .gantt-date-axis span,

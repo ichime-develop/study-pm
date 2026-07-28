@@ -42,6 +42,7 @@ export const WbsGanttBoard = ({
   const updateWbsTask = useUpdateWbsTask(projectId);
   const updateWbsProgress = useUpdateWbsProgress(projectId);
   const [hourEditor, setHourEditor] = useState<HourEditor | null>(null);
+  const [isManagementColumnsCollapsed, setIsManagementColumnsCollapsed] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
   const [pendingProgressRates, setPendingProgressRates] = useState<Record<string, number>>({});
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
@@ -105,9 +106,16 @@ export const WbsGanttBoard = ({
   };
 
   return (
-    <section className="wbs-gantt-board" aria-label="WBSガントテーブル" role="table">
+    <section
+      className={`wbs-gantt-board${isManagementColumnsCollapsed ? " is-management-columns-collapsed" : ""}`}
+      aria-label="WBSガントテーブル"
+      role="table"
+    >
       <div className="wbs-gantt-fixed-pane" role="rowgroup">
-        <BoardHeader />
+        <BoardHeader
+          isManagementColumnsCollapsed={isManagementColumnsCollapsed}
+          onToggleManagementColumns={() => setIsManagementColumnsCollapsed((current) => !current)}
+        />
         {tasks.length === 0 ? (
           <EmptyFixedRow onCreate={onCreate} />
         ) : (
@@ -135,77 +143,81 @@ export const WbsGanttBoard = ({
                     {isParent && <small>親タスク</small>}
                   </button>
                 </div>
-                <div className="wbs-gantt-hour-cell" role="cell">
-                  {isParent ? (
-                    <span className="wbs-gantt-muted-value">-</span>
-                  ) : (
-                    <>
-                      <button
-                        aria-label={`${task.name}の予定工数を編集`}
-                        className="wbs-gantt-hour-button"
-                        disabled={isPending}
-                        onClick={() => {
-                          setRowErrors((current) => ({ ...current, [task.wbsTaskId]: "" }));
-                          setHourEditor({ taskId: task.wbsTaskId, value: task.plannedHours?.toString() ?? "" });
-                        }}
-                        type="button"
-                      >
-                        {formatHours(task.plannedHours)}
-                      </button>
-                      {hourEditor?.taskId === task.wbsTaskId && (
-                        <div aria-label={`${task.name}の予定工数を編集`} className="wbs-gantt-hour-popover" role="dialog">
-                          <label htmlFor={`planned-hours-${task.wbsTaskId}`}>
-                            予定工数
-                            <div className="input-with-unit">
-                              <input
-                                aria-label="予定工数"
-                                autoFocus
-                                id={`planned-hours-${task.wbsTaskId}`}
-                                inputMode="decimal"
-                                max="9999.99"
-                                min="0.25"
-                                onChange={(event) => setHourEditor({ taskId: task.wbsTaskId, value: event.target.value })}
-                                step="0.25"
-                                type="number"
-                                value={hourEditor.value}
-                              />
-                              <span>時間</span>
+                {!isManagementColumnsCollapsed && (
+                  <>
+                    <div className="wbs-gantt-hour-cell" role="cell">
+                      {isParent ? (
+                        <span className="wbs-gantt-muted-value">-</span>
+                      ) : (
+                        <>
+                          <button
+                            aria-label={`${task.name}の予定工数を編集`}
+                            className="wbs-gantt-hour-button"
+                            disabled={isPending}
+                            onClick={() => {
+                              setRowErrors((current) => ({ ...current, [task.wbsTaskId]: "" }));
+                              setHourEditor({ taskId: task.wbsTaskId, value: task.plannedHours?.toString() ?? "" });
+                            }}
+                            type="button"
+                          >
+                            {formatHours(task.plannedHours)}
+                          </button>
+                          {hourEditor?.taskId === task.wbsTaskId && (
+                            <div aria-label={`${task.name}の予定工数を編集`} className="wbs-gantt-hour-popover" role="dialog">
+                              <label htmlFor={`planned-hours-${task.wbsTaskId}`}>
+                                予定工数
+                                <div className="input-with-unit">
+                                  <input
+                                    aria-label="予定工数"
+                                    autoFocus
+                                    id={`planned-hours-${task.wbsTaskId}`}
+                                    inputMode="decimal"
+                                    max="9999.99"
+                                    min="0.25"
+                                    onChange={(event) => setHourEditor({ taskId: task.wbsTaskId, value: event.target.value })}
+                                    step="0.25"
+                                    type="number"
+                                    value={hourEditor.value}
+                                  />
+                                  <span>時間</span>
+                                </div>
+                              </label>
+                              <div className="button-row">
+                                <button className="secondary-button" disabled={isPending} onClick={() => setHourEditor(null)} type="button">
+                                  キャンセル
+                                </button>
+                                <button className="primary-button" disabled={isPending} onClick={() => void handlePlannedHoursSave(task)} type="button">
+                                  {isPending ? "保存中..." : "保存"}
+                                </button>
+                              </div>
                             </div>
-                          </label>
-                          <div className="button-row">
-                            <button className="secondary-button" disabled={isPending} onClick={() => setHourEditor(null)} type="button">
-                              キャンセル
-                            </button>
-                            <button className="primary-button" disabled={isPending} onClick={() => void handlePlannedHoursSave(task)} type="button">
-                              {isPending ? "保存中..." : "保存"}
-                            </button>
-                          </div>
-                        </div>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                </div>
-                <div className="wbs-gantt-hour-cell" role="cell">
-                  <span className={isParent ? "wbs-gantt-muted-value" : "wbs-gantt-readonly-value"}>{formatHours(task.actualHours)}</span>
-                </div>
-                <div className="wbs-gantt-progress-cell" role="cell">
-                  {isParent ? (
-                    <span className="wbs-gantt-muted-value">対象外</span>
-                  ) : (
-                    <select
-                      aria-label={`${task.name}の進捗率`}
-                      disabled={isPending}
-                      onChange={(event) => void handleProgressChange(task, Number(event.target.value))}
-                      value={progressRate}
-                    >
-                      {progressRates.map((value) => (
-                        <option key={value} value={value}>
-                          {value}%
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                    </div>
+                    <div className="wbs-gantt-hour-cell" role="cell">
+                      <span className={isParent ? "wbs-gantt-muted-value" : "wbs-gantt-readonly-value"}>{formatHours(task.actualHours)}</span>
+                    </div>
+                    <div className="wbs-gantt-progress-cell" role="cell">
+                      {isParent ? (
+                        <span className="wbs-gantt-muted-value">対象外</span>
+                      ) : (
+                        <select
+                          aria-label={`${task.name}の進捗率`}
+                          disabled={isPending}
+                          onChange={(event) => void handleProgressChange(task, Number(event.target.value))}
+                          value={progressRate}
+                        >
+                          {progressRates.map((value) => (
+                            <option key={value} value={value}>
+                              {value}%
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </>
+                )}
                 {rowErrors[task.wbsTaskId] !== undefined && rowErrors[task.wbsTaskId].length > 0 && (
                   <p className="wbs-gantt-row-error" role="alert">
                     {rowErrors[task.wbsTaskId]}
@@ -241,12 +253,33 @@ export const WbsGanttBoard = ({
   );
 };
 
-const BoardHeader = () => (
+const BoardHeader = ({
+  isManagementColumnsCollapsed,
+  onToggleManagementColumns,
+}: {
+  isManagementColumnsCollapsed: boolean;
+  onToggleManagementColumns: () => void;
+}) => (
   <div className="wbs-gantt-fixed-row is-header" role="row">
-    <span role="columnheader">件名</span>
-    <span role="columnheader">予定(h)</span>
-    <span role="columnheader">実績(h)</span>
-    <span role="columnheader">進捗</span>
+    <div aria-label="件名" className="wbs-gantt-task-column-header" role="columnheader">
+      <span>件名</span>
+      <button
+        aria-label={isManagementColumnsCollapsed ? "工数・進捗を表示" : "工数・進捗を隠す"}
+        aria-pressed={isManagementColumnsCollapsed}
+        className="wbs-gantt-column-toggle"
+        onClick={onToggleManagementColumns}
+        type="button"
+      >
+        {isManagementColumnsCollapsed ? "工数・進捗を表示" : "工数・進捗を隠す"}
+      </button>
+    </div>
+    {!isManagementColumnsCollapsed && (
+      <>
+        <span role="columnheader">予定(h)</span>
+        <span role="columnheader">実績(h)</span>
+        <span role="columnheader">進捗</span>
+      </>
+    )}
   </div>
 );
 

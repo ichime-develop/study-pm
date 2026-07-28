@@ -88,6 +88,8 @@ export const ProjectOverviewPage = () => {
       <AppHeader account={accountQuery.data} title="プロジェクト概要" />
       <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
 
+      <ProjectDescription description={project.description} />
+
       <section className="summary-grid overview-summary-grid">
         <StatCard label="進捗率" value={formatProgressRate(overview.progressRate)} />
         <StatCard
@@ -140,6 +142,19 @@ export const ProjectOverviewPage = () => {
         />
       )}
     </main>
+  );
+};
+
+const ProjectDescription = ({ description }: { description: string | null }) => {
+  const hasDescription = description !== null && description.trim().length > 0;
+
+  return (
+    <Panel className="project-description-panel" aria-labelledby="project-description-title">
+      <h2 id="project-description-title">プロジェクトについて</h2>
+      <p className={hasDescription ? "project-description-content" : "project-description-content is-empty"}>
+        {hasDescription ? description : "説明は未設定です。"}
+      </p>
+    </Panel>
   );
 };
 

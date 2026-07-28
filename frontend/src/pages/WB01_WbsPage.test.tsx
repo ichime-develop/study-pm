@@ -204,6 +204,23 @@ describe("WbsPage", () => {
     });
   });
 
+  it("工数・進捗列を切り替えてガント表示領域を広げられる", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    const toggle = await screen.findByRole("button", { name: "工数・進捗を隠す" });
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("columnheader", { name: "予定(h)" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "問題を解くの進捗率" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "工数・進捗を表示" }));
+    expect(screen.getByRole("columnheader", { name: "予定(h)" })).toBeInTheDocument();
+  });
+
   it("LEAFタスクから学習記録を登録し、タスク詳細へ戻る", async () => {
     const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
     vi.stubGlobal("fetch", fetchMock);
