@@ -46,7 +46,7 @@ export const ProjectsPage = () => {
   return (
     <main className="app-page">
       <AppHeader account={accountQuery.data} title="プロジェクト一覧" />
-      <section className="summary-grid">
+      <section className="summary-grid projects-summary-grid">
         {studySummary.isLoading && <LoadingPanel message="学習サマリーを読み込んでいます。" />}
         {studySummary.isError && <ErrorPanel message={messageOf(studySummary.error)} onRetry={() => studySummary.refetch()} />}
         {studySummary.data !== undefined && (
@@ -58,14 +58,11 @@ export const ProjectsPage = () => {
         )}
       </section>
 
-      <section className="panel">
+      <section className="panel project-list-panel">
         <div className="panel-header">
-          <div>
-            <p className="eyebrow">PJ01</p>
-            <h2>プロジェクト</h2>
-          </div>
+          <h2>プロジェクト一覧</h2>
           <Link className="primary-link" to="/projects/new">
-            プロジェクトを作成
+            新規作成
           </Link>
         </div>
 
@@ -108,13 +105,23 @@ export const ProjectsPage = () => {
         {projectList.isError && <ErrorPanel message={messageOf(projectList.error)} onRetry={() => projectList.refetch()} />}
         {projectList.data !== undefined && (
           <>
-            <div className="project-list">
+            <section aria-label="プロジェクト一覧" className="project-list">
               {projectList.data.items.length === 0 ? (
                 <p className="empty-message">条件に一致するプロジェクトはありません。</p>
               ) : (
-                projectList.data.items.map((project) => <ProjectCard key={project.projectId} project={project} />)
+                <>
+                  <div aria-hidden="true" className="project-list-row project-list-header">
+                    <span>プロジェクト</span>
+                    <span>状態</span>
+                    <span>期間</span>
+                    <span>進捗</span>
+                    <span>工数</span>
+                    <span>警告</span>
+                  </div>
+                  {projectList.data.items.map((project) => <ProjectCard key={project.projectId} project={project} />)}
+                </>
               )}
-            </div>
+            </section>
             <p className="page-caption">
               {projectList.data.page.totalElements}件中 {projectList.data.items.length}件を表示
             </p>

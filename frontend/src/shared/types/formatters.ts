@@ -26,6 +26,15 @@ export const formatProjectStatus = (status: string): string => {
   }
 };
 
+export const formatMonthDay = (date: string): string => {
+  const [year, month, day] = date.split("-");
+  if (year === undefined || month === undefined || day === undefined) {
+    return date;
+  }
+
+  return `${Number(month)}/${Number(day)}`;
+};
+
 const trimTrailingZeros = (value: number, maximumFractionDigits: number): string =>
   new Intl.NumberFormat("ja-JP", {
     minimumFractionDigits: 0,
