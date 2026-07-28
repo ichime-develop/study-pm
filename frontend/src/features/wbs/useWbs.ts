@@ -53,7 +53,7 @@ export const useDeleteWbsTask = (projectId: string, taskId: string) => {
   });
 };
 
-const invalidateWbsRelatedQueries = async (
+export const invalidateWbsRelatedQueries = async (
   queryClient: ReturnType<typeof useQueryClient>,
   projectId: string,
   includesProjectDetail = false,

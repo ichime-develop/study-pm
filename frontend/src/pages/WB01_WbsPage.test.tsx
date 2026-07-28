@@ -175,6 +175,41 @@ describe("WbsPage", () => {
     });
   });
 
+  it("LEAFタスクから学習記録を登録し、タスク詳細へ戻る", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(screen.getByRole("button", { name: "学習記録を追加" }));
+    expect(screen.getByDisplayValue("問題を解く")).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/学習時間/), "1.5");
+    await userEvent.click(screen.getByRole("button", { name: "学習記録を登録" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:8080/api/projects/project-id/study-logs",
+        expect.objectContaining({
+          body: expect.stringContaining('"studyHours":1.5'),
+          method: "POST",
+        }),
+      );
+    });
+    expect(await screen.findByText("学習記録を登録しました。実績工数を更新しました。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "学習記録を追加" })).toBeInTheDocument();
+  });
+
+  it("親タスクには学習記録の登録導線を表示しない", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask()] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    expect(screen.queryByRole("button", { name: "学習記録を追加" })).not.toBeInTheDocument();
+  });
+
   it("親タスク削除の確認で配下LEAFを表示し、キャンセル時はAPIを呼ばない", async () => {
     const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
     vi.stubGlobal("fetch", fetchMock);
@@ -263,6 +298,40 @@ const fetchForWbsPage = ({ deleteError, initialTasks }: WbsFetchOptions) => {
       const task = body.taskType === "PARENT" ? parentTask(body.name) : leafTask(body.name);
       tasks = [...tasks, task];
       return Promise.resolve(jsonResponse(task, 201));
+    }
+    if (url.endsWith("/api/projects/project-id/study-logs") && init?.method === "POST") {
+      const body = JSON.parse(String(init.body)) as { studyHours: number; wbsTaskId: string };
+      tasks = tasks.map((task) =>
+        task.wbsTaskId === body.wbsTaskId
+          ? { ...task, actualHours: (task.actualHours ?? 0) + body.studyHours, hasStudyLogs: true }
+          : task,
+      );
+      return Promise.resolve(
+        jsonResponse(
+          {
+            studyLog: {
+              studyLogId: "study-log-id",
+              projectId: "project-id",
+              wbsTaskId: body.wbsTaskId,
+              wbsTaskName: "問題を解く",
+              studyDate: "2026-07-01",
+              studyHours: body.studyHours,
+              memo: null,
+              createdAt: "2026-07-01T00:00:00Z",
+              updatedAt: "2026-07-01T00:00:00Z",
+            },
+            summary: {
+              projectId: "project-id",
+              projectActualHours: body.studyHours,
+              wbsTaskId: body.wbsTaskId,
+              wbsTaskActualHours: body.studyHours,
+              previousWbsTaskId: null,
+              previousWbsTaskActualHours: null,
+            },
+          },
+          201,
+        ),
+      );
     }
     if (url.endsWith("/progress") && init?.method === "PATCH") {
       const taskId = url.split("/").at(-2);

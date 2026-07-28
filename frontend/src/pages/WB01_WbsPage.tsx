@@ -6,9 +6,11 @@ import { useCurrentAccount } from "../features/auth/useAuth";
 import { useProject } from "../features/projects/useProjects";
 import { WbsTaskCreatePanel } from "../features/wbs/WbsTaskCreatePanel";
 import { WbsTaskDetailPanel } from "../features/wbs/WbsTaskDetailPanel";
+import { WbsGanttChart } from "../features/wbs/WbsGanttChart";
 import { WbsTaskTable } from "../features/wbs/WbsTaskTable";
 import { useProjectWbs } from "../features/wbs/useWbs";
 import type { WbsTaskType } from "../features/wbs/wbsTypes";
+import { StudyLogCreatePanel } from "../features/studyLogs/StudyLogCreatePanel";
 import { isApiClientError } from "../shared/api/apiTypes";
 import { messageOf } from "../shared/api/errorMessages";
 import { AppHeader } from "../shared/components/AppHeader";
@@ -23,8 +25,7 @@ export const WbsPage = () => {
   const accountQuery = useCurrentAccount();
   const projectQuery = useProject(projectId);
   const wbsQuery = useProjectWbs(projectId);
-  const [createMode, setCreateMode] = useState<WbsTaskType | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<WbsPanel>({ kind: "none" });
   const errors = [projectQuery.error, wbsQuery.error];
   const isProjectNotFound = errors.some((error) => isApiClientError(error) && error.status === 404);
   const isLoading = accountQuery.isLoading || projectQuery.isPending || wbsQuery.isPending;
@@ -63,21 +64,29 @@ export const WbsPage = () => {
   const project = projectQuery.data;
   const wbs = wbsQuery.data;
   const hasNoWbsTasks = wbs.tasks.length === 0;
+  const selectedTaskId = panel.kind === "taskDetail" || panel.kind === "studyLogCreate" ? panel.taskId : null;
   const selectedTask = wbs.tasks.find((task) => task.wbsTaskId === selectedTaskId);
+  const isSidePanelOpen = panel.kind === "taskCreate" || selectedTask !== undefined;
 
   const handleCreate = (taskType: WbsTaskType) => {
-    setSelectedTaskId(null);
-    setCreateMode(taskType);
+    setPanel({ kind: "taskCreate", taskType });
   };
 
   const handleSelectTask = (taskId: string) => {
-    setCreateMode(null);
-    setSelectedTaskId(taskId);
+    setPanel({ kind: "taskDetail", taskId });
   };
 
   const handleTaskNotFound = () => {
-    setSelectedTaskId(null);
+    setPanel({ kind: "none" });
     void wbsQuery.refetch();
+  };
+
+  const handleStudyLogCreated = (taskId: string) => {
+    setPanel({
+      kind: "taskDetail",
+      taskId,
+      successMessage: "学習記録を登録しました。実績工数を更新しました。",
+    });
   };
 
   return (
@@ -111,34 +120,39 @@ export const WbsPage = () => {
           </div>
         </div>
 
-        <div className={createMode === null && selectedTask === undefined ? "wbs-workspace" : "wbs-workspace with-side-panel"}>
+        <div className={isSidePanelOpen ? "wbs-workspace with-side-panel" : "wbs-workspace"}>
           <section className="wbs-table-panel" aria-label="WBSタスク一覧">
             <WbsTaskTable onCreate={handleCreate} onSelect={(task) => handleSelectTask(task.wbsTaskId)} tasks={wbs.tasks} />
-            <section className="gantt-placeholder" aria-labelledby="gantt-placeholder-title">
-              <h3 id="gantt-placeholder-title">ガントチャート</h3>
-              <p>
-                表示期間: {wbs.ganttStartDate} - {wbs.ganttEndDate}
-              </p>
-              <p>タスクの予定期間を日付軸へ表示するガントバーは、次のスライスで追加します。</p>
-            </section>
+            <WbsGanttChart endDate={wbs.ganttEndDate} startDate={wbs.ganttStartDate} tasks={wbs.tasks} />
           </section>
 
-          {createMode !== null && (
+          {panel.kind === "taskCreate" && (
             <WbsTaskCreatePanel
-              mode={createMode}
-              onClose={() => setCreateMode(null)}
+              mode={panel.taskType}
+              onClose={() => setPanel({ kind: "none" })}
               projectId={project.projectId}
               tasks={wbs.tasks}
             />
           )}
-          {selectedTask !== undefined && (
+          {panel.kind === "taskDetail" && selectedTask !== undefined && (
             <WbsTaskDetailPanel
               key={selectedTask.wbsTaskId}
-              onClose={() => setSelectedTaskId(null)}
+              onClose={() => setPanel({ kind: "none" })}
+              onCreateStudyLog={() => setPanel({ kind: "studyLogCreate", taskId: selectedTask.wbsTaskId })}
               onTaskNotFound={handleTaskNotFound}
               projectId={project.projectId}
+              successMessage={panel.successMessage}
               task={selectedTask}
               tasks={wbs.tasks}
+            />
+          )}
+          {panel.kind === "studyLogCreate" && selectedTask !== undefined && selectedTask.taskType === "LEAF" && (
+            <StudyLogCreatePanel
+              onCancel={() => setPanel({ kind: "taskDetail", taskId: selectedTask.wbsTaskId })}
+              onCreated={() => handleStudyLogCreated(selectedTask.wbsTaskId)}
+              projectId={project.projectId}
+              taskId={selectedTask.wbsTaskId}
+              taskName={selectedTask.name}
             />
           )}
         </div>
@@ -146,3 +160,9 @@ export const WbsPage = () => {
     </main>
   );
 };
+
+type WbsPanel =
+  | { kind: "none" }
+  | { kind: "taskCreate"; taskType: WbsTaskType }
+  | { kind: "taskDetail"; successMessage?: string; taskId: string }
+  | { kind: "studyLogCreate"; taskId: string };

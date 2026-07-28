@@ -1,5 +1,5 @@
 // AU01 アカウント登録画面。登録成功時にプロジェクト一覧へ遷移する。
-import { FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useSignup } from "../features/auth/useAuth";
@@ -14,7 +14,7 @@ export const SignupPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     signup.mutate(
       { displayName, email, password },

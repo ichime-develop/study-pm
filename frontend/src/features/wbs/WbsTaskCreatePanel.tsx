@@ -1,5 +1,5 @@
 // 親タスクまたはLEAFタスクを右サイドパネルから作成する。
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
 import { FieldError } from "../../shared/components/FieldError";
@@ -25,7 +25,7 @@ export const WbsTaskCreatePanel = ({ mode, onClose, projectId, tasks }: WbsTaskC
   const parentTasks = tasks.filter((task) => task.taskType === "PARENT");
   const isParent = mode === "PARENT";
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedName = name.trim();

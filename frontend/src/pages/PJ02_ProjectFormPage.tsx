@@ -1,5 +1,5 @@
 // PJ02のプロジェクト作成・編集フォームと、保存後のPJ03遷移を提供する。
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type SubmitEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -69,7 +69,7 @@ export const ProjectFormPage = () => {
     return undefined;
   }, [clientError, mutationError]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (values.startDate > values.targetEndDate) {

@@ -1,5 +1,5 @@
 // 選択したWBSタスクの基本・計画・進捗更新と削除操作を右サイドパネルで提供する。
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 
 import { isApiClientError } from "../../shared/api/apiTypes";
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
@@ -10,8 +10,10 @@ import type { WbsTask, WbsTaskUpdateRequest } from "./wbsTypes";
 
 type WbsTaskDetailPanelProps = {
   onClose: () => void;
+  onCreateStudyLog: () => void;
   onTaskNotFound: () => void;
   projectId: string;
+  successMessage?: string;
   task: WbsTask;
   tasks: WbsTask[];
 };
@@ -20,8 +22,10 @@ const progressRates = Array.from({ length: 11 }, (_, index) => index * 10);
 
 export const WbsTaskDetailPanel = ({
   onClose,
+  onCreateStudyLog,
   onTaskNotFound,
   projectId,
+  successMessage,
   task,
   tasks,
 }: WbsTaskDetailPanelProps) => {
@@ -58,7 +62,7 @@ export const WbsTaskDetailPanel = ({
     }
   };
 
-  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+  const handleSave = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const request = buildUpdateRequest({
       description,
@@ -107,6 +111,7 @@ export const WbsTaskDetailPanel = ({
       </div>
 
       <form className="form" noValidate onSubmit={handleSave}>
+        {successMessage !== undefined && <p className="notice notice-success">{successMessage}</p>}
         <label>
           {isParent ? "親タスク名" : "タスク名"} <RequiredMark />
           <input
@@ -211,6 +216,9 @@ export const WbsTaskDetailPanel = ({
             </button>
           </div>
           {progressError !== undefined && <p className="error-text form-message">{progressError}</p>}
+          <button className="secondary-button" disabled={isSaving} onClick={onCreateStudyLog} type="button">
+            学習記録を追加
+          </button>
         </section>
       )}
 
