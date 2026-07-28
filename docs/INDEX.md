@@ -51,6 +51,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [ローカル起動と画面確認](setup/run-local.md) - PostgreSQL、バックエンド、frontend、UIモックの起動と画面確認の手順をまとめる。
 - [フロントエンドセットアップ](setup/frontend.md) - フロントエンド開発環境の構築手順をまとめる。
 - [GitHubセットアップ](setup/github.md) - GitHub利用時の初期設定や運用メモをまとめる。
+- [リリース前チェックリスト](setup/release-checklist.md) - 外部公開前のセキュリティ、設定、運用、動作確認を記録する。
 
 ## 7. 開発方針
 
