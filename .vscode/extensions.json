@@ -1,0 +1,4 @@
+{
+  // 初回起動時にインストールを促すための推奨拡張。
+  "recommendations": ["dbaeumer.vscode-eslint"]
+}

@@ -1,4 +1,17 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "disabled"
+    "java.compile.nullAnalysis.mode": "disabled",
+    "eslint.workingDirectories": [
+        {
+            "directory": "frontend",
+            "changeProcessCWD": true
+        }
+    ],
+    "eslint.validate": [
+        "typescript",
+        "typescriptreact"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    }
 }

@@ -95,9 +95,9 @@
       }
     },
     {
-      "label": "frontend検証 (typecheck+test+build)",
+      "label": "frontend検証 (lint+typecheck+test+build)",
       "type": "shell",
-      "command": "npm run typecheck && npm run test && npm run build",
+      "command": "npm run lint && npm run typecheck && npm run test && npm run build",
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       },

@@ -59,3 +59,4 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [AI支援開発](development/ai-assisted-development.md) - AIを使った開発時の役割分担と注意点を定義する。
 - [仕様駆動開発](development/specification-driven-development.md) - 仕様駆動で進めるための考え方と成果物の扱いを定義する。
 - [コーディング規約](development/coding-guidelines.md) - 実装時の命名、コメント、クラス設計、メソッド設計の判断基準を定義する。
+- [CIとブランチ運用方針](development/ci-and-branch-policy.md) - CIの検証内容とmain保護、ブランチ運用の方針を定義する。
