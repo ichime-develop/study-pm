@@ -3,6 +3,7 @@ import { type SubmitEvent, useState } from "react";
 
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
 import { FieldError } from "../../shared/components/FieldError";
+import { currentJstDate } from "../../shared/time/jstDate";
 import { useCreateStudyLog } from "./useStudyLogs";
 import type { StudyLogCreateRequest } from "./studyLogTypes";
 
@@ -145,21 +146,6 @@ const buildStudyLogCreateRequest = ({
     studyHours: parsedStudyHours,
     memo: emptyToNull(memo),
   };
-};
-
-const currentJstDate = (): string => {
-  const dateParts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-  })
-    .formatToParts(new Date())
-    .reduce<Record<string, string>>((parts, part) => {
-      parts[part.type] = part.value;
-      return parts;
-    }, {});
-  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 };
 
 const emptyToNull = (value: string): string | null => {

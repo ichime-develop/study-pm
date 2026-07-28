@@ -156,6 +156,7 @@ React 19 + TypeScript + TanStack Query + React Router + 独自CSSの前提で、
 - 型・インターフェースはPascalCaseにする。`any` は避け、不明な値は `unknown` と絞り込みで扱う。
 - booleanはバックエンドと同様、`is...` / `has...` / `can...` を優先する。
 - TanStack Queryの `queryKey` は `["リソース名", ...識別子, "サブリソース"]` を基本形にする。
+- CSSの文字サイズ、行間、フォントは `frontend/src/shared/styles/global.css` の共通トークンを使う。通常画面で画面固有の直接的なpx指定はしない。認証画面など、独自UIで必要な例外も、専用トークンを追加して扱う。
 
 例:
 

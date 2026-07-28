@@ -6,8 +6,7 @@ import { useCurrentAccount } from "../features/auth/useAuth";
 import { useProject } from "../features/projects/useProjects";
 import { WbsTaskCreatePanel } from "../features/wbs/WbsTaskCreatePanel";
 import { WbsTaskDetailPanel } from "../features/wbs/WbsTaskDetailPanel";
-import { WbsGanttChart } from "../features/wbs/WbsGanttChart";
-import { WbsTaskTable } from "../features/wbs/WbsTaskTable";
+import { WbsGanttBoard } from "../features/wbs/WbsGanttBoard";
 import { useProjectWbs } from "../features/wbs/useWbs";
 import type { WbsTaskType } from "../features/wbs/wbsTypes";
 import { StudyLogCreatePanel } from "../features/studyLogs/StudyLogCreatePanel";
@@ -17,8 +16,6 @@ import { AppHeader } from "../shared/components/AppHeader";
 import { ProjectNav } from "../shared/components/CM02_ProjectNav";
 import { ErrorPanel } from "../shared/components/ErrorPanel";
 import { LoadingPanel } from "../shared/components/LoadingPanel";
-import { StatCard } from "../shared/components/StatCard";
-import { formatHours, formatProgressRate } from "../shared/types/formatters";
 
 export const WbsPage = () => {
   const { id: projectId } = useParams<{ id: string }>();
@@ -94,13 +91,6 @@ export const WbsPage = () => {
       <AppHeader account={accountQuery.data} title="WBS・ガント" />
       <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
 
-      <section className="summary-grid wbs-summary-grid">
-        <StatCard label="予定工数" value={formatHours(wbs.plannedHours)} />
-        <StatCard label="実績工数" value={formatHours(wbs.actualHours)} />
-        <StatCard label="進捗率" value={formatProgressRate(wbs.progressRate)} />
-        <StatCard label="遅延" value={wbs.hasDelay ? "あり" : "なし"} />
-      </section>
-
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -121,10 +111,15 @@ export const WbsPage = () => {
         </div>
 
         <div className={isSidePanelOpen ? "wbs-workspace with-side-panel" : "wbs-workspace"}>
-          <section className="wbs-table-panel" aria-label="WBSタスク一覧">
-            <WbsTaskTable onCreate={handleCreate} onSelect={(task) => handleSelectTask(task.wbsTaskId)} tasks={wbs.tasks} />
-            <WbsGanttChart endDate={wbs.ganttEndDate} startDate={wbs.ganttStartDate} tasks={wbs.tasks} />
-          </section>
+          <WbsGanttBoard
+            endDate={wbs.ganttEndDate}
+            onCreate={handleCreate}
+            onSelect={(task) => handleSelectTask(task.wbsTaskId)}
+            projectId={project.projectId}
+            selectedTaskId={selectedTaskId}
+            startDate={wbs.ganttStartDate}
+            tasks={wbs.tasks}
+          />
 
           {panel.kind === "taskCreate" && (
             <WbsTaskCreatePanel

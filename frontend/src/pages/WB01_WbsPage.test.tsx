@@ -27,7 +27,7 @@ describe("WbsPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /^追加$/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "第1章" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "第1章の詳細を開く" })).toBeInTheDocument();
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/api/projects/project-id/wbs-tasks",
@@ -52,7 +52,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await screen.findByRole("button", { name: "第1章" });
+    await screen.findByRole("button", { name: "第1章の詳細を開く" });
     await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
     await userEvent.type(screen.getByLabelText(/タスク名/), "問題を解く");
     await userEvent.selectOptions(screen.getByLabelText(/親タスク/), "parent-id");
@@ -102,7 +102,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解くの詳細を開く" }));
     const nameInput = screen.getByLabelText(/^タスク名/);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "演習問題を解く");
@@ -132,7 +132,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    await userEvent.click(await screen.findByRole("button", { name: "第1章の詳細を開く" }));
     const nameInput = screen.getByLabelText(/^親タスク名/);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "第2章");
@@ -157,15 +157,44 @@ describe("WbsPage", () => {
     expect(screen.queryByLabelText("進捗率")).not.toBeInTheDocument();
   });
 
-  it("LEAFタスクの進捗率を10%刻みで更新する", async () => {
+  it("ガント表の予定工数編集は完全更新リクエストを送信する", async () => {
     const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
     vi.stubGlobal("fetch", fetchMock);
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "進捗率" }), "60");
-    await userEvent.click(screen.getByRole("button", { name: "進捗を更新" }));
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解くの予定工数を編集" }));
+    const editor = screen.getByRole("dialog", { name: "問題を解くの予定工数を編集" });
+    const hoursInput = within(editor).getByLabelText("予定工数");
+    await userEvent.clear(hoursInput);
+    await userEvent.type(hoursInput, "3.5");
+    await userEvent.click(within(editor).getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:8080/api/wbs-tasks/leaf-id",
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: "問題を解く",
+            description: null,
+            parentTaskId: "parent-id",
+            plannedStartDate: "2026-07-01",
+            plannedEndDate: "2026-07-03",
+            plannedHours: 3.5,
+          }),
+          method: "PATCH",
+        }),
+      );
+    });
+  });
+
+  it("LEAFタスクの進捗率をガント表で10%刻み更新する", async () => {
+    const fetchMock = fetchForWbsPage({ initialTasks: [parentTask(), leafTask("問題を解く")] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWbsPage();
+
+    await userEvent.selectOptions(await screen.findByRole("combobox", { name: "問題を解くの進捗率" }), "60");
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -181,7 +210,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解くの詳細を開く" }));
     await userEvent.click(screen.getByRole("button", { name: "学習記録を追加" }));
     expect(screen.getByDisplayValue("問題を解く")).toBeDisabled();
     await userEvent.type(screen.getByLabelText(/学習時間/), "1.5");
@@ -193,9 +222,10 @@ describe("WbsPage", () => {
         expect.objectContaining({
           body: expect.stringContaining('"studyHours":1.5'),
           method: "POST",
-        }),
-      );
-    });
+      }),
+    );
+    expect(screen.queryByRole("button", { name: "進捗を更新" })).not.toBeInTheDocument();
+  });
     expect(await screen.findByText("学習記録を登録しました。実績工数を更新しました。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "学習記録を追加" })).toBeInTheDocument();
   });
@@ -206,7 +236,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    await userEvent.click(await screen.findByRole("button", { name: "第1章の詳細を開く" }));
     expect(screen.queryByRole("button", { name: "学習記録を追加" })).not.toBeInTheDocument();
   });
 
@@ -216,7 +246,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "第1章" }));
+    await userEvent.click(await screen.findByRole("button", { name: "第1章の詳細を開く" }));
     await userEvent.click(screen.getByRole("button", { name: "削除" }));
 
     expect(screen.getByRole("dialog")).toHaveTextContent("問題を解く");
@@ -230,12 +260,12 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解くの詳細を開く" }));
     await userEvent.click(screen.getByRole("button", { name: "削除" }));
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "削除する" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "問題を解く" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "問題を解くの詳細を開く" })).not.toBeInTheDocument();
     });
   });
 
@@ -248,7 +278,7 @@ describe("WbsPage", () => {
 
     renderWbsPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "問題を解く" }));
+    await userEvent.click(await screen.findByRole("button", { name: "問題を解くの詳細を開く" }));
     await userEvent.click(screen.getByRole("button", { name: "削除" }));
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "削除する" }));
 

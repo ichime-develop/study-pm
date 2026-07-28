@@ -5,8 +5,9 @@ import { isApiClientError } from "../../shared/api/apiTypes";
 import { fieldMessageOf, messageOf } from "../../shared/api/errorMessages";
 import { FieldError } from "../../shared/components/FieldError";
 import { WbsTaskDeleteModal } from "./WbsTaskDeleteModal";
-import { useDeleteWbsTask, useUpdateWbsProgress, useUpdateWbsTask } from "./useWbs";
-import type { WbsTask, WbsTaskUpdateRequest } from "./wbsTypes";
+import { useDeleteWbsTask, useUpdateWbsTask } from "./useWbs";
+import { buildWbsTaskUpdateRequest } from "./wbsTaskUpdateRequest";
+import type { WbsTask } from "./wbsTypes";
 
 type WbsTaskDetailPanelProps = {
   onClose: () => void;
@@ -18,8 +19,6 @@ type WbsTaskDetailPanelProps = {
   tasks: WbsTask[];
 };
 
-const progressRates = Array.from({ length: 11 }, (_, index) => index * 10);
-
 export const WbsTaskDetailPanel = ({
   onClose,
   onCreateStudyLog,
@@ -29,8 +28,7 @@ export const WbsTaskDetailPanel = ({
   task,
   tasks,
 }: WbsTaskDetailPanelProps) => {
-  const updateWbsTask = useUpdateWbsTask(projectId, task.wbsTaskId);
-  const updateWbsProgress = useUpdateWbsProgress(projectId, task.wbsTaskId);
+  const updateWbsTask = useUpdateWbsTask(projectId);
   const deleteWbsTask = useDeleteWbsTask(projectId, task.wbsTaskId);
   const [name, setName] = useState(task.name);
   const [description, setDescription] = useState(task.description ?? "");
@@ -38,13 +36,12 @@ export const WbsTaskDetailPanel = ({
   const [plannedStartDate, setPlannedStartDate] = useState(task.plannedStartDate ?? "");
   const [plannedEndDate, setPlannedEndDate] = useState(task.plannedEndDate ?? "");
   const [plannedHours, setPlannedHours] = useState(task.plannedHours?.toString() ?? "");
-  const [progressRate, setProgressRate] = useState(task.progressRate?.toString() ?? "0");
   const [clientError, setClientError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const isParent = task.taskType === "PARENT";
   const parentTasks = tasks.filter((candidate) => candidate.taskType === "PARENT");
   const childTasks = tasks.filter((candidate) => candidate.parentTaskId === task.wbsTaskId);
-  const isSaving = updateWbsTask.isPending || updateWbsProgress.isPending || deleteWbsTask.isPending;
+  const isSaving = updateWbsTask.isPending || deleteWbsTask.isPending;
 
   useEffect(() => {
     setName(task.name);
@@ -53,7 +50,6 @@ export const WbsTaskDetailPanel = ({
     setPlannedStartDate(task.plannedStartDate ?? "");
     setPlannedEndDate(task.plannedEndDate ?? "");
     setPlannedHours(task.plannedHours?.toString() ?? "");
-    setProgressRate(task.progressRate?.toString() ?? "0");
   }, [task]);
 
   const handleTaskNotFound = (error: unknown) => {
@@ -64,24 +60,20 @@ export const WbsTaskDetailPanel = ({
 
   const handleSave = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const request = buildUpdateRequest({
+    const result = buildWbsTaskUpdateRequest({
       description,
-      isParent,
       name,
       parentTaskId,
       plannedEndDate,
       plannedHours,
       plannedStartDate,
-      setClientError,
+      task,
     });
-    if (request === undefined) {
+    if (result.error !== undefined) {
+      setClientError(result.error);
       return;
     }
-    updateWbsTask.mutate(request, { onError: handleTaskNotFound });
-  };
-
-  const handleProgressSave = () => {
-    updateWbsProgress.mutate({ progressRate: Number(progressRate) }, { onError: handleTaskNotFound });
+    updateWbsTask.mutate({ request: result.request, taskId: task.wbsTaskId }, { onError: handleTaskNotFound });
   };
 
   const handleDelete = () => {
@@ -96,7 +88,6 @@ export const WbsTaskDetailPanel = ({
     setter(value);
   };
   const formError = clientError ?? (updateWbsTask.error === null ? undefined : messageOf(updateWbsTask.error));
-  const progressError = updateWbsProgress.error === null ? undefined : messageOf(updateWbsProgress.error);
 
   return (
     <aside className="wbs-task-panel" aria-label={`${task.name}を編集`}>
@@ -200,22 +191,7 @@ export const WbsTaskDetailPanel = ({
       </form>
 
       {!isParent && (
-        <section className="wbs-progress-section" aria-labelledby="wbs-progress-title">
-          <h3 id="wbs-progress-title">進捗率</h3>
-          <p className="field-note">進捗率を変更した場合だけ履歴を追加します。</p>
-          <div className="progress-update-row">
-            <select aria-label="進捗率" onChange={(event) => setProgressRate(event.target.value)} value={progressRate}>
-              {progressRates.map((value) => (
-                <option key={value} value={value}>
-                  {value}%
-                </option>
-              ))}
-            </select>
-            <button className="secondary-button" disabled={isSaving} onClick={handleProgressSave} type="button">
-              {updateWbsProgress.isPending ? "更新しています..." : "進捗を更新"}
-            </button>
-          </div>
-          {progressError !== undefined && <p className="error-text form-message">{progressError}</p>}
+        <section className="wbs-progress-section" aria-label="学習記録">
           <button className="secondary-button" disabled={isSaving} onClick={onCreateStudyLog} type="button">
             学習記録を追加
           </button>
@@ -235,72 +211,5 @@ export const WbsTaskDetailPanel = ({
     </aside>
   );
 };
-
-type BuildUpdateRequestInput = {
-  description: string;
-  isParent: boolean;
-  name: string;
-  parentTaskId: string;
-  plannedEndDate: string;
-  plannedHours: string;
-  plannedStartDate: string;
-  setClientError: (message: string | null) => void;
-};
-
-const buildUpdateRequest = ({
-  description,
-  isParent,
-  name,
-  parentTaskId,
-  plannedEndDate,
-  plannedHours,
-  plannedStartDate,
-  setClientError,
-}: BuildUpdateRequestInput): WbsTaskUpdateRequest | undefined => {
-  const trimmedName = name.trim();
-  if (trimmedName.length === 0) {
-    setClientError("名称を入力してください。");
-    return undefined;
-  }
-  if (isParent) {
-    return {
-      name: trimmedName,
-      description: emptyToNull(description),
-      parentTaskId: null,
-      plannedStartDate: null,
-      plannedEndDate: null,
-      plannedHours: null,
-    };
-  }
-
-  const hours = Number(plannedHours);
-  if (!isValidPlannedHours(hours)) {
-    setClientError("予定工数は0.25時間以上9999.99時間以下の0.25時間刻みで入力してください。");
-    return undefined;
-  }
-  if (plannedStartDate !== "" && plannedEndDate !== "" && plannedStartDate > plannedEndDate) {
-    setClientError("予定開始日は予定終了日以前にしてください。");
-    return undefined;
-  }
-  return {
-    name: trimmedName,
-    description: emptyToNull(description),
-    parentTaskId: emptyToNull(parentTaskId),
-    plannedStartDate: emptyToNull(plannedStartDate),
-    plannedEndDate: emptyToNull(plannedEndDate),
-    plannedHours: hours,
-  };
-};
-
-const emptyToNull = (value: string): string | null => {
-  const trimmedValue = value.trim();
-  return trimmedValue.length === 0 ? null : trimmedValue;
-};
-
-const isValidPlannedHours = (hours: number): boolean =>
-  Number.isFinite(hours) &&
-  hours >= 0.25 &&
-  hours <= 9999.99 &&
-  Math.abs(hours * 4 - Math.round(hours * 4)) < 1e-9;
 
 const RequiredMark = () => <span aria-label="必須" className="required-mark">*</span>;

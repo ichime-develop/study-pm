@@ -5,6 +5,16 @@ import { projectQueryKeys } from "../projects/projectsApi";
 import { wbsApi, wbsQueryKeys } from "./wbsApi";
 import type { WbsProgressUpdateRequest, WbsTaskCreateRequest, WbsTaskUpdateRequest } from "./wbsTypes";
 
+type WbsTaskUpdateVariables = {
+  request: WbsTaskUpdateRequest;
+  taskId: string;
+};
+
+type WbsProgressUpdateVariables = {
+  request: WbsProgressUpdateRequest;
+  taskId: string;
+};
+
 export const useProjectWbs = (projectId: string | undefined) =>
   useQuery({
     enabled: projectId !== undefined,
@@ -26,20 +36,20 @@ export const useCreateWbsTask = (projectId: string) => {
   });
 };
 
-export const useUpdateWbsTask = (projectId: string, taskId: string) => {
+export const useUpdateWbsTask = (projectId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (request: WbsTaskUpdateRequest) => wbsApi.update(taskId, request),
+    mutationFn: ({ request, taskId }: WbsTaskUpdateVariables) => wbsApi.update(taskId, request),
     onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId),
   });
 };
 
-export const useUpdateWbsProgress = (projectId: string, taskId: string) => {
+export const useUpdateWbsProgress = (projectId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (request: WbsProgressUpdateRequest) => wbsApi.updateProgress(taskId, request),
+    mutationFn: ({ request, taskId }: WbsProgressUpdateVariables) => wbsApi.updateProgress(taskId, request),
     onSuccess: () => invalidateWbsRelatedQueries(queryClient, projectId, true),
   });
 };
