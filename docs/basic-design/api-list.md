@@ -124,7 +124,7 @@ API IDは画面IDとは別系統で採番する。
 | API-PJ-02 | GET | `/api/me/study-summary` | プロジェクト一覧上部の学習サマリー取得 | PJ01 | 1 | 必須 | なし | 連続学習日数、総学習時間、進行中件数 | HME-02, HME-03, HME-04, 10.11 |
 | API-PJ-03 | POST | `/api/projects` | プロジェクト作成 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate | 作成済みプロジェクト概要 | PRJ-01, PRJ-02, PRJ-14, PRJ-15 |
 | API-PJ-04 | GET | `/api/projects/{projectId}` | プロジェクト詳細取得 | PJ02, PJ03, CM02 | 1 | 必須 | projectId | プロジェクト基本情報 | PRJ-07, SCR.PJ03-01 |
-| API-PJ-05 | PATCH | `/api/projects/{projectId}` | プロジェクト基本情報更新 | PJ02 | 1 | 必須 | name, description, startDate, targetEndDate, status | 更新後プロジェクト概要 | PRJ-03, PRJ-20, PRJ-21, PRJ-22, 10.1, 10.4 |
+| API-PJ-05 | PATCH | `/api/projects/{projectId}` | プロジェクト基本情報更新 | PJ02, CM02 | 1 | 必須 | name, description, startDate, targetEndDate, status | 更新後プロジェクト概要 | PRJ-03, PRJ-20, PRJ-21, PRJ-22, 10.1, 10.4 |
 | API-PJ-06 | GET | `/api/projects/{projectId}/overview` | プロジェクト概要用サマリー取得 | PJ03 | 1 | 必須 | projectId | 進捗率、予定工数、残予定工数、プロジェクト学習時間、プロジェクト連続日数、警告、未完了タスク | PRJ-18, PRJ-27, PRJ-28, SCR.PJ03-02, SCR.PJ03-10, SCR.PJ03-23 |
 | API-PJ-07 | DELETE | `/api/projects/{projectId}` | プロジェクト削除 | PJ03 | 1 | 必須 | projectId | 成功結果 | PRJ-09, PRJ-10, PRJ-11, PRJ-12, PRJ-23, PRJ-24, PRJ-25, 10.1 |
 

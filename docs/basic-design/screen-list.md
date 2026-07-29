@@ -51,7 +51,7 @@ related: docs/basic-design/screen-flow.md, docs/requirements/details/data-screen
 | 部品ID | 部品名 | Reactファイル名 | 使用画面 | 備考 |
 | --- | --- | --- | --- | --- |
 | CM01 | アプリヘッダー | `CM01_AppHeader.tsx` | ログイン後の全画面 | 画面タイトル、ログアウト導線 |
-| CM02 | プロジェクト内ナビゲーション | `CM02_ProjectNav.tsx` | PJ03、WB01、SL01、AN01 | プロジェクト名・状態・期間の表示と、概要 / WBS / 学習記録 / 進捗分析のタブ切り替え |
+| CM02 | プロジェクト内ナビゲーション | `CM02_ProjectNav.tsx` | PJ03、WB01、SL01、AN01 | プロジェクト名・状態・期間の表示、状態変更モーダル、概要 / WBS / 学習記録 / 進捗分析のタブ切り替え |
 | CM03 | 作成フローステッパー | `CM03_FlowStepper.tsx` | PJ02、AI01、AI02、AI03 | 作成フローの現在ステップ表示 |
 | CM04 | 認証レイアウト | `CM04_AuthLayout.tsx` | AU01、AU02 | 左のヒーローパネルと右の入力フォームの2カラム構成 |
 

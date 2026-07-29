@@ -376,6 +376,18 @@ export const tasks: WbsTask[] = [
     progress: 0,
     hasLogs: false,
   },
+  {
+    id: "pm-evm-basics",
+    projectId: "pm-basic",
+    parentId: null,
+    name: "EVMの基本を整理する",
+    description: "PV、EV、ACと各指標の意味を確認する。",
+    plannedStartDate: "2026-05-20",
+    plannedEndDate: "2026-05-30",
+    plannedHours: 4,
+    progress: 100,
+    hasLogs: true,
+  },
 ];
 
 export const studyLogs: StudyLog[] = [
@@ -405,6 +417,15 @@ export const studyLogs: StudyLog[] = [
     hours: 1.25,
     memo: "章末問題を半分解いた。switch式を再確認する。",
     updatedAt: "2026-06-05T08:45:00+09:00",
+  },
+  {
+    id: "log-pm-1",
+    projectId: "pm-basic",
+    taskId: "pm-evm-basics",
+    studyDate: "2026-05-30",
+    hours: 4,
+    memo: "EVMの基本指標とバーンダウンの見方を整理した。",
+    updatedAt: "2026-05-30T19:00:00+09:00",
   },
 ];
 

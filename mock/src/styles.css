@@ -1968,6 +1968,81 @@ button {
   color: #15803d;
 }
 
+.status-change-button {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.status-change-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.status-modal-backdrop {
+  align-items: center;
+  background: rgba(31, 41, 55, 0.45);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 20;
+}
+
+.status-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  max-width: 460px;
+  padding: 24px;
+  width: 100%;
+}
+
+.status-modal h2,
+.status-modal p {
+  margin: 0;
+}
+
+.status-modal fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.status-modal legend {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.status-option-list {
+  display: grid;
+  gap: 8px;
+}
+
+.status-option-list label {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.status-option-list label:has(input:checked) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.status-option-list label.is-disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
 .progress-wrap {
   align-items: center;
   display: flex;

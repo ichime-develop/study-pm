@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   aiPlanTasks,
   manualProject,
@@ -59,24 +59,30 @@ const projectScreens: Screen[] = [
   "progressAnalysis",
 ];
 
+const ProjectStatusUpdateContext = createContext<(projectId: string, status: Project["status"]) => void>(() => undefined);
+
 export const App = () => {
   const [screen, setScreen] = useState<Screen>("projects");
   const [aiPlanMode, setAiPlanMode] = useState<"simple" | "toc">("simple");
   const [selectedProjectId, setSelectedProjectId] = useState("java-silver");
   const [manualProjectCreated, setManualProjectCreated] = useState(false);
-  const allProjects = manualProjectCreated ? [...projects, manualProject] : projects;
+  const [projectStatuses, setProjectStatuses] = useState<Partial<Record<string, Project["status"]>>>({});
+  const sourceProjects = manualProjectCreated ? [...projects, manualProject] : projects;
+  const allProjects = sourceProjects.map((project) => ({
+    ...project,
+    status: projectStatuses[project.id] ?? project.status,
+  }));
   const selectedProject = allProjects.find((project) => project.id === selectedProjectId) ?? projects[0];
 
-  const visibleProjects = useMemo(
-    () =>
-      [...allProjects]
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-    [manualProjectCreated],
-  );
+  const visibleProjects = [...allProjects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   const openProject = (projectId: string, nextScreen: Screen = "projectDetail") => {
     setSelectedProjectId(projectId);
     setScreen(nextScreen);
+  };
+
+  const updateProjectStatus = (projectId: string, status: Project["status"]) => {
+    setProjectStatuses((current) => ({ ...current, [projectId]: status }));
   };
 
   return (
@@ -123,52 +129,54 @@ export const App = () => {
         </div>
       </aside>
 
-      <main className="main-content">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">PC Web UIモック</p>
-            <h1>{screenLabels[screen]}</h1>
-          </div>
-          <div className="topbar-actions">
-            <button className="secondary-button" onClick={() => setScreen("login")} type="button">
-              ログアウト例
-            </button>
-          </div>
-        </header>
+      <ProjectStatusUpdateContext.Provider value={updateProjectStatus}>
+        <main className="main-content">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">PC Web UIモック</p>
+              <h1>{screenLabels[screen]}</h1>
+            </div>
+            <div className="topbar-actions">
+              <button className="secondary-button" onClick={() => setScreen("login")} type="button">
+                ログアウト例
+              </button>
+            </div>
+          </header>
 
-        {screen === "login" && <LoginScreen onMove={setScreen} />}
-        {screen === "signup" && <SignupScreen onMove={setScreen} />}
-        {screen === "projects" && (
-          <ProjectList projects={visibleProjects} onMove={setScreen} onOpenProject={openProject} />
-        )}
-        {screen === "projectDetail" && (
-          <ProjectOverview project={selectedProject} onMove={setScreen} />
-        )}
-        {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} onMove={setScreen} />}
-        {screen === "projectForm" && (
-          <ProjectForm
-            onCancel={() => setScreen("projects")}
-            onCreate={() => {
-              setManualProjectCreated(true);
-              setSelectedProjectId(manualProject.id);
-              setScreen("projectDetail");
-            }}
-          />
-        )}
-        {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
-        {screen === "studyLogs" && <StudyLogList project={selectedProject} onMove={setScreen} />}
-        {screen === "aiPlanMethod" && (
-          <AiPlanMethod
-            onBack={() => setScreen("projects")}
-            onSelect={(mode) => {
-              setAiPlanMode(mode);
-              setScreen("aiPlanInput");
-            }}
-          />
-        )}
-        {screen === "aiPlanInput" && <AiPlanInput mode={aiPlanMode} onMove={setScreen} />}
-        {screen === "aiPlanResult" && <AiPlanResult onMove={setScreen} />}
-      </main>
+          {screen === "login" && <LoginScreen onMove={setScreen} />}
+          {screen === "signup" && <SignupScreen onMove={setScreen} />}
+          {screen === "projects" && (
+            <ProjectList projects={visibleProjects} onMove={setScreen} onOpenProject={openProject} />
+          )}
+          {screen === "projectDetail" && (
+            <ProjectOverview project={selectedProject} onMove={setScreen} />
+          )}
+          {screen === "progressAnalysis" && <ProgressAnalysis project={selectedProject} onMove={setScreen} />}
+          {screen === "projectForm" && (
+            <ProjectForm
+              onCancel={() => setScreen("projects")}
+              onCreate={() => {
+                setManualProjectCreated(true);
+                setSelectedProjectId(manualProject.id);
+                setScreen("projectDetail");
+              }}
+            />
+          )}
+          {screen === "wbs" && <WbsEditor project={selectedProject} onMove={setScreen} />}
+          {screen === "studyLogs" && <StudyLogList project={selectedProject} onMove={setScreen} />}
+          {screen === "aiPlanMethod" && (
+            <AiPlanMethod
+              onBack={() => setScreen("projects")}
+              onSelect={(mode) => {
+                setAiPlanMode(mode);
+                setScreen("aiPlanInput");
+              }}
+            />
+          )}
+          {screen === "aiPlanInput" && <AiPlanInput mode={aiPlanMode} onMove={setScreen} />}
+          {screen === "aiPlanResult" && <AiPlanResult onMove={setScreen} />}
+        </main>
+      </ProjectStatusUpdateContext.Provider>
     </div>
   );
 };
@@ -548,7 +556,7 @@ const EmptyProjectOverview = ({
           <Metric label="進捗率" value="-" />
           <Metric label="予定 / 実績" value="- / 0h" />
           <Metric label="WBSタスク" value="0件" />
-          <Metric label="プロジェクト状態" value="未着手" />
+          <Metric label="プロジェクト状態" value={getStatusLabel(project.status)} />
         </div>
         <section className="empty-project-onboarding">
           <div className="empty-project-copy">
@@ -675,22 +683,103 @@ const ProjectWorkspaceHeader = ({
   hasNoTasks: boolean;
   onMove: (screen: Screen) => void;
   project: Project;
-}) => (
-  <header className="project-workspace-header">
-    <div className="project-workspace-identity">
-      <div className="project-workspace-copy">
-        <div className="project-workspace-name-row">
-          <h2>{project.name}</h2>
-          <StatusPill status={project.status} />
+}) => {
+  const updateProjectStatus = useContext(ProjectStatusUpdateContext);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const leafTasks = getLeafTasks(project.id, tasks);
+  const canComplete = leafTasks.length > 0 && leafTasks.every((task) => task.progress === 100);
+
+  return (
+    <>
+      <header className="project-workspace-header">
+        <div className="project-workspace-identity">
+          <div className="project-workspace-copy">
+            <div className="project-workspace-name-row">
+              <h2>{project.name}</h2>
+              <button
+                aria-label={`プロジェクトの状態を変更。現在: ${getStatusLabel(project.status)}`}
+                className={`status-pill ${project.status} status-change-button`}
+                onClick={() => setIsStatusDialogOpen(true)}
+                type="button"
+              >
+                {getStatusLabel(project.status)} <span aria-hidden="true">▾</span>
+              </button>
+            </div>
+          </div>
+          <div className="project-workspace-meta" aria-label="プロジェクト期間">
+            <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
+          </div>
         </div>
-      </div>
-      <div className="project-workspace-meta" aria-label="プロジェクト期間">
-        <span>{formatDate(project.startDate)} - {formatDate(project.targetEndDate)}</span>
-      </div>
+        <ProjectSectionTabs active={active} hasNoTasks={hasNoTasks} onMove={onMove} />
+      </header>
+      {isStatusDialogOpen && (
+        <ProjectStatusDialog
+          canComplete={canComplete}
+          onCancel={() => setIsStatusDialogOpen(false)}
+          onConfirm={(status) => {
+            updateProjectStatus(project.id, status);
+            setIsStatusDialogOpen(false);
+          }}
+          project={project}
+        />
+      )}
+    </>
+  );
+};
+
+const ProjectStatusDialog = ({
+  canComplete,
+  onCancel,
+  onConfirm,
+  project,
+}: {
+  canComplete: boolean;
+  onCancel: () => void;
+  onConfirm: (status: Project["status"]) => void;
+  project: Project;
+}) => {
+  const [status, setStatus] = useState(project.status);
+
+  return (
+    <div className="status-modal-backdrop" role="presentation">
+      <section aria-labelledby="project-status-dialog-title" aria-modal="true" className="status-modal" role="dialog">
+        <p className="eyebrow">プロジェクトの状態</p>
+        <h2 id="project-status-dialog-title">「{project.name}」の状態を変更</h2>
+        <fieldset>
+          <legend>状態</legend>
+          <div className="status-option-list">
+            {(["not_started", "in_progress", "completed"] as const).map((option) => {
+              const isDisabled = option === "completed" && !canComplete;
+
+              return (
+                <label className={isDisabled ? "is-disabled" : undefined} key={option}>
+                  <input
+                    checked={status === option}
+                    disabled={isDisabled}
+                    name="project-status"
+                    onChange={() => setStatus(option)}
+                    type="radio"
+                    value={option}
+                  />
+                  {getStatusLabel(option)}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+        {!canComplete && (
+          <p className="form-helper">完了にするには、LEAFタスクを1件以上作成し、すべての進捗率を100%にしてください。</p>
+        )}
+        <div className="button-group">
+          <button className="secondary-button" onClick={onCancel} type="button">キャンセル</button>
+          <button className="primary-button" disabled={status === project.status} onClick={() => onConfirm(status)} type="button">
+            変更を保存
+          </button>
+        </div>
+      </section>
     </div>
-    <ProjectSectionTabs active={active} hasNoTasks={hasNoTasks} onMove={onMove} />
-  </header>
-);
+  );
+};
 
 type CreationFlowStep = {
   label: string;
