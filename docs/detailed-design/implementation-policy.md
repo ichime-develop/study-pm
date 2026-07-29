@@ -8,7 +8,7 @@ related: docs/detailed-design/README.md, docs/basic-design/api-list.md, docs/bas
 
 ## 1. 目的とスコープ
 
-MVP1実装で複数領域に横断して適用する方針を定義する。
+MVP1〜MVP3実装で複数領域に横断して適用する方針を定義する。
 
 対象はエラー応答、例外設計、ログ出力、backend/frontendの内部構造、Cookie/CORS、設定管理、テスト分類とする。
 
@@ -39,6 +39,11 @@ com.studypm
 ├── wbs
 ├── studylog
 ├── summary
+├── analysis
+├── aiplan
+│   ├── provider
+│   ├── job
+│   └── validation
 ├── common
 │   ├── api
 │   ├── error
@@ -54,6 +59,12 @@ com.studypm
 | `wbs` | WBS、PARENT/LEAFタスク、進捗更新、計画履歴、進捗履歴 |
 | `studylog` | 学習記録の登録、更新、削除、同一プロジェクト内タスク付替 |
 | `summary` | ユーザー単位の総学習時間、連続学習日数などの横断集計 |
+| `analysis` | EVM、バーンダウン、計画不整合 |
+| `aiplan` | AI計画入力、学習項目候補、WBS下書き、変換ユースケース |
+| `aiplan.provider` | Google Cloud Vision、OpenAIのadapter。外部SDK型をドメインへ漏らさない |
+| `aiplan.job` | 非同期ジョブ、排他、期限、停止、再試行 |
+| `aiplan.cleanup` | 保持期限を過ぎたAI入力・候補・ジョブ・下書きの削除 |
+| `aiplan.validation` | 入力矛盾、Structured Outputs、WBS構造、計画整合性の検証 |
 | `common.api` | API共通レスポンス、共通エラーレスポンス、Security用APIハンドラ |
 | `common.error` | アプリケーション例外、エラーコード、例外からHTTPステータスへの分類 |
 | `common.time` | JST基準日、Clock、日時変換 |
@@ -76,7 +87,9 @@ frontend/src
 │   ├── auth
 │   ├── projects
 │   ├── wbs
-│   └── studyLogs
+│   ├── studyLogs
+│   ├── analysis
+│   └── aiPlan
 └── shared
     ├── api
     ├── components
@@ -120,6 +133,9 @@ HTTPステータスは通信の成否ではなく、リクエストに対する�
 | `409 Conflict` | 現在状態との衝突 | 学習記録があるLEAF削除不可、完了条件未達での完了拒否、親子制約違反 |
 | `422 Unprocessable Content` | MVP1では使わない | 将来、400/409で表現しにくい業務入力違反が増えた場合に検討 |
 | `500 Internal Server Error` | 想定外エラー | 未捕捉例外、DB接続失敗 |
+| `429 Too Many Requests` | ユーザー別利用上限 | AI生成の日次上限 |
+| `502 Bad Gateway` | 外部サービスの非一時的失敗 | OCR・AIサービスが不正応答を返した |
+| `503 Service Unavailable` | 機能の一時利用不可 | AI機能無効、認証情報不足、外部サービス停止 |
 
 リソース作成APIは原則 `201 Created` を返す。アカウント登録はログイン済みセッションの開始を伴うため、認証APIの例外として `200 OK` を返す。
 
@@ -188,6 +204,9 @@ MVP1では、グローバルなトースト機構を1つ、TanStack Queryの `is
 - refresh token
 - Cookie値
 - `Authorization` ヘッダー
+- 教材目次画像
+- OCR結果、修正済みテキスト、目次テキストの全文
+- AIへ送信する入力本文、AI応答本文
 
 ログには必要最小限の識別子だけを含める。例: `accountId`, `projectId`, `resourceId`。将来リクエストIDを導入できるよう、ログメッセージは処理単位が分かる形にする。
 
@@ -207,6 +226,10 @@ JWT/refresh token TTL、Cookie属性の具体値は `docs/basic-design/api-list.
 | DB接続情報 | `application-local.yml` と環境変数で分ける |
 | CORS許可origin | 環境別に明示する。ワイルドカードは禁止 |
 | Cookie `Secure` | 本番true。ローカル開発では環境別設定で無効化可能にする |
+| Google Cloud認証 | Application Default Credentialsまたはサービスアカウントで注入し、リポジトリへ保存しない |
+| OpenAI API key | 秘密情報管理または環境変数で注入し、リポジトリへ保存しない |
+| AI model / prompt / schema / strategy version | 環境設定とコード上の版を分離し、ジョブへ実行時の値を記録する |
+| AI timeout / deadline / retry / daily limit / retention | 環境別に外部化し、コードへ固定値を散在させない |
 
 ### 7.3 Cookie/CORS前提
 
@@ -231,6 +254,12 @@ PC WebでCookieを送信する場合、CORSは `allowCredentials=true` とし、
 - ログイン失敗時にどちらが誤りか分からないこと
 - 認証情報がログに出力されないこと
 - Cookie/CORS設定が環境別に切り替わること
+- AIジョブの全状態遷移、期限超過、停止と結果保存の競合
+- 同一ユーザーのactiveジョブが1件に制限されること
+- AI出力が必須項目、2階層、0.25時間単位、候補対応を満たすこと
+- 保持期限前のAIデータを残し、期限後のterminalデータを削除し、activeジョブを削除しないこと
+- 通常CIで有料のOCR・AIサービスを呼び出さないこと
+- OCR結果やAI入出力本文がログへ出ないこと
 
 ## 9. 実装時チェックリスト
 
@@ -240,14 +269,19 @@ PC WebでCookieを送信する場合、CORSは `allowCredentials=true` とし、
 - Controllerに業務判断を書かない。
 - 業務例外を `common.error` で分類する。
 - 認証情報をログに出さない。
+- 画像、OCR結果、AI入出力本文をログに出さない。
+- AI provider SDKの型を `aiplan.provider` の外へ漏らさない。
+- 外部サービスの実呼び出しを通常CIへ含めない。
 - backend/frontendの新規ファイルを本書の構造へ配置する。
 - 命名と責務コメントは `coding-guidelines.md` に従う。
 
-## 10. 未決事項
+## 10. 未決事項・既知の乖離
 
-| 事項 | 方針 | 決定時期 |
-| --- | --- | --- |
-| 403の本格利用 | MVP1では予約扱い。ロール、CSRF、管理者機能を入れる場合に再検討する | 権限モデル追加時 |
-| 422の採用 | MVP1では使わない。400/409で表現しにくい業務入力違反が増えた場合のみ検討する | API詳細設計またはMVP2以降 |
-| 別サイト配置 | MVP1では同一サイト配置を前提とする。別サイトにする場合はCookie/CORSを再設計する | デプロイ構成検討時 |
-| `react-router` の脆弱性報告（GHSA-qwww-vcr4-c8h2） | 現時点では対応しない。当該脆弱性はRSCモードでサーバー側actionを実行する構成が前提であり、本アプリは宣言的クライアントルーティングのみを使う（Data Router、loader/action、RSCを使用しない）ため影響しない。`^7.7.0` の範囲に修正版が存在せず `npm audit fix` では解消できないため、7.x系の修正版公開後に更新する | `react-router` 修正版公開時、または本番公開前の依存監査時 |
+| 種別 | 事項 | 方針 | 決定時期・解消条件 |
+| --- | --- | --- | --- |
+| 未決 | 403の本格利用 | MVP1では予約扱い。ロール、CSRF、管理者機能を入れる場合に再検討する | 権限モデル追加時 |
+| 未決 | 422の採用 | MVP1では使わない。400/409で表現しにくい業務入力違反が増えた場合のみ検討する | API詳細設計またはMVP2以降 |
+| 未決 | 別サイト配置 | MVP1では同一サイト配置を前提とする。別サイトにする場合はCookie/CORSを再設計する | デプロイ構成検討時 |
+| 未決 | `react-router` の脆弱性報告（GHSA-qwww-vcr4-c8h2） | 現時点では対応しない。当該脆弱性はRSCモードでサーバー側actionを実行する構成が前提であり、本アプリは宣言的クライアントルーティングのみを使う（Data Router、loader/action、RSCを使用しない）ため影響しない。`^7.7.0` の範囲に修正版が存在せず `npm audit fix` では解消できないため、7.x系の修正版公開後に更新する | `react-router` 修正版公開時、または本番公開前の依存監査時 |
+| 既知の乖離 | MVP3 AI画面のモックがAI01〜AI03の3画面構成 | 設計正本はAI01〜AI04の4画面構成とする。現行モックは実装仕様として参照しない | MVP3実装前のモック同期タスクで解消 |
+| 既知の乖離 | 現行DB・Accountエンティティに未使用の `ai_usage_consent_at` が残存 | MVP3では同意状態を永続管理しない。DBカラムとJavaフィールドを同じ変更で削除する | MVP3のAI関連Flywayマイグレーション適用時に解消 |

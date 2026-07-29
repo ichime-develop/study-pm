@@ -9,7 +9,7 @@ related: docs/requirements/details/functional.md, docs/requirements/details/data
 
 | 用語 | 定義 |
 | --- | --- |
-| アカウント（Account） | 要件定義上の「ユーザー」に対応する実装上のエンティティ。メールアドレス、パスワードハッシュ、表示名、AI利用同意などを保持し、認証情報と所有データの起点となる |
+| アカウント（Account） | 要件定義上の「ユーザー」に対応する実装上のエンティティ。メールアドレス、パスワードハッシュ、表示名を保持し、認証情報と所有データの起点となる |
 | 学習プロジェクト | 学習目標、期間、計画工数をまとめる管理単位。例: Java Silver合格、SQL基礎習得 |
 | WBS | 学習内容を親タスクとタスクで整理するタスク構造 |
 | WBSタスク | 親タスクまたはタスクの総称 |
@@ -28,6 +28,11 @@ related: docs/requirements/details/functional.md, docs/requirements/details/data
 | プロジェクト連続日数 | 対象プロジェクトの学習記録のみを対象に、ユーザーが入力した学習日の連続性をJST当日基準で算出した日数。ユーザー単位の連続学習日数とは独立した指標 |
 | AI学習計画 | 学習目標、期限、学習内容の概要または教材目次、学習可能時間をもとにAIが生成するWBSと学習予定の案 |
 | OCR結果 | 教材目次画像から読み取ったテキスト。ユーザーが修正してからAI学習計画生成に利用する |
+| 学習項目候補 | 概要、目次テキスト、修正済みOCR結果から抽出またはAIが補足した、WBS生成前の確認対象。入力由来またはAI補足の由来と、重点・通常・軽め・除外の優先度を持つが、親タスクやタスクそのものではない |
+| 確認済み候補一覧 | ユーザーが現在の学習項目候補の内容と優先度を一括確認した状態。候補の編集、追加、削除により確認済み状態は解除される |
+| 構造化数量条件 | 「全300ページを1日10ページ」のような自然文を、単位・総量・1日量へ構造化したWBS生成条件。AIが解釈案を作り、ユーザー確認後にサーバーが必要日数を計算する |
+| WBS下書き | 確認済み学習項目候補と生成条件からAIが生成し、サーバー検証を通過した保存前の計画案。ユーザーが編集・確認した後に限り、プロジェクトとWBSへ変換できる |
+| AI処理ジョブ | 学習項目候補の抽出またはWBS下書きの生成を非同期に実行し、状態、期限、失敗理由、停止要求を管理する単位 |
 | 基準日 | EVM、遅延、バーンダウンを算出する対象日。進捗分析ではJST当日に固定する |
 | BAC | Budget at Completion。プロジェクト全体の予定工数 |
 | PV | Planned Value。基準日時点で完了予定だった作業の予定工数 |
@@ -47,7 +52,7 @@ related: docs/requirements/details/functional.md, docs/requirements/details/data
 | 共通部品ID | `CM01` | 複数画面で使う共通UI部品を識別する | `docs/basic-design/screen-list.md`, `docs/requirements/details/data-screens-interfaces.md` |
 | 画面内要件ID | `SCR.PJ01-01`, `SCR.WB01-01` | 画面内の表示項目、操作、状態などの要件を識別する | `docs/requirements/details/data-screens-interfaces.md` |
 | 保留事項ID | `DSG-TBD-01` | 要件定義・基本設計で未確定の事項を識別する | `docs/requirements/details/acceptance.md`, `docs/requirements/review/requirements-review.md`, `docs/basic-design/tech-stack.md` |
-| API保留事項ID | `API-TBD-05` | API設計で未確定の事項を識別する | `docs/basic-design/api-list.md` |
+| API保留事項ID | `API-TBD-06` | API設計で未確定の事項を識別する | `docs/basic-design/api-list.md` |
 | レビュー指摘ID | `REV-01` | レビューで出た指摘・確認事項を識別する | `docs/requirements/review/requirements-review.md` |
 | API ID | `API-PJ-01`, `API-WB-05` | REST APIのエンドポイント単位を識別する | `docs/basic-design/api-list.md` |
 

@@ -102,7 +102,7 @@ API IDは画面IDとは別系統で採番する。
 | --- | --- |
 | MVP1 | 認証、プロジェクト、WBS、学習記録、プロジェクト一覧ホーム |
 | MVP2 | 進捗分析、EVM、バーンダウン |
-| MVP3 | AI学習計画生成、OCR、AI計画案確認・保存 |
+| MVP3 | AI学習計画生成、OCR、学習項目候補確認、WBS下書き確認・変換 |
 
 ## 5. API一覧
 
@@ -170,14 +170,23 @@ API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗�
 
 | API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-AI-01 | POST | `/api/ai-plan/ocr` | 教材目次画像OCR | AI02 | 3 | 必須 | 画像ファイル、画像順 | OCR結果テキスト | PLN-02, PLN-03, PLN-04, PLN-11, PLN-12, PLN-13, PLN-14 |
-| API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成実行 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, overviewText, materialName, tocText, constraints | 生成依頼ID、計画案ID、生成状態 | PLN-01, PLN-05, PLN-06, PLN-08, PLN-09, PLN-10, PLN-19, PLN-20 |
-| API-AI-03 | GET | `/api/ai-plan/drafts/{draftId}` | AI計画案取得 | AI03 | 3 | 必須 | draftId | プロジェクト候補、WBS候補、計画チェック結果 | PLN-06, PLN-07, PLN-16 |
-| API-AI-04 | PATCH | `/api/ai-plan/drafts/{draftId}` | AI計画案の保存前編集 | AI03 | 3 | 必須 | projectName, description, startDate, targetEndDate, draftWbsTasks | 更新後計画案、計画チェック結果 | PLN-16, PLN-17, 10.10 |
-| API-AI-05 | POST | `/api/ai-plan/drafts/{draftId}/convert` | AI計画案からプロジェクト作成 | AI03 | 3 | 必須 | draftId | 作成済みprojectId, wbsTaskIds | PLN-07, 10.10 |
-| API-AI-06 | POST | `/api/ai-plan/requests/{requestId}/regenerate` | 条件変更後の再生成 | AI02, AI03 | 3 | 必須 | 変更後条件 | 新しい計画案ID、生成状態 | PLN-08, PLN-18 |
+| API-AI-01 | POST | `/api/ai-plan/ocr` | 教材目次画像1枚のOCR | AI02 | 3 | 必須 | 10MB以下の画像ファイル | OCR結果テキスト | PLN-02, PLN-03, PLN-04, PLN-11〜15 |
+| API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成依頼の作成・入力保存 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, sources, constraints | generationRequestId、事前検証結果 | PLN-01, PLN-05, PLN-20, PLN-28, PLN-38, PLN-39 |
+| API-AI-03 | PATCH | `/api/ai-plan/requests/{requestId}` | 入力条件・入力元テキストの更新 | AI02 | 3 | 必須 | 更新後条件、sources | 更新後入力、事前検証結果、candidateRevision | PLN-04, PLN-05, PLN-18 |
+| API-AI-04 | POST | `/api/ai-plan/requests/{requestId}/candidate-jobs` | 学習項目候補抽出ジョブ開始 | AI02 | 3 | 必須 | requestId | jobId, status, deadlineAt | PLN-21, PLN-31〜34 |
+| API-AI-05 | GET | `/api/ai-plan/jobs/{jobId}` | AI処理ジョブ状態取得 | AI02, AI03 | 3 | 必須 | jobId | jobType, status, deadlineAt, errorCode, resultResourceId | PLN-08, PLN-31〜34 |
+| API-AI-06 | POST | `/api/ai-plan/jobs/{jobId}/cancel` | AI処理の停止要求 | AI02, AI03 | 3 | 必須 | jobId | status | PLN-10, PLN-32 |
+| API-AI-07 | GET | `/api/ai-plan/requests/{requestId}/candidates` | 学習項目候補一覧取得 | AI03 | 3 | 必須 | requestId | candidateRevision, confirmationRevision, candidates, normalizedPace, unresolvedConstraints | PLN-21〜24, PLN-39 |
+| API-AI-08 | PUT | `/api/ai-plan/requests/{requestId}/candidates` | 学習項目候補・数量条件の一括更新 | AI03 | 3 | 必須 | candidateRevision, candidates, normalizedPace, unresolvedConstraints | 更新後revision、候補一覧、確認状態 | PLN-21〜24, PLN-39 |
+| API-AI-09 | POST | `/api/ai-plan/requests/{requestId}/candidates/confirm` | 現在の候補一覧と数量条件を一括確認 | AI03 | 3 | 必須 | candidateRevision | confirmationRevision, confirmedAt | PLN-23, PLN-24, PLN-39 |
+| API-AI-10 | POST | `/api/ai-plan/requests/{requestId}/draft-jobs` | 確認済み候補・数量条件からWBS生成ジョブ開始 | AI03 | 3 | 必須 | confirmationRevision, deadlinePriority | jobId, status, deadlineAt | PLN-24〜33, PLN-39 |
+| API-AI-11 | GET | `/api/ai-plan/drafts/{draftId}` | WBS下書き取得 | AI04 | 3 | 必須 | draftId | プロジェクト候補、WBS下書き、候補対応、計画不整合、緩和案 | PLN-06, PLN-26〜30 |
+| API-AI-12 | PUT | `/api/ai-plan/drafts/{draftId}` | WBS下書きの一括編集・再検証 | AI04 | 3 | 必須 | draftRevision, project, draftWbsTasks | 更新後下書き、validation, warnings, relaxationOptions | PLN-16, PLN-17, PLN-26, PLN-29 |
+| API-AI-13 | POST | `/api/ai-plan/drafts/{draftId}/convert` | WBS下書きからプロジェクト作成 | AI04 | 3 | 必須 | draftRevision | projectId, wbsTaskIds | PLN-07, PLN-26, PLN-27 |
 
-AI学習計画案からプロジェクトを作成した後、作成済みプロジェクトとWBSは通常の `projects` / `wbs_tasks` として扱う。同じ `ai_plan_draft` から複数プロジェクトを作成することはできない。
+OCRは画像1枚ごとの同期APIとし、PC Webは最大3件を並列実行する。最大10枚・合計50MBはOCR送信前にクライアントが検証し、サーバーはOCR APIで1画像10MB、生成依頼の保存時に `OCR_TEXT` 入力元が最大10件であることを検証する。画像を永続保存しない1画像単位APIのため、合計50MBはサーバー側で再集計しない。この責務分担はMVP3の意識的な例外とし、外部クライアントにも同じ事前検証を要求する。
+
+学習項目候補抽出とWBS下書き生成は非同期ジョブとして受付後にポーリングする。WBS下書きからプロジェクトを作成した後、作成済みプロジェクトとWBSは通常の `projects` / `wbs_tasks` として扱う。同じ `ai_plan_draft` から複数プロジェクトを作成することはできない。
 
 ## 6. 画面とAPIの対応
 
@@ -192,13 +201,14 @@ AI学習計画案からプロジェクトを作成した後、作成済みプロ
 | SL01 | API-SL-01, API-SL-02, API-SL-03, API-SL-04, API-SL-05 |
 | AN01 | API-AN-01, API-AN-02, API-AN-03 |
 | AI01 | なし（静的な選択画面。遷移のみ） |
-| AI02 | API-AI-01, API-AI-02, API-AI-06 |
-| AI03 | API-AI-03, API-AI-04, API-AI-05, API-AI-06 |
+| AI02 | API-AI-01〜06 |
+| AI03 | API-AI-05〜10 |
+| AI04 | API-AI-11〜13 |
 | CM01（共通） | API-AU-03, API-AU-04 |
 
 API-AU-04（認証中アカウント取得）はログイン後の全画面で共通利用するため、個別画面の行には記載しない。
 
-MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗分析への導線を表示する場合も、MVP1では非活性または段階提供表示とする。
+MVP1ではAN01、AI01、AI02、AI03、AI04は実装対象外とする。PJ03で進捗分析への導線を表示する場合も、MVP1では非活性または段階提供表示とする。
 
 ## 7. 主要業務ルールとの対応
 
@@ -214,15 +224,19 @@ MVP1ではAN01、AI01、AI02、AI03は実装対象外とする。PJ03で進捗�
 | 学習記録制約 | API-SL-02, API-SL-04 | 親タスク、未来日、他プロジェクトのタスクを拒否する。過去日の学習記録は期限なく編集・削除を許可する |
 | 実績工数再計算 | API-SL-02〜05, API-PJ-06, API-WB-01, API-WB-07 | 実績工数は保存せず、現在の学習記録から取得時に再計算する |
 | EVM・バーンダウン | API-AN-01, API-AN-02 | 指標は保存せず、現在の計画値・進捗履歴・学習記録から計算する |
+| AI所有者制御 | API-AI-02〜13 | generationRequest、job、candidate、draftのaccountIdが認証中アカウントと一致する場合だけ参照・更新する |
+| AI処理の排他 | API-AI-04, API-AI-10 | 同一ユーザーに待機中・処理中・停止要求中のジョブがある場合は409で拒否する |
+| AI出力検証 | API-AI-04, API-AI-10, API-AI-12, API-AI-13 | 構造化出力受信時、下書き編集時、変換時に業務制約を検証する |
+
+MVP3の設計具体化に伴い、未実装だった旧AI API案の `API-AI-03`〜`API-AI-06` は意味を再割り当てした。実装済みAPIとの互換性はなく、以後は本表のIDと責務を正本とする。
 
 ## 8. 未決事項
 
 | ID | 内容 | 決定タイミング |
 | --- | --- | --- |
-| API-TBD-05 | AI教材画像を永続保存するか、一時保存にするか | MVP3のAIサービス設計 |
 | API-TBD-06 | API IDをOpenAPI operationIdへそのまま反映するか | OpenAPI定義作成時 |
-| API-TBD-07 | AI計画生成の完了確認方式（同期応答にするか、ステータス取得APIによるポーリングにするか）。DSG-TBD-05（タイムアウト値）と合わせて決定する | MVP3のAIサービス設計 |
+| API-TBD-08 | 1日のユーザー別生成上限、ジョブ総期限、外部呼び出しタイムアウト、通信再試行回数の具体値 | MVP3の実測・運用設計 |
 
 ## 9. 矛盾点・要件同期メモ
 
-現時点で本API一覧と既存要件・データモデルの既知の矛盾はない。
+既存UIモックはAI01〜AI03の3画面構成であり、本設計のAI01〜AI04とは一致していない。実装前に別タスクでUIモックを同期する。

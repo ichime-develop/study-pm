@@ -41,6 +41,9 @@ related: docs/requirements/summary/README.md, docs/requirements/details/non-func
 | テスト（バックエンド） | JUnit 5 + Testcontainers | 集計・履歴ロジックは本物のPostgreSQLで検証する |
 | テスト（フロントエンド） | Vitest + Testing Library | 画面コンポーネントとユーザー操作単位のテストに使う |
 | ローカル開発環境 | Docker Compose（PostgreSQL）+ Vite dev server | バックエンドはローカルJVM、DBはDocker Composeで起動する |
+| OCR | Google Cloud Vision `DOCUMENT_TEXT_DETECTION` | 教材目次画像を画像1枚単位でOCRする。画像はOpenAIへ送信しない |
+| AI生成 | OpenAI Responses API + Structured Outputs | 学習項目候補抽出とWBS下書き生成を別ジョブで実行する。具体モデルは品質評価で選定し、設定で変更可能にする |
+| AI実行方式 | アプリ内非同期ジョブ + ポーリング | MVP3ではストリーミングを採用せず、停止・期限・再試行・排他をサーバーで管理する |
 
 ## 4. 検討した代替案
 
@@ -93,8 +96,8 @@ Flutterスマホアプリは既存方針どおり別リポジトリ `study-pm-mo
 | --- | --- | --- |
 | 認証方式 | JWTを採用する。アクセストークンは短命JWTとし、リフレッシュトークンはサーバー側で失効管理できる方式を前提とする | 決定済み |
 | デプロイ先 | AWS想定。料金、運用負荷、バックアップ方式を見て判断する | インフラ構成検討時。DSG-TBD-07（バックアップ方式）も合わせて決定する |
-| OCR・AI学習計画生成に利用するサービスとモデル（DSG-TBD-04） | MVP1・MVP2では扱わない | MVP3着手時 |
-| AI学習計画生成のタイムアウト値（DSG-TBD-05） | 採用するAIサービスの応答特性に基づいて決める | DSG-TBD-04の決定後 |
+| OCR・AI学習計画生成に利用するサービスとモデル（DSG-TBD-04） | OCRはGoogle Cloud Vision、AI生成はOpenAI Responses API + Structured Outputsを採用する。具体モデルは品質評価で選定し、設定で変更可能にする | サービスは決定済み。モデルはMVP3の反復評価で決定 |
+| AI学習計画生成のタイムアウト値（DSG-TBD-05） | ジョブ受付時からの総期限と外部サービス呼び出し単位のタイムアウトを分離する | 方針決定済み。具体値は実測後に運用設定で決定 |
 
 ## 7. 採用理由
 
