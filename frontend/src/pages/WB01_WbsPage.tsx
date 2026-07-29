@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { WbsPlanWarningNotice } from "../features/analysis/WbsPlanWarningNotice";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
 import { ProjectNav } from "../features/projects/ProjectNav";
 import { useProject } from "../features/projects/useProjects";
@@ -136,9 +137,10 @@ export const WbsPage = () => {
             />
           )}
         </div>
-            </Panel>
-          </main>
-        );
+          <WbsPlanWarningNotice projectId={project.projectId} />
+        </Panel>
+      </main>
+    );
       }}
     </ProjectPageGate>
   );

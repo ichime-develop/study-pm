@@ -737,7 +737,14 @@ const ProgressAnalysis = ({ project, onMove }: { project: Project; onMove: (scre
         <div className="panel-header">
           <h2>EVM・バーンダウン</h2>
         </div>
-        <EvmPanel project={project} />
+        <EvmPanel onMove={onMove} project={project} />
+      </section>
+
+      <section className="panel wide">
+        <div className="panel-header">
+          <h2>計画不整合</h2>
+        </div>
+        <PlanWarningPanel project={project} />
       </section>
     </section>
   );
@@ -864,7 +871,8 @@ const getIndexEvaluation = (
   return { tone: "danger", statusLabel: negativeLabel };
 };
 
-const formatSignedHours = (value: number) => {
+const formatSignedHours = (value: number | null) => {
+  if (value === null) return "-";
   const absoluteValue = Math.abs(value);
   const formatted = formatHours(absoluteValue);
   if (value > 0) return `+${formatted}`;
@@ -875,6 +883,57 @@ const formatSignedHours = (value: number) => {
 const formatDayDifference = (value: number) => `${Math.abs(Math.round(value * 10) / 10).toFixed(1)}日`;
 
 const formatNullableIndex = (value: number | null) => (value === null ? "-" : value.toFixed(2));
+
+const getEvmUnavailableReasons = (project: Project) => {
+  const leafTasks = getLeafTasks(project.id, tasks);
+  const reasons: string[] = [];
+
+  if (leafTasks.length === 0) reasons.push("計算対象となるLEAFタスクがありません。");
+  if (leafTasks.some((task) => !task.plannedStartDate || !task.plannedEndDate)) {
+    reasons.push("予定開始日または予定終了日が未設定のタスクがあります。");
+  }
+  if (leafTasks.reduce((total, task) => total + task.plannedHours, 0) === 0) {
+    reasons.push("予定工数の合計が0時間です。");
+  }
+
+  return reasons;
+};
+
+const calculatePlannedValue = (project: Project, baseDate: string) =>
+  getLeafTasks(project.id, tasks).reduce((total, task) => {
+    if (baseDate < task.plannedStartDate) return total;
+    if (baseDate >= task.plannedEndDate) return total + task.plannedHours;
+
+    const elapsedDays = getInclusiveDays(task.plannedStartDate, baseDate);
+    const totalDays = getInclusiveDays(task.plannedStartDate, task.plannedEndDate);
+    return total + task.plannedHours * elapsedDays / totalDays;
+  }, 0);
+
+const PlanWarningPanel = ({ project }: { project: Project }) => {
+  const warnings = getLeafTasks(project.id, tasks).flatMap((task) => {
+    const messages: string[] = [];
+    if (task.plannedStartDate < project.startDate) {
+      messages.push(`${task.name}: 予定開始日がプロジェクト開始日より前です。`);
+    }
+    if (task.plannedEndDate > project.targetEndDate) {
+      messages.push(`${task.name}: 予定終了日がプロジェクト終了日より後です。`);
+    }
+    return messages;
+  });
+
+  if (warnings.length === 0) {
+    return <p className="empty-state">計画不整合はありません。</p>;
+  }
+
+  return (
+    <div className="constraint-box">
+      <strong>プロジェクト期間外の予定があります。</strong>
+      <ul>
+        {warnings.map((warning) => <li key={warning}>{warning}</li>)}
+      </ul>
+    </div>
+  );
+};
 
 const getBurndownEvaluation = (
   project: Project,
@@ -1347,26 +1406,32 @@ const TaskSidePanel = ({
   );
 };
 
-const EvmPanel = ({ project }: { project: Project }) => {
+const EvmPanel = ({ project, onMove }: { project: Project; onMove: (screen: Screen) => void }) => {
   const summary = buildProjectSummary(project, tasks, studyLogs);
-  const pv: number = 8.4;
+  const unavailableReasons = getEvmUnavailableReasons(project);
+  const isCalculable = unavailableReasons.length === 0;
+  const pv = isCalculable ? calculatePlannedValue(project, today) : null;
   const ev = Math.round((summary.plannedHours * summary.progress) / 100 * 100) / 100;
-  const ac = summary.actualHours;
-  const sv = ev - pv;
-  const cv = ev - ac;
-  const spi = pv === 0 ? null : ev / pv;
-  const cpi = ac === 0 ? null : ev / ac;
+  const ac = studyLogs
+    .filter((log) => log.projectId === project.id && log.studyDate <= today)
+    .reduce((total, log) => total + log.hours, 0);
+  const sv = pv === null ? null : ev - pv;
+  const cv = isCalculable ? ev - ac : null;
+  const spi = pv === null || pv === 0 ? null : ev / pv;
+  const cpi = !isCalculable || ac === 0 ? null : ev / ac;
   const spiEvaluation = getIndexEvaluation(spi, "遅れ");
   const cpiEvaluation = getIndexEvaluation(cpi, "超過");
-  const burndownEvaluation = getBurndownEvaluation(project, summary.plannedHours, pv, ev);
+  const burndownEvaluation = isCalculable && pv !== null
+    ? getBurndownEvaluation(project, summary.plannedHours, pv, ev)
+    : null;
 
   return (
     <div className="evm-layout">
       <div className="evm-metrics">
-        <Metric label="BAC" value={formatHours(summary.plannedHours)} help={evmHelp.BAC} />
-        <Metric label="PV" value={formatHours(pv)} help={evmHelp.PV} />
-        <Metric label="EV" value={formatHours(ev)} help={evmHelp.EV} />
-        <Metric label="AC" value={formatHours(ac)} help={evmHelp.AC} />
+        <Metric label="BAC" value={isCalculable ? formatHours(summary.plannedHours) : "-"} help={evmHelp.BAC} />
+        <Metric label="PV" value={pv === null ? "-" : formatHours(pv)} help={evmHelp.PV} />
+        <Metric label="EV" value={isCalculable ? formatHours(ev) : "-"} help={evmHelp.EV} />
+        <Metric label="AC" value={isCalculable ? formatHours(ac) : "-"} help={evmHelp.AC} />
         <Metric label="SV" value={formatSignedHours(sv)} help={svHelp} />
         <Metric label="CV" value={formatSignedHours(cv)} help={evmHelp.CV} />
         <Metric label="SPI" value={formatNullableIndex(spi)} tone={spiEvaluation.tone} statusLabel={spiEvaluation.statusLabel} help={evmHelp.SPI} />
@@ -1377,19 +1442,31 @@ const EvmPanel = ({ project }: { project: Project }) => {
           <strong>バーンダウン</strong>
           <InfoHelp label="バーンダウン" help={burndownHelp} />
         </div>
-        <div className={`burndown-message ${burndownEvaluation.tone}`}>
-          <strong>{burndownEvaluation.message}</strong>
-          <InfoHelp label="バーンダウン差分" help={burndownEvaluation.help} />
-        </div>
-        <div className="chart-legend" aria-hidden="true">
-          <span><i className="legend-line ideal" />理想線</span>
-          <span><i className="legend-line actual" />実績線</span>
-        </div>
-        <div className="chart-line ideal" />
-        <div className="chart-line actual" />
-        <span className="chart-label start">BAC</span>
-        <span className="chart-label end">0h</span>
-        <p>残作業時間の理想線と実績線の差分を確認します。</p>
+        {burndownEvaluation ? (
+          <>
+            <div className={`burndown-message ${burndownEvaluation.tone}`}>
+              <strong>{burndownEvaluation.message}</strong>
+              <InfoHelp label="バーンダウン差分" help={burndownEvaluation.help} />
+            </div>
+            <div className="chart-legend" aria-hidden="true">
+              <span><i className="legend-line ideal" />理想線</span>
+              <span><i className="legend-line actual" />実績線</span>
+            </div>
+            <div className="chart-line ideal" />
+            <div className="chart-line actual" />
+            <span className="chart-label start">BAC</span>
+            <span className="chart-label end">0h</span>
+            <p>残作業時間の理想線と実績線の差分を確認します。</p>
+          </>
+        ) : (
+          <div className="constraint-box neutral-box">
+            <strong>バーンダウンはまだ表示できません。</strong>
+            <ul>{unavailableReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+            {unavailableReasons.some((reason) => reason.includes("予定開始日")) && (
+              <button className="secondary-button" onClick={() => onMove("wbs")} type="button">WBSで予定日を設定</button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

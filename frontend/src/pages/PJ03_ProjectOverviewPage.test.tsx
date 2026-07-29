@@ -45,7 +45,10 @@ describe("ProjectOverviewPage", () => {
     expect(screen.getByText("遅延タスク")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "WBS" })).toHaveAttribute("href", "/projects/project-id/wbs");
     expect(screen.getByRole("link", { name: "学習記録" })).toHaveAttribute("href", "/projects/project-id/logs");
-    expect(screen.getByText("進捗分析")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: /^進捗分析$/ })).toHaveAttribute(
+      "href",
+      "/projects/project-id/analysis",
+    );
   });
 
   it("WBSタスクが0件の場合は未算出表示と学習記録タブの無効化を行う", async () => {

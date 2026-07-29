@@ -160,8 +160,8 @@ API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗�
 
 | API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-AN-01 | GET | `/api/projects/{projectId}/analysis/evm` | EVMサマリー取得 | AN01, PJ03 | 2 | 必須 | projectId | 算出可能時はBAC, PV, EV, AC, SV, CV, SPI, CPI、算出不可時は理由 | EVM-01, EVM-02, EVM-03, EVM-05, EVM-13, EVM-15, 10.8 |
-| API-AN-02 | GET | `/api/projects/{projectId}/analysis/burndown` | バーンダウン取得 | AN01 | 2 | 必須 | projectId | 理想線、実績線、差分工数、差分日数 | EVM-06, EVM-07, EVM-09, EVM-10, EVM-12, 10.9 |
+| API-AN-01 | GET | `/api/projects/{projectId}/analysis/evm` | EVMサマリー取得 | AN01, PJ03 | 2 | 必須 | projectId | `isCalculable`、理由、BAC, PV, EV, AC, SV, CV, SPI, CPI。算出不可値は`null` | EVM-01, EVM-02, EVM-03, EVM-05, EVM-13, EVM-15, 10.8 |
+| API-AN-02 | GET | `/api/projects/{projectId}/analysis/burndown` | バーンダウン取得 | AN01 | 2 | 必須 | projectId | `isCalculable`、理由、理想線、実績線、差分工数、差分日数。算出不可値は`null` | EVM-06, EVM-07, EVM-09, EVM-10, EVM-12, 10.9 |
 | API-AN-03 | GET | `/api/projects/{projectId}/analysis/plan-warnings` | 計画不整合取得 | PJ03, AN01, WB01 | 2 | 必須 | projectId | 不整合タスク一覧、警告種別 | EVM-11, PRJ-22, 10.4 |
 
 進捗分析APIは集約結果を返すだけで、EVM指標やバーンダウン表示点をDBへ保存しない。

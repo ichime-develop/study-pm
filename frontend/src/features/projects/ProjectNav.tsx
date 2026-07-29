@@ -48,9 +48,9 @@ export const ProjectNav = ({ hasNoWbsTasks, project }: ProjectNavProps) => {
             学習記録
           </NavLink>
         )}
-        <span aria-disabled="true" className="project-tab disabled" title="MVP 2で提供予定">
+        <NavLink className={tabClassName} to={`${projectPath}/analysis`}>
           進捗分析
-        </span>
+        </NavLink>
       </nav>
     </section>
   );
