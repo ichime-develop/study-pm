@@ -1,6 +1,7 @@
 package com.studypm.aiplan;
 
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,7 +12,7 @@ import jakarta.validation.constraints.Size;
 public record AiPlanSourcePayload(
         @NotBlank @Size(max = 100) String temporaryKey,
         @NotNull AiPlanSourceType sourceType,
-        @Max(1000) int sourceOrder,
+        @Min(0) @Max(1000) int sourceOrder,
         @Size(max = 100) String label,
         @NotBlank String textContent
 ) {

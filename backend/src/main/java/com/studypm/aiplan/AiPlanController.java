@@ -24,10 +24,16 @@ public class AiPlanController {
 
     private final AiPlanRequestService requestService;
     private final AiGenerationJobService jobService;
+    private final AiFeatureAvailability featureAvailability;
 
-    public AiPlanController(AiPlanRequestService requestService, AiGenerationJobService jobService) {
+    public AiPlanController(
+            AiPlanRequestService requestService,
+            AiGenerationJobService jobService,
+            AiFeatureAvailability featureAvailability
+    ) {
         this.requestService = requestService;
         this.jobService = jobService;
+        this.featureAvailability = featureAvailability;
     }
 
     @PostMapping("/requests")
@@ -35,6 +41,7 @@ public class AiPlanController {
             @AuthenticationPrincipal AuthenticatedAccount account,
             @Valid @RequestBody AiPlanRequestPayload payload
     ) {
+        featureAvailability.requireAvailable();
         AiPlanRequestResponse response = requestService.create(account.accountId(), payload.toCommand());
         return ResponseEntity.created(URI.create("/api/ai-plan/requests/" + response.generationRequestId())).body(response);
     }
@@ -44,6 +51,7 @@ public class AiPlanController {
             @AuthenticationPrincipal AuthenticatedAccount account,
             @PathVariable UUID requestId
     ) {
+        featureAvailability.requireAvailable();
         return requestService.get(account.accountId(), requestId);
     }
 
@@ -53,15 +61,18 @@ public class AiPlanController {
             @PathVariable UUID requestId,
             @Valid @RequestBody AiPlanRequestPayload payload
     ) {
+        featureAvailability.requireAvailable();
         return requestService.update(account.accountId(), requestId, payload.toCommand());
     }
 
     @PostMapping("/requests/{requestId}/draft-jobs")
     ResponseEntity<AiGenerationJobResponse> createDraftJob(
             @AuthenticationPrincipal AuthenticatedAccount account,
-            @PathVariable UUID requestId
+            @PathVariable UUID requestId,
+            @Valid @RequestBody AiDraftJobPayload payload
     ) {
-        AiGenerationJobResponse response = jobService.create(account.accountId(), requestId);
+        featureAvailability.requireAvailable();
+        AiGenerationJobResponse response = jobService.create(account.accountId(), requestId, payload.isDeadlinePriority());
         return ResponseEntity.accepted().body(response);
     }
 
@@ -70,6 +81,7 @@ public class AiPlanController {
             @AuthenticationPrincipal AuthenticatedAccount account,
             @PathVariable UUID jobId
     ) {
+        featureAvailability.requireAvailable();
         return jobService.get(account.accountId(), jobId);
     }
 
@@ -78,6 +90,7 @@ public class AiPlanController {
             @AuthenticationPrincipal AuthenticatedAccount account,
             @PathVariable UUID jobId
     ) {
+        featureAvailability.requireAvailable();
         return jobService.cancel(account.accountId(), jobId);
     }
 }

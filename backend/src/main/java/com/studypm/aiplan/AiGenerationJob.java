@@ -36,6 +36,8 @@ public class AiGenerationJob {
     private AiGenerationJobStatus status;
     @Column(name = "deadline_at", nullable = false)
     private Instant deadlineAt;
+    @Column(name = "deadline_priority", nullable = false)
+    private boolean deadlinePriority;
     @Column(name = "attempt_count", nullable = false)
     private int attemptCount;
     @Column(name = "schema_regeneration_count", nullable = false)
@@ -61,13 +63,16 @@ public class AiGenerationJob {
 
     protected AiGenerationJob() {}
 
-    private AiGenerationJob(AiPlanGenerationRequest request, Instant deadlineAt, String modelName, Instant now) {
+    private AiGenerationJob(
+            AiPlanGenerationRequest request, Instant deadlineAt, boolean deadlinePriority, String modelName, Instant now
+    ) {
         this.id = UUID.randomUUID();
         this.generationRequest = request;
         this.account = request.account();
         this.jobType = "WBS_GENERATION";
         this.status = AiGenerationJobStatus.QUEUED;
         this.deadlineAt = deadlineAt;
+        this.deadlinePriority = deadlinePriority;
         this.modelName = modelName;
         this.promptVersion = "v1";
         this.schemaVersion = "v1";
@@ -76,8 +81,10 @@ public class AiGenerationJob {
         this.updatedAt = now;
     }
 
-    public static AiGenerationJob queue(AiPlanGenerationRequest request, Instant deadlineAt, String modelName, Instant now) {
-        return new AiGenerationJob(request, deadlineAt, modelName, now);
+    public static AiGenerationJob queue(
+            AiPlanGenerationRequest request, Instant deadlineAt, boolean deadlinePriority, String modelName, Instant now
+    ) {
+        return new AiGenerationJob(request, deadlineAt, deadlinePriority, modelName, now);
     }
 
     public void requestCancel(Instant now) {
@@ -91,23 +98,24 @@ public class AiGenerationJob {
     }
 
     public void timeoutIfExpired(Instant now) {
-        if (!deadlineAt.isAfter(now) || deadlineAt.equals(now)) {
-            if (status == AiGenerationJobStatus.CANCEL_REQUESTED) {
-                status = AiGenerationJobStatus.CANCELED;
-            } else if (status == AiGenerationJobStatus.QUEUED || status == AiGenerationJobStatus.PROCESSING) {
-                status = AiGenerationJobStatus.FAILED;
-                errorCode = "AI_JOB_TIMEOUT";
-            }
-            if (status.isTerminal()) {
-                completedAt = now;
-                updatedAt = now;
-            }
+        if (status.isTerminal() || deadlineAt.isAfter(now)) {
+            return;
         }
+        if (status == AiGenerationJobStatus.CANCEL_REQUESTED) {
+            status = AiGenerationJobStatus.CANCELED;
+        } else if (status == AiGenerationJobStatus.QUEUED || status == AiGenerationJobStatus.PROCESSING) {
+            status = AiGenerationJobStatus.FAILED;
+            errorCode = "AI_JOB_TIMEOUT";
+        }
+        completedAt = now;
+        updatedAt = now;
     }
 
     public UUID id() { return id; }
     public AiGenerationJobStatus status() { return status; }
+    public String jobType() { return jobType; }
     public Instant createdAt() { return createdAt; }
     public Instant deadlineAt() { return deadlineAt; }
+    public boolean isDeadlinePriority() { return deadlinePriority; }
     public String errorCode() { return errorCode; }
 }

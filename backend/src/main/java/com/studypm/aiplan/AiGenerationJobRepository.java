@@ -1,6 +1,8 @@
 package com.studypm.aiplan;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,5 +13,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface AiGenerationJobRepository extends JpaRepository<AiGenerationJob, UUID> {
     Optional<AiGenerationJob> findByIdAndAccount_Id(UUID id, UUID accountId);
+    List<AiGenerationJob> findAllByAccount_IdAndStatusIn(UUID accountId, Collection<AiGenerationJobStatus> statuses);
     long countByAccount_IdAndCreatedAtGreaterThanEqual(UUID accountId, Instant startOfDay);
 }

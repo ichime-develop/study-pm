@@ -171,8 +171,8 @@ API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗�
 | API ID | Method | Path | 概要 | 使用画面 | MVP | 認証 | 主な入力 | 主な出力 | 関連要件・ルール |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | API-AI-01 | POST | `/api/ai-plan/ocr` | 教材目次画像1枚のOCR | AI02 | 3 | 必須 | 10MB以下の画像ファイル | OCR結果テキスト | PLN-02, PLN-03, PLN-04, PLN-11〜15 |
-| API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成依頼の作成・入力保存 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, sources, constraints | generationRequestId、事前検証結果 | PLN-01, PLN-05, PLN-20, PLN-28, PLN-38, PLN-39 |
-| API-AI-03 | PATCH | `/api/ai-plan/requests/{requestId}` | 入力条件・入力元テキストの更新 | AI02 | 3 | 必須 | 更新後条件、sources | 更新後入力、事前検証結果 | PLN-04, PLN-05, PLN-18 |
+| API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成依頼の作成・入力保存 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, sources, constraints | generationRequestId、保存済み入力 | PLN-01, PLN-05, PLN-20, PLN-28, PLN-38, PLN-39 |
+| API-AI-03 | PUT | `/api/ai-plan/requests/{requestId}` | 入力条件・入力元テキストの全体更新 | AI02 | 3 | 必須 | 更新後条件、sources | 更新後入力 | PLN-04, PLN-05, PLN-18 |
 | API-AI-04 | POST | `/api/ai-plan/requests/{requestId}/draft-jobs` | 入力と生成条件からWBS生成ジョブ開始 | AI02 | 3 | 必須 | requestId, deadlinePriority | jobId, status, deadlineAt | PLN-24, PLN-31〜34, PLN-39 |
 | API-AI-05 | GET | `/api/ai-plan/jobs/{jobId}` | AI処理ジョブ状態取得 | AI02 | 3 | 必須 | jobId | jobType, status, deadlineAt, errorCode, resultResourceId | PLN-08, PLN-31〜34 |
 | API-AI-06 | POST | `/api/ai-plan/jobs/{jobId}/cancel` | AI処理の停止要求 | AI02 | 3 | 必須 | jobId | status | PLN-10, PLN-32 |

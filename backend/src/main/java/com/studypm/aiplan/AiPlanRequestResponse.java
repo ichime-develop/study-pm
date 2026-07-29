@@ -16,7 +16,6 @@ public record AiPlanRequestResponse(
         LocalDate startDate,
         LocalDate targetEndDate,
         JsonNode constraints,
-        List<AiPlanSourceResponse> sources,
-        AiPlanPrecheckResponse precheck
+        List<AiPlanSourceResponse> sources
 ) {
 }

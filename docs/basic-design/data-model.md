@@ -193,7 +193,7 @@ WBS下書き生成の非同期実行を表す。
 | 項目 | 方針 |
 | --- | --- |
 | テーブル名 | `ai_generation_jobs` |
-| 主なカラム | `id`, `ai_plan_generation_request_id`, `account_id`, `job_type`, `status`, `deadline_at`, `attempt_count`, `schema_regeneration_count`, `error_code`, `provider_request_id`, `model_name`, `prompt_version`, `schema_version`, `strategy_version`, `input_tokens`, `output_tokens`, `started_at`, `completed_at`, `created_at`, `updated_at` |
+| 主なカラム | `id`, `ai_plan_generation_request_id`, `account_id`, `job_type`, `status`, `deadline_at`, `deadline_priority`, `attempt_count`, `schema_regeneration_count`, `error_code`, `provider_request_id`, `model_name`, `prompt_version`, `schema_version`, `strategy_version`, `input_tokens`, `output_tokens`, `started_at`, `completed_at`, `created_at`, `updated_at` |
 | 主キー | `id` |
 | 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id`, `account_id` -> `accounts.id` |
 | 主な制約 | `job_type` は `WBS_GENERATION`。同一アカウントのactive状態は1件だけ |
@@ -210,12 +210,12 @@ AIが生成し、サーバー検証を通過した保存前のWBS下書きを表
 | テーブル名 | `ai_plan_drafts` |
 | 主なカラム | `id`, `ai_plan_generation_request_id`, `ai_generation_job_id`, `account_id`, `revision`, `project_name`, `project_description`, `start_date`, `target_end_date`, `draft_wbs_tasks_json`, `validation_status`, `warnings_json`, `relaxation_options_json`, `converted_project_id`, `converted_at`, `created_at`, `updated_at` |
 | 主キー | `id` |
-| 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id`, `ai_generation_job_id` -> `ai_generation_jobs.id`, `account_id` -> `accounts.id`, `converted_project_id` -> `projects.id` |
+| 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id`, `ai_generation_job_id` -> `ai_generation_jobs.id`, `account_id` -> `accounts.id`, `converted_project_id` -> `projects.id`（`ON DELETE SET NULL`） |
 | MVP | MVP3 |
 
 下書き内の各LEAFタスクには一時キーと入力元の一時キー一覧を持たせる。入力元対応は生成品質評価にだけ利用し、ユーザーが確認する独立した情報にはしない。ユーザーが確認して保存した時点で、`projects` と `wbs_tasks` へ正規化して登録する。保存後のプロジェクトとWBSは通常のプロジェクト・タスクとして扱い、AI由来かどうかに依存した特別な制約や入力元対応を持たせない。
 
-1つのAI計画案から作成できるプロジェクトは1件のみとする。`converted_project_id` は未保存時は未設定、保存後は一意とし、同じ計画案から重複作成しない。
+1つのAI計画案から作成できるプロジェクトは1件のみとする。`converted_at` が設定済みの下書きは、変換先プロジェクトを削除して `converted_project_id` がNULLになっても再変換できない。プロジェクト削除時は外部キーにより参照だけをNULLにする。
 
 ## 5. 親タスク／タスクのテーブル設計比較
 

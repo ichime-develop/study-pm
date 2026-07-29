@@ -357,6 +357,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `job_type` | `varchar(30)` | NO | `WBS_GENERATION` |
 | `status` | `varchar(30)` | NO | ジョブ状態 |
 | `deadline_at` | `timestamptz` | NO | 受付時からの総期限 |
+| `deadline_priority` | `boolean` | NO | 期限優先の生成方針 |
 | `attempt_count` | `integer` | NO | 外部呼び出し回数 |
 | `schema_regeneration_count` | `integer` | NO | 構造検証失敗による再生成回数 |
 | `error_code` | `varchar(100)` | YES | 安定した失敗コード |
@@ -399,12 +400,12 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `validation_status` | `varchar(20)` | NO | `VALID`, `WARNING`, `INVALID` |
 | `warnings_json` | `jsonb` | NO | 計画不整合 |
 | `relaxation_options_json` | `jsonb` | NO | 最大3件の単一条件変更案 |
-| `converted_project_id` | `uuid` | YES | 変換先プロジェクト |
+| `converted_project_id` | `uuid` | YES | 変換先プロジェクト。プロジェクト削除時はNULL |
 | `converted_at` | `timestamptz` | YES | 変換日時 |
 | `created_at` | `timestamptz` | NO | 作成日時 |
 | `updated_at` | `timestamptz` | NO | 更新日時 |
 
-`converted_project_id` は一意とし、NULLから値ありへの更新は変換トランザクション内で1回だけ行う。`revision` は下書き更新と変換時の競合検出に使用する。
+`converted_project_id` は一意とし、`projects.id` への外部キーは `ON DELETE SET NULL` とする。変換済み判定は `converted_at` を正本とし、変換先プロジェクトを削除して `converted_project_id` がNULLになっても再変換を許可しない。`revision` は下書き更新と変換時の競合検出に使用する。
 
 ## 5. 制約・外部キー
 
@@ -418,7 +419,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | 学習記録 | 学習時間下限・0.25刻み |
 | 履歴 | 参照先削除時の履歴保持、履歴のプロジェクト帰属、履歴値の範囲 |
 | トークン | token hash一意、有効期限が作成日時より後 |
-| AI入力 | 日付順、入力元一時キー、ジョブ種別・状態、下書き変換一意性 |
+| AI入力 | 日付順、入力元一時キー、ジョブ種別・状態、下書き変換一意性、変換先プロジェクト削除時の参照NULL化 |
 | AI排他 | 同一アカウントのactiveジョブを部分一意インデックスで1件に制限 |
 
 ### 5.2 サービス層で守るもの

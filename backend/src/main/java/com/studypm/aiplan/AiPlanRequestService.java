@@ -15,9 +15,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.studypm.account.AccountRepository;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * AI計画の入力保存、入力元更新、生成前の決定的矛盾検証を担当する。
@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 public class AiPlanRequestService {
 
     private static final BigDecimal QUARTER_HOUR = new BigDecimal("0.25");
+    private static final BigDecimal DEFAULT_WEEKDAY_AVAILABLE_HOURS = BigDecimal.ONE;
+    private static final BigDecimal DEFAULT_WEEKEND_AVAILABLE_HOURS = BigDecimal.valueOf(2);
     private final AiPlanGenerationRequestRepository requestRepository;
     private final AiPlanSourceRepository sourceRepository;
     private final AccountRepository accountRepository;
@@ -64,11 +66,13 @@ public class AiPlanRequestService {
         Instant now = clock.instant();
         request.update(command, now.plus(retentionDays, ChronoUnit.DAYS), now);
         sourceRepository.deleteAllByGenerationRequest_Id(request.id());
+        // HibernateはINSERTをDELETEより先に実行するため、同じtemporaryKeyを再登録する前に削除をDBへ反映する。
+        sourceRepository.flush();
         saveSources(request, command.sources(), now);
         return responseFor(request);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AiPlanRequestResponse get(UUID accountId, UUID requestId) {
         return responseFor(findOwned(accountId, requestId));
     }
@@ -90,7 +94,7 @@ public class AiPlanRequestService {
                 .toList();
         return new AiPlanRequestResponse(
                 request.id(), request.sourceType(), request.learningGoal(), request.startDate(), request.targetEndDate(),
-                request.constraints(), sources, AiPlanPrecheckResponse.valid()
+                request.constraints(), sources
         );
     }
 
@@ -130,8 +134,8 @@ public class AiPlanRequestService {
         if (!constraints.isObject()) {
             throw new InvalidRequestException("AI_INPUT_CONFLICT", "こだわり条件の形式が正しくありません。");
         }
-        BigDecimal weekdayHours = decimal(constraints, "weekdayAvailableHours");
-        BigDecimal weekendHours = decimal(constraints, "weekendAvailableHours");
+        BigDecimal weekdayHours = decimal(constraints, "weekdayAvailableHours", DEFAULT_WEEKDAY_AVAILABLE_HOURS);
+        BigDecimal weekendHours = decimal(constraints, "weekendAvailableHours", DEFAULT_WEEKEND_AVAILABLE_HOURS);
         validateQuarterHours(weekdayHours, "平日の学習可能時間");
         validateQuarterHours(weekendHours, "土日の学習可能時間");
         Set<DayOfWeek> unavailable = unavailableWeekdays(constraints);
@@ -144,7 +148,7 @@ public class AiPlanRequestService {
         if (quantity.isObject() && quantity.hasNonNull("totalAmount") && quantity.hasNonNull("dailyAmount")) {
             BigDecimal total = quantity.path("totalAmount").decimalValue();
             BigDecimal daily = quantity.path("dailyAmount").decimalValue();
-            if (total.signum() <= 0 || daily.signum() <= 0 || daily.compareTo(BigDecimal.valueOf(24)) > 0) {
+            if (total.signum() <= 0 || daily.signum() <= 0) {
                 throw new InvalidRequestException("AI_INPUT_CONFLICT", "数量条件の総量と1日量を確認してください。");
             }
             long neededDays = total.divide(daily, 0, java.math.RoundingMode.CEILING).longValueExact();
@@ -170,9 +174,15 @@ public class AiPlanRequestService {
         }
     }
 
-    private BigDecimal decimal(JsonNode constraints, String fieldName) {
-        JsonNode value = constraints.path(fieldName);
-        return value.isNumber() ? value.decimalValue() : BigDecimal.ZERO;
+    private BigDecimal decimal(JsonNode constraints, String fieldName, BigDecimal defaultValue) {
+        JsonNode value = constraints.get(fieldName);
+        if (value == null || value.isNull()) {
+            return defaultValue;
+        }
+        if (!value.isNumber()) {
+            throw new InvalidRequestException("AI_INPUT_CONFLICT", fieldName + "は数値で入力してください。");
+        }
+        return value.decimalValue();
     }
 
     private void validateQuarterHours(BigDecimal hours, String label) {

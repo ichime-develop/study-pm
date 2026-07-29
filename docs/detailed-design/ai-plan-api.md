@@ -25,7 +25,12 @@ MVP3のOCR、WBS下書き生成、下書き変換のHTTP契約を定義する。
 - 下書き更新・変換リクエストは取得時のrevisionを必須とする。
 - サーバー上のrevisionと一致しない場合は409 `STALE_AI_PLAN_REVISION` を返す。
 
-### 2.3 ジョブ種別と状態
+### 2.3 AI機能の可用性
+
+- AI機能を無効化した環境では、AI APIはすべて503 `AI_FEATURE_UNAVAILABLE` を返す。
+- AI機能を有効化した環境でOpenAI APIキーが未設定の場合は、起動時検証でアプリケーションを起動しない。
+
+### 2.4 ジョブ種別と状態
 
 ```text
 jobType:
@@ -42,7 +47,7 @@ status:
 
 active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal状態は `COMPLETED`, `FAILED`, `CANCELED` とする。
 
-### 2.4 ジョブ状態レスポンス
+### 2.5 ジョブ状態レスポンス
 
 ```json
 {
@@ -130,23 +135,25 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 }
 ```
 
-`weekdayAvailableHours` は月曜日から金曜日、`weekendAvailableHours` は土曜日・日曜日に適用する。祝日は特別扱いせず曜日に従う。`unavailableWeekdays` に含まれる曜日は、対応する時間設定にかかわらず0時間とする。両方の時間は0.25時間単位で0以上とする。
+`weekdayAvailableHours` は月曜日から金曜日、`weekendAvailableHours` は土曜日・日曜日に適用する。未指定時はそれぞれ平日1時間、土日2時間を補完する。祝日は特別扱いせず曜日に従う。`unavailableWeekdays` に含まれる曜日は、対応する時間設定にかかわらず0時間とする。両方の時間は0.25時間単位で0以上とする。
 
 `wbsSplitUnit` は `SECTION`、`PAGE`、`QUESTION_SET`、`AI` のいずれかとする。`PAGE` を指定する場合は `quantityCondition.unit = "ページ"` とし、`totalAmount` と `dailyAmount` を必須とする。
 
-成功時は201を返す。
+成功時は201を返し、保存済み入力を返す。入力矛盾や入力上限の超過は保存せず、400エラーとして返す。
 
 ```json
 {
   "generationRequestId": "uuid",
-  "precheck": {
-    "isValid": true,
-    "issues": []
-  }
+  "sourceType": "TABLE_OF_CONTENTS",
+  "learningGoal": "Java Silverに合格する",
+  "startDate": "2026-06-08",
+  "targetEndDate": "2026-07-15",
+  "constraints": {},
+  "sources": []
 }
 ```
 
-### 4.2 PATCH `/api/ai-plan/requests/{requestId}`
+### 4.2 PUT `/api/ai-plan/requests/{requestId}`
 
 入力条件と `sources` 全体を更新し、事前検証を再実行する。`temporaryKey` は生成依頼内で一意とする。下書き作成後に入力またはsourceを変更した場合、既存下書きは古い入力に基づくものとして再生成を要求する。
 
