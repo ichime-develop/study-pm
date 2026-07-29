@@ -19,6 +19,9 @@ describe("ProgressAnalysisPage", () => {
 
     expect(await screen.findByRole("heading", { name: "EVM指標" })).toBeInTheDocument();
     expect(screen.getByText("20h", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "BACの説明" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /の説明$/ })).toHaveLength(8);
+    expect(screen.getByText("Budget at Completion。プロジェクト全体の予定工数です。")).toBeInTheDocument();
     expect(screen.getByText("遅れ")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /バーンダウンチャート/ })).toBeInTheDocument();
     expect(screen.getByText("予定終了日がプロジェクト目標終了日より後です。")).toBeInTheDocument();
