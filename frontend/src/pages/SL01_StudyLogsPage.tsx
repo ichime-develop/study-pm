@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { canCompleteProject } from "../features/projects/projectCompletion";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
 import { useProject } from "../features/projects/useProjects";
 import { ProjectNav } from "../features/projects/ProjectNav";
@@ -107,7 +108,7 @@ export const StudyLogsPage = () => {
         return (
           <main className="app-page">
             <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="学習記録" />
-            <ProjectNav hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
+            <ProjectNav canComplete={canCompleteProject(wbs.tasks)} hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
 
       {hasNoLeafTasks ? (
         <Panel className="state-panel">

@@ -8,6 +8,7 @@ import { PlanWarningsList } from "../features/analysis/PlanWarningsList";
 import { formatAnalysisHours, formatAnalysisNumber, formatSignedHours } from "../features/analysis/analysisFormatters";
 import { useProjectBurndown, useProjectEvm, useProjectPlanWarnings } from "../features/analysis/useAnalysis";
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { canCompleteProject } from "../features/projects/projectCompletion";
 import { ProjectNav } from "../features/projects/ProjectNav";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
 import { useProject } from "../features/projects/useProjects";
@@ -64,7 +65,7 @@ export const ProgressAnalysisPage = () => {
       {({ account, burndown, evm, planWarnings, project, wbs }) => (
         <main className="app-page">
           <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="進捗分析" />
-          <ProjectNav hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
+          <ProjectNav canComplete={canCompleteProject(wbs.tasks)} hasNoWbsTasks={wbs.tasks.length === 0} project={project} />
 
           <Panel className="analysis-panel">
             <PanelHeader

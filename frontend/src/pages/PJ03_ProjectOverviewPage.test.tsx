@@ -99,6 +99,33 @@ describe("ProjectOverviewPage", () => {
     );
   });
 
+  it("ヘッダーの状態からプロジェクト状態を変更する", async () => {
+    const fetchMock = fetchForProject();
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderProjectOverview();
+
+    await screen.findByRole("heading", { name: "Java Silver学習" });
+    await userEvent.click(screen.getByRole("button", { name: "プロジェクトの状態を変更。現在: 進行中" }));
+
+    const dialog = screen.getByRole("dialog", { name: /状態を変更/ });
+    expect(within(dialog).getByRole("radio", { name: "完了" })).toBeDisabled();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: "未着手" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "変更を保存" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /状態を変更/ })).not.toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/projects/project-id",
+      expect.objectContaining({
+        body: expect.stringContaining('"status":"NOT_STARTED"'),
+        method: "PATCH",
+      }),
+    );
+  });
+
   it("未完了タスクを選択するとPJ03内で詳細パネルを開き、URLにtaskIdを保持する", async () => {
     vi.stubGlobal("fetch", fetchForProject());
 
@@ -216,6 +243,9 @@ const fetchForProject = (overrides: ProjectFetchOverrides = {}) =>
     }
     if (url.endsWith("/api/projects/project-id") && init?.method === "DELETE") {
       return Promise.resolve(overrides.deleteResult ?? jsonResponse({ result: "OK" }));
+    }
+    if (url.endsWith("/api/projects/project-id") && init?.method === "PATCH") {
+      return Promise.resolve(jsonResponse({ ...project(), status: "NOT_STARTED" }));
     }
     if (url.endsWith("/api/projects/project-id")) {
       return Promise.resolve(jsonResponse(project()));

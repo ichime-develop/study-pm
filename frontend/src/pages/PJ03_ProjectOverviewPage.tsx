@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
 import { AnalysisOverviewLink } from "../features/analysis/AnalysisOverviewLink";
+import { canCompleteProject } from "../features/projects/projectCompletion";
 import { ProjectDeleteModal } from "../features/projects/ProjectDeleteModal";
 import { ProjectNav } from "../features/projects/ProjectNav";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
@@ -107,7 +108,7 @@ export const ProjectOverviewPage = () => {
         return (
           <main className="app-page">
             <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="プロジェクト概要" />
-            <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
+            <ProjectNav canComplete={canCompleteProject(wbs.tasks)} hasNoWbsTasks={hasNoWbsTasks} project={project} />
 
       <div className={`project-overview-workspace${isTaskPanelOpen ? " with-side-panel" : ""}`}>
         <Panel className="project-overview-panel">

@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
 import { WbsPlanWarningNotice } from "../features/analysis/WbsPlanWarningNotice";
+import { canCompleteProject } from "../features/projects/projectCompletion";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
 import { ProjectNav } from "../features/projects/ProjectNav";
 import { useProject } from "../features/projects/useProjects";
@@ -77,7 +78,7 @@ export const WbsPage = () => {
         return (
           <main className="app-page">
             <AppHeader account={account} isLoggingOut={logout.isPending} onLogout={() => logout.mutate()} title="WBS・ガント" />
-            <ProjectNav hasNoWbsTasks={hasNoWbsTasks} project={project} />
+            <ProjectNav canComplete={canCompleteProject(wbs.tasks)} hasNoWbsTasks={hasNoWbsTasks} project={project} />
 
             <Panel>
         <PanelHeader
