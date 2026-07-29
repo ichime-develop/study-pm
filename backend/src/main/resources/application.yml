@@ -11,6 +11,8 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  config:
+    import: optional:file:.env.local[.properties],optional:file:../.env.local[.properties]
 
 app:
   cors:
@@ -28,3 +30,16 @@ app:
       secure: ${REFRESH_COOKIE_SECURE:false}
       same-site: Lax
       max-age: 14d
+  ai:
+    enabled: ${AI_ENABLED:false}
+    retention-days: ${AI_RETENTION_DAYS:30}
+    job-timeout: ${AI_JOB_TIMEOUT:5m}
+    daily-generation-limit: ${AI_DAILY_GENERATION_LIMIT:10}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4.1-mini}
+      prompt-version: v1
+      schema-version: v1
+      strategy-version: v1
+    vision:
+      api-key: ${GOOGLE_CLOUD_VISION_API_KEY:}

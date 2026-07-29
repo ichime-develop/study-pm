@@ -27,9 +27,6 @@ public class Account {
     @Column(name = "display_name", nullable = false, length = 100)
     private String displayName;
 
-    @Column(name = "ai_usage_consent_at")
-    private Instant aiUsageConsentAt;
-
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -66,10 +63,6 @@ public class Account {
 
     public String displayName() {
         return displayName;
-    }
-
-    public Instant aiUsageConsentAt() {
-        return aiUsageConsentAt;
     }
 
     public Instant createdAt() {
