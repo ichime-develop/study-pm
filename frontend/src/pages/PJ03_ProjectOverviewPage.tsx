@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useCurrentAccount, useLogout } from "../features/auth/useAuth";
+import { AnalysisOverviewLink } from "../features/analysis/AnalysisOverviewLink";
 import { ProjectDeleteModal } from "../features/projects/ProjectDeleteModal";
 import { ProjectNav } from "../features/projects/ProjectNav";
 import { ProjectPageGate } from "../features/projects/ProjectPageGate";
@@ -133,6 +134,7 @@ export const ProjectOverviewPage = () => {
             </section>
 
             <OverviewWarnings warnings={overview.warnings} />
+            <AnalysisOverviewLink projectId={project.projectId} />
             {hasNoWbsTasks ? (
               <div className="empty-project-state">
                 <div>

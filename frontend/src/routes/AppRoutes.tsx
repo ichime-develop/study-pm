@@ -6,6 +6,7 @@ import { SignupPage } from "../pages/AU01_SignupPage";
 import { ProjectsPage } from "../pages/PJ01_ProjectsPage";
 import { ProjectFormPage } from "../pages/PJ02_ProjectFormPage";
 import { ProjectOverviewPage } from "../pages/PJ03_ProjectOverviewPage";
+import { ProgressAnalysisPage } from "../pages/AN01_ProgressAnalysisPage";
 import { StudyLogsPage } from "../pages/SL01_StudyLogsPage";
 import { WbsPage } from "../pages/WB01_WbsPage";
 import { RequireAuth } from "./RequireAuth";
@@ -21,6 +22,7 @@ export const AppRoutes = () => (
       <Route element={<ProjectOverviewPage />} path="/projects/:id" />
       <Route element={<WbsPage />} path="/projects/:id/wbs" />
       <Route element={<StudyLogsPage />} path="/projects/:id/logs" />
+      <Route element={<ProgressAnalysisPage />} path="/projects/:id/analysis" />
     </Route>
     <Route element={<Navigate replace to="/projects" />} path="/" />
     <Route element={<Navigate replace to="/projects" />} path="*" />
