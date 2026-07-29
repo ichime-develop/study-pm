@@ -87,10 +87,10 @@ PC Web版のモックでは、画面間の横幅差で印象や情報量が変�
 | --- | --- |
 | `docs/ui-mock/README.md` | UIモック全体の方針 |
 | `docs/ui-mock/pc-web-screen-plan.md` | PC Web版全体のモック対象画面と確認観点 |
-| `docs/ui-mock/mvp3-screen-plan.md` | AI01〜AI04の画面構成、状態、確認観点、既存モックとの差分 |
+| `docs/ui-mock/mvp3-screen-plan.md` | AI01〜AI03の画面構成、状態、確認観点、既存モックとの差分 |
 | `mock/` | Reactで作成するPC Web版の静的UIモック |
 
-既存の `mock/` にあるAI作成フローは3画面構成であり、MVP3設計で確定した4画面構成とは一致していない。MVP3実装前に、`mvp3-screen-plan.md` を正本として別タスクでモックを更新する。
+`mock/` のAI作成フローは、`mvp3-screen-plan.md` を正本としてAI01〜AI03の3画面構成へ同期済みである。
 
 ## 7. フィードバック方法
 

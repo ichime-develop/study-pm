@@ -74,13 +74,10 @@ WBS履歴はタスク削除後も参照できるように、履歴テーブル�
 | `wbs_task_plan_history` | MVP1 | WBS計画変更履歴 |
 | `wbs_task_progress_history` | MVP1 | WBS進捗履歴 |
 | `study_logs` | MVP1 | 学習実績 |
-| `ai_plan_generation_requests` | MVP3 | AI計画生成条件と候補一覧の確認版 |
+| `ai_plan_generation_requests` | MVP3 | AI計画生成条件と入力内容 |
 | `ai_plan_sources` | MVP3 | 概要・目次・修正済みOCRテキスト |
-| `ai_learning_item_candidates` | MVP3 | WBS生成前に確認する学習項目候補 |
-| `ai_learning_item_candidate_sources` | MVP3 | 入力元と候補の多対多対応 |
-| `ai_generation_jobs` | MVP3 | 候補抽出・WBS生成の非同期状態 |
+| `ai_generation_jobs` | MVP3 | WBS生成の非同期状態 |
 | `ai_plan_drafts` | MVP3 | 検証済みWBS下書き |
-| `ai_draft_task_candidate_links` | MVP3 | 下書きタスクと候補の多対多対応 |
 
 ## 4. テーブル定義
 
@@ -309,10 +306,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `learning_goal` | `varchar(5000)` | NO | 学習目標 |
 | `start_date` | `date` | NO | 学習開始日 |
 | `target_end_date` | `date` | NO | 目標終了日 |
-| `constraints_json` | `jsonb` | NO | 学習可能時間、曜日、補足、重点・軽め・除外条件、確認対象の構造化数量条件 |
-| `candidate_revision` | `integer` | NO | 現在の候補一覧版。初期値0 |
-| `confirmed_candidate_revision` | `integer` | YES | 一括確認した候補一覧版 |
-| `confirmed_at` | `timestamptz` | YES | 一括確認日時 |
+| `constraints_json` | `jsonb` | NO | 平日・土日それぞれの学習可能時間、学習できない曜日、補足、重点・軽め・除外条件、数量条件、WBS分割単位 |
 | `retention_expires_at` | `timestamptz` | NO | 生成依頼配下のAI一時データ削除予定日時。変換済みでも適用 |
 | `created_at` | `timestamptz` | NO | 作成日時 |
 | `updated_at` | `timestamptz` | NO | 更新日時 |
@@ -322,8 +316,8 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 - `foreign key (account_id) references accounts(id) on delete cascade`
 - `source_type in ('OVERVIEW', 'TABLE_OF_CONTENTS', 'MIXED')`
 - `start_date <= target_end_date`
-- `candidate_revision >= 0`
-- `confirmed_candidate_revision is null or confirmed_candidate_revision <= candidate_revision`
+- `constraints_json` の平日・土日学習可能時間は0以上かつ0.25時間単位、WBS分割単位は `SECTION`、`PAGE`、`QUESTION_SET`、`AI` のいずれかとする
+- WBS分割単位が `PAGE` の場合、数量条件の単位をページとし、総量と1日量を必須とする
 - 概要、直接入力目次、修正済みOCR結果は `ai_plan_sources` に保存し、生成依頼へ重複保存しない
 
 ### 4.10 ai_plan_sources
@@ -336,7 +330,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `source_type` | `varchar(20)` | NO | `OVERVIEW`, `PASTED_TOC`, `OCR_TEXT` |
 | `source_order` | `integer` | NO | 教材・画像順 |
 | `label` | `varchar(100)` | YES | 教材名・画像表示名 |
-| `text_content` | `text` | NO | 候補抽出に利用した修正済みテキスト |
+| `text_content` | `text` | NO | WBS下書き生成に利用した修正済みテキスト |
 | `content_hash` | `varchar(64)` | NO | 内容変更検知用SHA-256 |
 | `created_at` | `timestamptz` | NO | 作成日時 |
 | `updated_at` | `timestamptz` | NO | 更新日時 |
@@ -353,47 +347,14 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 
 複数行の合計文字数と `OCR_TEXT` 件数はDB CHECKだけでは保証できないため、source一括更新トランザクション内でサービス層が検証する。OpenAIへ送る全テキスト30,000文字上限も、学習目標、sources、constraintsから送信payloadを組み立てた後にサービス層で検証する。画像本体、画像URL、外部ストレージキーは保持しない。生成依頼削除時はcascadeする。
 
-### 4.11 ai_learning_item_candidates
-
-| カラム | 型 | Null | 制約・用途 |
-| --- | --- | --- | --- |
-| `id` | `uuid` | NO | 主キー |
-| `ai_plan_generation_request_id` | `uuid` | NO | 生成依頼 |
-| `temporary_key` | `varchar(100)` | NO | API・AI出力内の一時識別子 |
-| `name` | `varchar(100)` | NO | 候補名 |
-| `description` | `varchar(5000)` | YES | 候補説明 |
-| `origin_type` | `varchar(20)` | NO | `INPUT_DERIVED`, `AI_SUPPLEMENTED` |
-| `priority` | `varchar(20)` | NO | `FOCUS`, `NORMAL`, `LIGHT`, `EXCLUDED` |
-| `display_order` | `integer` | NO | 表示順 |
-| `candidate_revision` | `integer` | NO | 候補一覧版 |
-| `created_at` | `timestamptz` | NO | 作成日時 |
-| `updated_at` | `timestamptz` | NO | 更新日時 |
-
-制約:
-
-- 生成依頼内で `temporary_key` を一意にする
-- `origin_type in ('INPUT_DERIVED', 'AI_SUPPLEMENTED')`
-- `priority in ('FOCUS', 'NORMAL', 'LIGHT', 'EXCLUDED')`
-- `display_order >= 0`, `candidate_revision >= 1`
-
-### 4.12 ai_learning_item_candidate_sources
-
-| カラム | 型 | Null | 制約・用途 |
-| --- | --- | --- | --- |
-| `ai_learning_item_candidate_id` | `uuid` | NO | 学習項目候補 |
-| `ai_plan_source_id` | `uuid` | NO | 入力元 |
-| `created_at` | `timestamptz` | NO | 作成日時 |
-
-2つのIDを複合主キーとする。入力由来候補は1件以上のsourceと対応させる。AI補足候補は対応sourceを持たなくてもよい。
-
-### 4.13 ai_generation_jobs
+### 4.11 ai_generation_jobs
 
 | カラム | 型 | Null | 制約・用途 |
 | --- | --- | --- | --- |
 | `id` | `uuid` | NO | 主キー |
 | `ai_plan_generation_request_id` | `uuid` | NO | 生成依頼 |
 | `account_id` | `uuid` | NO | 排他・日次上限判定用 |
-| `job_type` | `varchar(30)` | NO | `LEARNING_ITEM_EXTRACTION`, `WBS_GENERATION` |
+| `job_type` | `varchar(30)` | NO | `WBS_GENERATION` |
 | `status` | `varchar(30)` | NO | ジョブ状態 |
 | `deadline_at` | `timestamptz` | NO | 受付時からの総期限 |
 | `attempt_count` | `integer` | NO | 外部呼び出し回数 |
@@ -413,7 +374,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 
 制約:
 
-- `job_type in ('LEARNING_ITEM_EXTRACTION', 'WBS_GENERATION')`
+- `job_type = 'WBS_GENERATION'`
 - `status in ('QUEUED', 'PROCESSING', 'CANCEL_REQUESTED', 'COMPLETED', 'FAILED', 'CANCELED')`
 - `attempt_count >= 0`
 - `schema_regeneration_count between 0 and 1`
@@ -421,7 +382,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 
 同一ユーザーのactive状態を1件に制限する部分一意インデックスを作成する。
 
-### 4.14 ai_plan_drafts
+### 4.12 ai_plan_drafts
 
 | カラム | 型 | Null | 制約・用途 |
 | --- | --- | --- | --- |
@@ -430,11 +391,11 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `ai_generation_job_id` | `uuid` | NO | 生成元ジョブ |
 | `account_id` | `uuid` | NO | 所有アカウント |
 | `revision` | `integer` | NO | 楽観ロック用版 |
-| `project_name` | `varchar(100)` | NO | プロジェクト候補名 |
+| `project_name` | `varchar(100)` | NO | プロジェクト名 |
 | `project_description` | `varchar(5000)` | YES | 概要 |
 | `start_date` | `date` | NO | 開始日 |
 | `target_end_date` | `date` | NO | 目標終了日 |
-| `draft_wbs_tasks_json` | `jsonb` | NO | 一時キーを持つ親・LEAF下書き |
+| `draft_wbs_tasks_json` | `jsonb` | NO | 一時キーを持つ親・LEAF下書き。LEAFは対応する入力元の`sourceTemporaryKeys`を持つ |
 | `validation_status` | `varchar(20)` | NO | `VALID`, `WARNING`, `INVALID` |
 | `warnings_json` | `jsonb` | NO | 計画不整合 |
 | `relaxation_options_json` | `jsonb` | NO | 最大3件の単一条件変更案 |
@@ -444,17 +405,6 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `updated_at` | `timestamptz` | NO | 更新日時 |
 
 `converted_project_id` は一意とし、NULLから値ありへの更新は変換トランザクション内で1回だけ行う。`revision` は下書き更新と変換時の競合検出に使用する。
-
-### 4.15 ai_draft_task_candidate_links
-
-| カラム | 型 | Null | 制約・用途 |
-| --- | --- | --- | --- |
-| `ai_plan_draft_id` | `uuid` | NO | WBS下書き |
-| `draft_task_temporary_key` | `varchar(100)` | NO | JSONB内LEAFの一時キー |
-| `ai_learning_item_candidate_id` | `uuid` | NO | 対応候補 |
-| `created_at` | `timestamptz` | NO | 作成日時 |
-
-3項目を複合主キーとする。下書き変換後は評価用保持期間を過ぎた時点で、生成依頼配下のAIデータとともに削除できる。
 
 ## 5. 制約・外部キー
 
@@ -468,7 +418,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | 学習記録 | 学習時間下限・0.25刻み |
 | 履歴 | 参照先削除時の履歴保持、履歴のプロジェクト帰属、履歴値の範囲 |
 | トークン | token hash一意、有効期限が作成日時より後 |
-| AI入力 | 日付順、候補由来・優先度、ジョブ種別・状態、下書き変換一意性 |
+| AI入力 | 日付順、入力元一時キー、ジョブ種別・状態、下書き変換一意性 |
 | AI排他 | 同一アカウントのactiveジョブを部分一意インデックスで1件に制限 |
 
 ### 5.2 サービス層で守るもの
@@ -483,8 +433,8 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | 学習記録 | 未来日禁止、対象タスクが同一プロジェクトのLEAFであること |
 | 完了条件 | LEAFが1件以上あり、全LEAFが100%の場合だけプロジェクト完了を許可すること |
 | AI入力上限 | OCR・目次合計20000文字、概要5000文字、条件5000文字、送信合計30000文字を切り捨てず検証すること |
-| 候補確認 | 現在のcandidateRevisionとconfirmedCandidateRevisionが一致する場合だけWBS生成を許可すること |
-| AI出力 | 必須項目、最大2階層、0.25時間単位、日付、候補対応を保存前と変換前に検証すること |
+| AI条件 | 平日・土日・学習できない曜日から期間内の利用可能時間を算出すること、`PAGE`選択時の数量条件を検証すること |
+| AI出力 | 必須項目、最大2階層、0.25時間単位、日付、LEAFと入力元の対応を保存前と変換前に検証すること |
 | 停止競合 | 結果保存トランザクションでジョブを再取得・ロックし、CANCEL_REQUESTEDなら結果を保存せずCANCELEDにすること |
 
 ## 6. インデックス
@@ -541,7 +491,6 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `idx_ai_requests_account_updated` on `(account_id, updated_at desc)` | ユーザーの作成途中データ再開 |
 | `idx_ai_requests_retention` on `(retention_expires_at)` | 保持期限を過ぎた生成依頼のcleanup |
 | `idx_ai_sources_request_order` on `(ai_plan_generation_request_id, source_order)` | 入力元の順序取得 |
-| `idx_ai_candidates_request_order` on `(ai_plan_generation_request_id, display_order)` | 候補一覧取得 |
 | `ux_ai_generation_jobs_account_active` on `(account_id)` where `status in ('QUEUED','PROCESSING','CANCEL_REQUESTED')` | 同一ユーザーのAI処理を1件に制限 |
 | `idx_ai_generation_jobs_account_created` on `(account_id, created_at desc)` | 日次生成上限、利用量集計 |
 | `idx_ai_generation_jobs_deadline` on `(status, deadline_at)` | 期限超過ジョブの検出 |
@@ -570,14 +519,11 @@ MVP3では利用可能な次のversionで、次の順序によりAI関連テー�
 
 1. `ai_plan_generation_requests`
 2. `ai_plan_sources`
-3. `ai_learning_item_candidates`
-4. `ai_learning_item_candidate_sources`
-5. `ai_generation_jobs`
-6. `ai_plan_drafts`
-7. `ai_draft_task_candidate_links`
-8. AI関連インデックス
-9. `Account.aiUsageConsentAt` フィールドと関連するDTO・SQL参照を削除
-10. 未使用の `accounts.ai_usage_consent_at` を削除
+3. `ai_generation_jobs`
+4. `ai_plan_drafts`
+5. AI関連インデックス
+6. `Account.aiUsageConsentAt` フィールドと関連するDTO・SQL参照を削除
+7. 未使用の `accounts.ai_usage_consent_at` を削除
 
 既存データの変換は不要である。Javaフィールドと関連参照の削除、Flywayによるカラム削除を同じ変更へ含め、アプリケーション起動・Repository結合テスト・マイグレーションテストで参照漏れがないことを確認する。
 
@@ -592,7 +538,7 @@ MVP3では利用可能な次のversionで、次の順序によりAI関連テー�
 - 履歴テーブルの `wbs_task_id` はnullableのため、JPA関連はoptionalとして扱う。
 - `updated_at` はEntity更新時にアプリケーション側で明示的に更新する。
 - AI入力本文をEntityの `toString`、SQLパラメータログ、監査ログへ出力しない。
-- JSONB内の下書きタスク一時キーは下書き内で一意にし、候補リンクの参照整合性をサービス層で検証する。
+- JSONB内の下書きタスク一時キーは下書き内で一意にし、各LEAFの`sourceTemporaryKeys`が同じ生成依頼の入力元だけを参照することをサービス層で検証する。
 
 ## 9. 業務ロジック設計へ渡す前提
 
@@ -610,5 +556,5 @@ MVP3では利用可能な次のversionで、次の順序によりAI関連テー�
 
 | 項目 | 内容 | 決定タイミング |
 | --- | --- | --- |
-| AIデータ保持期間 | 入力・候補・ジョブ・下書きの具体的な保持日数 | MVP3の運用設計。`retention_expires_at` で変更可能にする |
+| AIデータ保持期間 | 入力・ジョブ・下書きの具体的な保持日数 | MVP3の運用設計。`retention_expires_at` で変更可能にする |
 | 検索インデックス | プロジェクト名・概要検索に通常LIKEで足りるか、`pg_trgm` を使うか | 性能確認時 |

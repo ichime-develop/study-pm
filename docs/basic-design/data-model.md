@@ -26,7 +26,7 @@ related: docs/requirements/details/data-screens-interfaces.md, docs/requirements
 
 | 論点 | 決定 | 根拠 |
 | --- | --- | --- |
-| エンティティ | `Account`, `Project`, `ProjectPeriodHistory`, `WbsTask`, `WbsTaskPlanHistory`, `WbsTaskProgressHistory`, `StudyLog`, `AiPlanGenerationRequest`, `AiPlanSource`, `AiLearningItemCandidate`, `AiGenerationJob`, `AiPlanDraft` を採用する | 15章の主要データを過不足なく表現できる。AI関連はMVP3に分離する |
+| エンティティ | `Account`, `Project`, `ProjectPeriodHistory`, `WbsTask`, `WbsTaskPlanHistory`, `WbsTaskProgressHistory`, `StudyLog`, `AiPlanGenerationRequest`, `AiPlanSource`, `AiGenerationJob`, `AiPlanDraft` を採用する | 15章の主要データを過不足なく表現できる。AI関連はMVP3に分離する |
 | 親タスク／タスク | `wbs_tasks` 単一テーブル + `parent_wbs_task_id` self-join とする | 親タスクとタスクは同じWBS内で並び、親なしタスクも存在するため、単一テーブルの方が画面構造と整合する |
 | 履歴粒度 | 変更イベント1回につき1行追加する。同一値保存では追加しない | 10.5の進捗履歴ルールと、10.4/10.5の履歴保持方針に合わせる |
 | 集計値 | 実績工数、予定工数合計、進捗率、連続学習日数、EVM、バーンダウンは原則保存せず都度計算する | 学習記録や過去日入力の変更で再計算が必要になるため、保存すると整合性維持コストが高い |
@@ -160,21 +160,21 @@ WBS上の親タスクとタスクを表す。親タスクとタスクは単一�
 
 ### 4.9 AiPlanGenerationRequest
 
-AI学習計画生成の入力と候補一覧の確認版を表す。MVP3で作成する。
+AI学習計画生成の入力を表す。MVP3で作成する。
 
 | 項目 | 方針 |
 | --- | --- |
 | テーブル名 | `ai_plan_generation_requests` |
-| 主なカラム | `id`, `account_id`, `source_type`, `learning_goal`, `start_date`, `target_end_date`, `constraints_json`, `candidate_revision`, `confirmed_candidate_revision`, `confirmed_at`, `created_at`, `updated_at` |
+| 主なカラム | `id`, `account_id`, `source_type`, `learning_goal`, `start_date`, `target_end_date`, `constraints_json`, `created_at`, `updated_at` |
 | 主キー | `id` |
 | 外部キー | `account_id` -> `accounts.id` |
 | MVP | MVP3 |
 
-`constraints_json` には学習可能時間、学習できない曜日、日程補足、重点範囲、軽く確認する範囲、除外範囲、AIが構造化してユーザーが確認する数量条件などを保持する。概要、教材名、直接入力目次、修正済みOCR結果は重複保持せず、複数教材・複数画像を表現できる `ai_plan_sources` に保存する。候補一覧または数量条件の変更時に `candidate_revision` を進め、`confirmed_candidate_revision` と一致する場合だけ現在の候補一覧と数量条件を確認済みと扱う。教材画像ファイルは永続保存しない。
+`constraints_json` には平日・土日それぞれの学習可能時間、学習できない曜日、日程補足、重点範囲、軽く確認する範囲、除外範囲、ユーザー入力の数量条件、WBS分割単位を保持する。WBS分割単位は `SECTION`、`PAGE`、`QUESTION_SET`、`AI` の列挙値とする。概要、教材名、直接入力目次、修正済みOCR結果は重複保持せず、複数教材・複数画像を表現できる `ai_plan_sources` に保存する。教材画像ファイルは永続保存しない。
 
 ### 4.10 AiPlanSource
 
-候補抽出に利用した入力元を表す。概要、直接入力目次、OCR画像ごとの修正済みテキストを区別する。
+WBS下書き生成に利用した入力元を表す。概要、直接入力目次、OCR画像ごとの修正済みテキストを区別する。
 
 | 項目 | 方針 |
 | --- | --- |
@@ -184,26 +184,11 @@ AI学習計画生成の入力と候補一覧の確認版を表す。MVP3で作�
 | 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id` |
 | MVP | MVP3 |
 
-画像そのものは保存せず、OCR後にユーザーが修正したテキストだけを入力元として保持する。`temporary_key` はOpenAIの候補抽出結果と入力元を対応付けるために使用し、業務DBのUUIDは送信しない。`source_order` は複数教材・複数画像の順序を維持する。
+画像そのものは保存せず、OCR後にユーザーが修正したテキストだけを入力元として保持する。`temporary_key` はOpenAIのWBS生成結果と入力元を対応付けるために使用し、業務DBのUUIDは送信しない。`source_order` は複数教材・複数画像の順序を維持する。
 
-### 4.11 AiLearningItemCandidate
+### 4.11 AiGenerationJob
 
-WBS生成前にユーザーが確認する学習項目候補を表す。
-
-| 項目 | 方針 |
-| --- | --- |
-| テーブル名 | `ai_learning_item_candidates` |
-| 主なカラム | `id`, `ai_plan_generation_request_id`, `temporary_key`, `name`, `description`, `origin_type`, `priority`, `display_order`, `candidate_revision`, `created_at`, `updated_at` |
-| 主キー | `id` |
-| 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id` |
-| 主な制約 | `origin_type` は `INPUT_DERIVED` / `AI_SUPPLEMENTED`、`priority` は `FOCUS` / `NORMAL` / `LIGHT` / `EXCLUDED` |
-| MVP | MVP3 |
-
-入力元と候補は多対多とし、`ai_learning_item_candidate_sources` で対応を保持する。候補一覧の更新は、候補行とリクエストのrevisionを同一トランザクションで更新する。
-
-### 4.12 AiGenerationJob
-
-学習項目候補抽出とWBS下書き生成の非同期実行を表す。
+WBS下書き生成の非同期実行を表す。
 
 | 項目 | 方針 |
 | --- | --- |
@@ -211,12 +196,12 @@ WBS生成前にユーザーが確認する学習項目候補を表す。
 | 主なカラム | `id`, `ai_plan_generation_request_id`, `account_id`, `job_type`, `status`, `deadline_at`, `attempt_count`, `schema_regeneration_count`, `error_code`, `provider_request_id`, `model_name`, `prompt_version`, `schema_version`, `strategy_version`, `input_tokens`, `output_tokens`, `started_at`, `completed_at`, `created_at`, `updated_at` |
 | 主キー | `id` |
 | 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id`, `account_id` -> `accounts.id` |
-| 主な制約 | `job_type` は `LEARNING_ITEM_EXTRACTION` / `WBS_GENERATION`。同一アカウントのactive状態は1件だけ |
+| 主な制約 | `job_type` は `WBS_GENERATION`。同一アカウントのactive状態は1件だけ |
 | MVP | MVP3 |
 
 active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED`、terminal状態は `COMPLETED`, `FAILED`, `CANCELED` とする。外部サービスへ送信した本文は保持せず、品質・費用比較に必要な版情報と利用量だけを保持する。
 
-### 4.13 AiPlanDraft
+### 4.12 AiPlanDraft
 
 AIが生成し、サーバー検証を通過した保存前のWBS下書きを表す。MVP3で作成する。
 
@@ -228,7 +213,7 @@ AIが生成し、サーバー検証を通過した保存前のWBS下書きを表
 | 外部キー | `ai_plan_generation_request_id` -> `ai_plan_generation_requests.id`, `ai_generation_job_id` -> `ai_generation_jobs.id`, `account_id` -> `accounts.id`, `converted_project_id` -> `projects.id` |
 | MVP | MVP3 |
 
-下書き内の各タスクには一時キーを付け、学習項目候補との多対多対応を `ai_draft_task_candidate_links` に保持する。ユーザーが確認して保存した時点で、`projects` と `wbs_tasks` へ正規化して登録する。保存後のプロジェクトとWBSは通常のプロジェクト・タスクとして扱い、AI由来かどうかに依存した特別な制約や候補対応を持たせない。
+下書き内の各LEAFタスクには一時キーと入力元の一時キー一覧を持たせる。入力元対応は生成品質評価にだけ利用し、ユーザーが確認する独立した情報にはしない。ユーザーが確認して保存した時点で、`projects` と `wbs_tasks` へ正規化して登録する。保存後のプロジェクトとWBSは通常のプロジェクト・タスクとして扱い、AI由来かどうかに依存した特別な制約や入力元対応を持たせない。
 
 1つのAI計画案から作成できるプロジェクトは1件のみとする。`converted_project_id` は未保存時は未設定、保存後は一意とし、同じ計画案から重複作成しない。
 
@@ -299,12 +284,9 @@ erDiagram
     wbs_tasks ||--o{ study_logs : has
 
     ai_plan_generation_requests ||--o{ ai_plan_sources : has
-    ai_plan_generation_requests ||--o{ ai_learning_item_candidates : has
     ai_plan_generation_requests ||--o{ ai_generation_jobs : runs
     ai_plan_generation_requests ||--o{ ai_plan_drafts : generates
-    ai_plan_sources }o--o{ ai_learning_item_candidates : supports
     ai_generation_jobs ||--o| ai_plan_drafts : produces
-    ai_learning_item_candidates }o--o{ ai_plan_drafts : mapped_in
     ai_plan_drafts |o--o| projects : converted_to
 ```
 
@@ -325,12 +307,9 @@ erDiagram
 | `wbs_task_progress_history` | WbsTaskProgressHistory | MVP1 | MVP2の日別EV、バーンダウン実績線で利用する |
 | `study_logs` | StudyLog | MVP1 | 実績工数、AC、連続学習日数の算出元 |
 | `ai_plan_generation_requests` | AiPlanGenerationRequest | MVP3 | AI作成条件、OCR結果、目次テキスト、こだわり条件を保持 |
-| `ai_plan_sources` | AiPlanSource | MVP3 | 候補抽出に利用した概要・目次・修正済みOCRテキストを保持 |
-| `ai_learning_item_candidates` | AiLearningItemCandidate | MVP3 | WBS生成前に確認する学習項目候補を保持 |
-| `ai_learning_item_candidate_sources` | CandidateSourceLink | MVP3 | 入力元と学習項目候補の多対多対応を保持 |
-| `ai_generation_jobs` | AiGenerationJob | MVP3 | 候補抽出・WBS生成の状態、期限、版、利用量を保持 |
+| `ai_plan_sources` | AiPlanSource | MVP3 | WBS生成に利用した概要・目次・修正済みOCRテキストを保持 |
+| `ai_generation_jobs` | AiGenerationJob | MVP3 | WBS生成の状態、期限、版、利用量を保持 |
 | `ai_plan_drafts` | AiPlanDraft | MVP3 | 検証済みWBS下書き、警告、緩和案をJSONBで保持 |
-| `ai_draft_task_candidate_links` | DraftTaskCandidateLink | MVP3 | 下書きタスクの一時キーと学習項目候補の多対多対応を保持 |
 
 MVP2では新規テーブルを追加せず、MVP1から保存している履歴テーブルを利用して進捗分析を提供する。
 
@@ -346,7 +325,7 @@ MVP2では新規テーブルを追加せず、MVP1から保存している履歴
 | 10.6 工数と学習記録 | `study_logs` を実績工数・AC・学習サマリーの算出元にする |
 | 10.8 EVM計算ルール | `wbs_tasks`, `study_logs`, `wbs_task_progress_history` から都度計算 |
 | 10.9 バーンダウン計算ルール | 現在有効な計画値と進捗履歴から都度計算 |
-| 10.10 AI学習計画生成 | 入力、入力元、学習項目候補、非同期ジョブ、WBS下書きをMVP3の独立データとして追加 |
+| 10.10 AI学習計画生成 | 入力、入力元、非同期ジョブ、WBS下書きをMVP3の独立データとして追加 |
 
 ## 11. 独自判断・未決事項
 
@@ -356,6 +335,6 @@ MVP2では新規テーブルを追加せず、MVP1から保存している履歴
 | StudyLogの `account_id` / `project_id` | 集計と所有者判定のため、`wbs_task_id` から辿れる情報を保持する。整合性は登録・更新時のサービス層検証で担保する |
 | WBS表示順 | 永続カラムは持たず、予定日と作成日時から算出する。手動並び替えが追加される場合だけ再検討する |
 | AI教材画像 | 一時データとして扱い、永続保存しない。画像順とOCR後の修正済みテキストは `ai_plan_sources` で保持する |
-| AI下書きの正規化 | MVP3では `draft_wbs_tasks_json` に保持し、タスク一時キーと候補の対応だけを別テーブルにする。長期保存や詳細な差分監査が必要になった場合だけ下書きタスクの正規化を再検討する |
+| AI下書きの正規化 | MVP3では `draft_wbs_tasks_json` に保持し、各LEAFに対応する入力元の`sourceTemporaryKeys`を含める。長期保存や詳細な差分監査が必要になった場合だけ下書きタスクの正規化を再検討する |
 | `ai_usage_consent_at` | 現行スキーマと `Account.aiUsageConsentAt` に存在するがMVP3では利用しない。JavaフィールドとDBカラムをMVP3の同じ変更で削除する |
 | リフレッシュトークンの詳細 | `refresh_tokens` はMVP1で作成する。トークン有効期限、Cookie属性、PC WebとFlutterでの受け渡し差分、ローテーションを将来追加するかはAPI詳細設計で決定する |

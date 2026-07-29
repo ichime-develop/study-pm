@@ -39,7 +39,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 - [DBスキーマ詳細設計](detailed-design/database-schema.md) - PostgreSQLテーブル、カラム型、制約、外部キー、インデックス、Flyway作成順を定義する。
 - [業務ロジック詳細設計](detailed-design/business-logic.md) - 集計、状態遷移、履歴保存、学習サマリー、EVM、バーンダウンの実装前提を定義する。
 - [進捗分析API詳細設計](detailed-design/analysis-api.md) - EVM、バーンダウン、計画不整合APIのJSON形式と算出不可表現を定義する。
-- [AI学習計画API詳細設計](detailed-design/ai-plan-api.md) - OCR、候補確認、非同期ジョブ、WBS下書き、プロジェクト変換のHTTP契約を定義する。
+- [AI学習計画API詳細設計](detailed-design/ai-plan-api.md) - OCR、非同期WBS生成、WBS下書き、プロジェクト変換のHTTP契約を定義する。
 - [AI学習計画生成詳細設計](detailed-design/ai-plan-generation.md) - 外部サービス境界、状態遷移、Structured Outputs検証、矛盾判定、停止・再試行を定義する。
 - [実装方針詳細設計](detailed-design/implementation-policy.md) - エラー、例外、ログ、内部構造、設定管理、テスト分類の横断方針を定義する。
 
@@ -47,7 +47,7 @@ study-pmの要件定義、基本設計、UIモック、セットアップ、開�
 
 - [UIモックREADME](ui-mock/README.md) - UIモックの位置づけ、起動方法、確認観点をまとめる。
 - [PC Web版画面計画](ui-mock/pc-web-screen-plan.md) - PC Web版全体で確認する画面とモック上の検証観点を整理する。
-- [MVP3 AI作成画面計画](ui-mock/mvp3-screen-plan.md) - AI01〜AI04の画面構成、処理状態、エラー表示、既存モックとの差分を整理する。
+- [MVP3 AI作成画面計画](ui-mock/mvp3-screen-plan.md) - AI01〜AI03の画面構成、処理状態、エラー表示、既存モックとの差分を整理する。
 
 ## 6. セットアップ
 

@@ -35,7 +35,7 @@ type Screen =
   | "studyLogs"
   | "aiPlanMethod"
   | "aiPlanInput"
-  | "aiPlanResult";
+  | "aiPlanDraft";
 
 const screenLabels: Record<Screen, string> = {
   login: "ログイン",
@@ -47,11 +47,19 @@ const screenLabels: Record<Screen, string> = {
   wbs: "WBS・ガント",
   studyLogs: "学習記録",
   aiPlanMethod: "AI作成① 方法選択",
-  aiPlanInput: "AI作成② 条件入力",
-  aiPlanResult: "AI作成③ 計画案確認",
+  aiPlanInput: "AI作成② 条件・教材入力",
+  aiPlanDraft: "AI作成③ WBS下書き",
 };
 
-const commonScreens: Screen[] = ["projects", "projectForm", "aiPlanMethod", "aiPlanInput", "aiPlanResult", "login", "signup"];
+const commonScreens: Screen[] = [
+  "projects",
+  "projectForm",
+  "aiPlanMethod",
+  "aiPlanInput",
+  "aiPlanDraft",
+  "login",
+  "signup",
+];
 const projectScreens: Screen[] = [
   "projectDetail",
   "wbs",
@@ -84,6 +92,10 @@ export const App = () => {
   const updateProjectStatus = (projectId: string, status: Project["status"]) => {
     setProjectStatuses((current) => ({ ...current, [projectId]: status }));
   };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [screen]);
 
   return (
     <div className="app-shell">
@@ -174,7 +186,7 @@ export const App = () => {
             />
           )}
           {screen === "aiPlanInput" && <AiPlanInput mode={aiPlanMode} onMove={setScreen} />}
-          {screen === "aiPlanResult" && <AiPlanResult onMove={setScreen} />}
+          {screen === "aiPlanDraft" && <AiPlanDraft onMove={setScreen} />}
         </main>
       </ProjectStatusUpdateContext.Provider>
     </div>
@@ -799,7 +811,13 @@ const CreationFlowHeader = ({
 }) => (
   <header className="flow-header">
     {steps && (
-      <div className={steps.length === 2 ? "stepper two-steps" : "stepper"}>
+      <div
+        className={[
+          "stepper",
+          steps.length === 2 ? "two-steps" : "",
+          steps.length === 4 ? "four-steps" : "",
+        ].filter(Boolean).join(" ")}
+      >
         {steps.map((step) => (
           <span className={["step-item", step.state ?? ""].filter(Boolean).join(" ")} key={step.label}>
             {step.label}
@@ -1877,39 +1895,89 @@ const AiPlanMethod = ({
 }: {
   onBack: () => void;
   onSelect: (mode: "simple" | "toc") => void;
-}) => (
-  <section className="screen-grid">
+}) => {
+  const [selectedMode, setSelectedMode] = useState<"simple" | "toc">("simple");
+
+  return (
+    <section className="screen-grid">
     <CreationFlowHeader
-      description="入力できる情報に合わせて作成方法を選びます。どちらも保存前にWBS案を確認・編集できます。"
+      description="入力できる情報に合わせて作成方法を選びます。生成後のWBS下書きを確認してから保存します。"
       steps={[
-        { label: "1 作成方法を選ぶ", state: "active" },
-        { label: "2 条件を入力" },
-        { label: "3 計画案を確認して作成" },
+        { label: "1 作成方法", state: "active" },
+        { label: "2 条件・教材" },
+        { label: "3 WBS下書き" },
       ]}
       title="どのくらい詳しく計画しますか？"
     />
 
     <section className="panel wide ai-method-panel">
       <div className="ai-method-grid">
-        <button className="ai-method-card" onClick={() => onSelect("simple")} type="button">
+        <button
+          aria-pressed={selectedMode === "simple"}
+          className={selectedMode === "simple" ? "ai-method-card selected" : "ai-method-card"}
+          onClick={() => setSelectedMode("simple")}
+          type="button"
+        >
           <span className="badge neutral">入力が少ない</span>
           <strong>概要から作成</strong>
           <p>学習目標、期限、学習内容の概要から、大まかなWBS案を作ります。</p>
           <small>教材の目次が手元にない場合に向いています。</small>
         </button>
-        <button className="ai-method-card recommended" onClick={() => onSelect("toc")} type="button">
+        <button
+          aria-pressed={selectedMode === "toc"}
+          className={selectedMode === "toc" ? "ai-method-card selected" : "ai-method-card"}
+          onClick={() => setSelectedMode("toc")}
+          type="button"
+        >
           <span className="badge good">教材に沿って作る</span>
           <strong>目次から作成</strong>
           <p>画像から読み取るか、目次を直接入力して、教材構成に沿ったWBS案を作ります。</p>
           <small>章や単元を計画へ正確に反映したい場合に向いています。</small>
         </button>
       </div>
+      <section className="ai-disclosure" aria-labelledby="ai-disclosure-title">
+        <div className="ai-disclosure-title">
+          <span id="ai-disclosure-title">AI利用と送信内容</span>
+          <small>
+            {selectedMode === "toc"
+              ? "目次画像はGoogle Cloud Vision、入力テキストと生成条件はOpenAIへ送信します。"
+              : "入力テキストと生成条件はOpenAIへ送信します。"}
+          </small>
+        </div>
+        <div className="ai-disclosure-content">
+          <dl>
+            {selectedMode === "toc" && (
+              <div>
+                <dt>Google Cloud Visionへ送信</dt>
+                <dd>選択した目次画像だけを文字認識のために送信します。</dd>
+              </div>
+            )}
+            <div>
+              <dt>OpenAIへ送信</dt>
+              <dd>修正済みテキストと、学習ペース・分割単位を含む生成条件を送信します。</dd>
+            </div>
+            <div>
+              <dt>送信しない情報</dt>
+              <dd>画像そのもの、認証情報、学習記録、他のプロジェクト情報は送信しません。</dd>
+            </div>
+          </dl>
+          <p>
+            次の画面へ進むことで上記の送信範囲に同意したものとして扱います。
+            {selectedMode === "toc" && (
+              <a href="https://cloud.google.com/terms/cloud-privacy-notice" rel="noreferrer" target="_blank">Googleのデータ利用方針</a>
+            )}
+            <a href="https://openai.com/policies/privacy-policy/" rel="noreferrer" target="_blank">OpenAIのプライバシーポリシー</a>
+          </p>
+        </div>
+      </section>
       <div className="form-submit-bar">
         <button className="secondary-button" onClick={onBack} type="button">プロジェクト一覧へ戻る</button>
+        <button className="primary-button" onClick={() => onSelect(selectedMode)} type="button">次へ</button>
       </div>
     </section>
-  </section>
-);
+    </section>
+  );
+};
 
 const AiPlanInput = ({
   mode,
@@ -1926,6 +1994,31 @@ const AiPlanInput = ({
   const [showPreferences, setShowPreferences] = useState(false);
   const isSimple = mode === "simple";
   const canGenerate = isSimple || materialMode === "text" || ocrStatus === "complete";
+  const summarySampleText = "Java SE 17 Silverの合格に必要な基礎文法、クラス設計、例外処理、コレクションを学び、最後に模擬問題で確認する。";
+  const tocImageFiles = [
+    ["目次_01.png", "2.4MB"],
+    ["目次_02.png", "1.8MB"],
+    ["目次_03.png", "2.1MB"],
+    ["目次_04.png", "1.9MB"],
+    ["目次_05.png", "2.2MB"],
+    ["目次_06.png", "1.7MB"],
+    ["目次_07.png", "1.6MB"],
+    ["目次_08.png", "2.0MB"],
+    ["目次_09.png", "1.5MB"],
+    ["目次_10.png", "1.8MB"],
+  ];
+  const previewChapterTitles = [
+    "Flutterを始めよう",
+    "Dartの基本",
+    "ウィジェットの基本",
+    "画面遷移",
+    "状態管理",
+    "データの保存",
+    "API通信",
+    "テスト",
+    "パフォーマンス",
+    "アプリの公開",
+  ];
   const ocrSampleText = `Chapter 1 Flutterを始めよう
   1-1 Flutterとは
   1-2 開発環境を準備する
@@ -2024,8 +2117,9 @@ Chapter 8 アプリを公開しよう
             : "OCR結果または入力した目次を確認してから、AIへ送信します。"
         }
         steps={[
-          { label: "1 条件を入力", state: "active" },
-          { label: "2 計画案を確認して作成" },
+          { label: "1 作成方法", state: "done" },
+          { label: "2 条件・教材", state: "active" },
+          { label: "3 WBS下書き" },
         ]}
         title={isSimple ? "目標と概要から、まず計画案を作る" : "教材の目次に沿った計画案を作る"}
       />
@@ -2058,340 +2152,76 @@ Chapter 8 アプリを公開しよう
         </div>
 
         <div className="section-divider" />
-
-        <div className="section-heading">
-          <span className="section-number">2</span>
-          <div>
-            <h2>{isSimple ? "学習内容の概要" : "教材の目次"}</h2>
-          </div>
-        </div>
-        {isSimple ? (
-          <label>
-            学習内容の概要 <span className="required-label">必須</span>
-            <textarea
-              className="toc-textarea summary-textarea"
-              defaultValue="Java SE 17 Silverの合格に必要な基礎文法、クラス設計、例外処理、コレクションを学び、最後に模擬問題で確認する。"
-            />
-            <span className="field-note">詳しい目次がないため、一般的な学習順序をもとに大まかなWBSを提案します。</span>
-          </label>
-        ) : (
-          <>
-            <div className="material-mode-tabs two-options" role="tablist" aria-label="目次の入力方法">
-              <button className={materialMode === "image" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("image")} type="button">
-                画像から読み取る
-              </button>
-              <button
-                className={materialMode === "text" ? "material-mode active" : "material-mode"}
-                onClick={() => setMaterialMode("text")}
-                type="button"
-              >
-                目次を直接入力
-              </button>
-            </div>
-            <label>
-              教材名（任意）
-              <input defaultValue="徹底攻略 Java SE 17 Silver 問題集" maxLength={100} />
-            </label>
-            {materialMode === "image" && (
-              <div className="ocr-workflow">
-                <div className="upload-area">
-                  <div className="panel-header compact-header">
-                    <div>
-                      <strong>目次画像</strong>
-                      <p>スクリーンショットまたは画像をページ順に追加します。</p>
-                    </div>
-                    <span className="badge neutral">6枚</span>
-                  </div>
-                  <button className="secondary-button" type="button">画像を追加</button>
-                  <div className="ocr-file-grid">
-                    {[
-                      ["目次_01.png", "2.4MB"],
-                      ["目次_02.png", "1.8MB"],
-                      ["目次_03.png", "2.1MB"],
-                      ["目次_04.png", "1.9MB"],
-                      ["目次_05.png", "2.2MB"],
-                      ["目次_06.png", "1.7MB"],
-                    ].map(([name, size], index) => (
-                      <div className="ocr-file-row" key={name}>
-                        <span className="ocr-page-number">{index + 1}</span>
-                        <button className="ocr-file-name" onClick={() => setPreviewPage(index + 1)} type="button">
-                          <strong>{name}</strong>
-                          <small>{size}</small>
-                        </button>
-                        <button className="text-button" type="button">順番</button>
-                        <button className="text-button danger-text" type="button">削除</button>
-                      </div>
-                    ))}
-                  </div>
-                  {ocrStatus === "uploaded" && (
-                    <button className="primary-button" onClick={startOcr} type="button">
-                      6枚の目次を読み取る
-                    </button>
-                  )}
-                </div>
-
-                {ocrStatus === "reading" && (
-                  <div className="ocr-status-card reading" role="status">
-                    <div className="ocr-status-heading">
-                      <span className="ocr-spinner" />
-                      <div>
-                        <strong>目次を読み取っています</strong>
-                        <p>専用OCRサービスで文字を抽出しています。</p>
-                      </div>
-                      <span>3 / 6ページ</span>
-                    </div>
-                    <div className="ocr-progress"><span /></div>
-                    <small>完了すると、読み取った目次を下に表示します。</small>
-                  </div>
-                )}
-
-                {ocrStatus === "complete" && (
-                  <div className="ocr-result">
-                    <div className="ocr-result-summary">
-                      <div>
-                        <span className="status-dot success-dot" />
-                        <strong>読み取り完了</strong>
-                      </div>
-                      <div className="badge-list">
-                        <span className="badge neutral">6ページ</span>
-                        <span className="badge neutral">8章</span>
-                        <span className="badge neutral">約40項目</span>
-                      </div>
-                    </div>
-                    <div className="ocr-result-editor-heading">
-                      <span>
-                        <strong>読み取った目次</strong>
-                        <span className="required-label">必須</span>
-                      </span>
-                      <button className="secondary-button" onClick={openOcrEditor} type="button">
-                        編集
-                      </button>
-                    </div>
-                    <pre aria-label="読み取った目次のプレビュー" className="ocr-result-preview" tabIndex={0}>{ocrText}</pre>
-                    <span className="field-hint">内容を変更する場合は、右上の「編集」を押してください。</span>
-                    <div className="ocr-result-actions">
-                      <button className="secondary-button" onClick={startOcr} type="button">もう一度読み取る</button>
-                      <span>この修正済みテキストだけをOpenAIへ送信します。</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {showOcrEditor && (
-              <div
-                aria-label="読み取った目次を編集"
-                aria-modal="true"
-                className="image-preview-backdrop"
-                onClick={() => setShowOcrEditor(false)}
-                role="dialog"
-              >
-                <div className="ocr-editor-dialog" onClick={(event) => event.stopPropagation()}>
-                  <div className="image-preview-header">
-                    <div>
-                      <strong>読み取った目次を編集</strong>
-                      <span>6ページ・8章・約40項目</span>
-                    </div>
-                    <button aria-label="目次編集を閉じる" className="close-button" onClick={() => setShowOcrEditor(false)} type="button">×</button>
-                  </div>
-                  <div className="ocr-editor-modal-body">
-                    <div className="ocr-editor-guide">
-                      <strong>修正ポイント</strong>
-                      <span>誤字、章・節の改行、不要なページ番号を確認してください。</span>
-                    </div>
-                    <textarea
-                      aria-label="読み取った目次"
-                      className="ocr-modal-textarea"
-                      onChange={(event) => setOcrDraft(event.target.value)}
-                      value={ocrDraft}
-                    />
-                  </div>
-                  <div className="ocr-editor-modal-footer">
-                    <span>「編集を完了」を押すとプレビューへ反映されます。</span>
-                    <button className="primary-button" onClick={applyOcrEdit} type="button">
-                      編集を完了
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {previewPage !== null && (
-              <div
-                aria-label={`目次画像 ${previewPage}ページ目を表示`}
-                aria-modal="true"
-                className="image-preview-backdrop"
-                onClick={() => setPreviewPage(null)}
-                role="dialog"
-              >
-                <div className="image-preview-dialog" onClick={(event) => event.stopPropagation()}>
-                  <div className="image-preview-header">
-                    <div>
-                      <strong>目次_{String(previewPage).padStart(2, "0")}.png</strong>
-                      <span>{previewPage} / 6ページ</span>
-                    </div>
-                    <button aria-label="画像プレビューを閉じる" className="close-button" onClick={() => setPreviewPage(null)} type="button">×</button>
-                  </div>
-                  <div className="image-preview-stage">
-                    <div className="mock-book-page">
-                      <span className="mock-book-label">Flutter開発入門</span>
-                      <h3>CONTENTS</h3>
-                      <div className="mock-book-rule" />
-                      <strong>Chapter {previewPage} {["Flutterを始めよう", "Dartの基本", "ウィジェットの基本", "画面遷移", "状態管理", "データの保存"][previewPage - 1]}</strong>
-                      <ol>
-                        <li>{previewPage}-1 基本概念を理解する</li>
-                        <li>{previewPage}-2 開発手順を確認する</li>
-                        <li>{previewPage}-3 サンプルを実装する</li>
-                        <li>{previewPage}-4 よくある問題を確認する</li>
-                        <li>{previewPage}-5 演習問題に取り組む</li>
-                      </ol>
-                      <span className="mock-page-number">{24 + previewPage}</span>
-                    </div>
-                  </div>
-                  <div className="image-preview-footer">
-                    <button
-                      className="secondary-button"
-                      disabled={previewPage === 1}
-                      onClick={() => setPreviewPage((current) => current === null ? null : Math.max(1, current - 1))}
-                      type="button"
-                    >
-                      前のページ
-                    </button>
-                    <span>OCR結果と見比べながら確認できます。</span>
-                    <button
-                      className="secondary-button"
-                      disabled={previewPage === 6}
-                      onClick={() => setPreviewPage((current) => current === null ? null : Math.min(6, current + 1))}
-                      type="button"
-                    >
-                      次のページ
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {materialMode === "text" && (
-              <div className="ocr-result direct-toc-result">
-                <div className="ocr-result-editor-heading">
-                  <span>
-                    <strong>入力した目次</strong>
-                    <span className="required-label">必須</span>
-                  </span>
-                  <button className="secondary-button" onClick={openTextEditor} type="button">
-                    編集
-                  </button>
-                </div>
-                <pre aria-label="入力した目次のプレビュー" className="ocr-result-preview" tabIndex={0}>{directText}</pre>
-                <span className="field-hint">内容を変更する場合は、右上の「編集」を押してください。</span>
-                <div className="ocr-result-actions">
-                  <span>この目次テキストをOpenAIへ送信します。</span>
-                </div>
-              </div>
-            )}
-            {showTextEditor && (
-              <div
-                aria-label="入力した目次を編集"
-                aria-modal="true"
-                className="image-preview-backdrop"
-                onClick={() => setShowTextEditor(false)}
-                role="dialog"
-              >
-                <div className="ocr-editor-dialog" onClick={(event) => event.stopPropagation()}>
-                  <div className="image-preview-header">
-                    <div>
-                      <strong>目次を編集</strong>
-                      <span>章・節ごとに改行して入力してください。</span>
-                    </div>
-                    <button aria-label="目次入力を閉じる" className="close-button" onClick={() => setShowTextEditor(false)} type="button">×</button>
-                  </div>
-                  <div className="ocr-editor-modal-body">
-                    <div className="ocr-editor-guide">
-                      <strong>入力ポイント</strong>
-                      <span>章、節、項目が分かるように改行やインデントを付けてください。</span>
-                    </div>
-                    <textarea
-                      aria-label="直接入力する目次"
-                      className="ocr-modal-textarea"
-                      onChange={(event) => setDirectDraft(event.target.value)}
-                      value={directDraft}
-                    />
-                  </div>
-                  <div className="ocr-editor-modal-footer">
-                    <span>「編集を完了」を押すとプレビューへ反映されます。</span>
-                    <button className="primary-button" onClick={applyTextEdit} type="button">
-                      編集を完了
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="section-divider" />
-
-        <button
-          aria-expanded={showPreferences}
-          className="preference-toggle"
-          onClick={() => setShowPreferences((current) => !current)}
-          type="button"
-        >
-          <span>
-            <strong>こだわり条件（任意）</strong>
-            <small>学習時間、学習できない日、重点範囲などを設定できます。</small>
-          </span>
+        <button aria-expanded={showPreferences} className="preference-toggle" onClick={() => setShowPreferences((current) => !current)} type="button">
+          <span><strong>こだわり条件（任意）</strong><small>学習時間、学習できない日、重点範囲などを設定できます。</small></span>
           <span>{showPreferences ? "閉じる" : "設定する"}</span>
         </button>
         {showPreferences && (
           <div className="preference-fields">
             <div className="availability-grid">
-              <label>
-                平日
-                <span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="1" /><span>時間 / 日</span></span>
-              </label>
-              <label>
-                休日
-                <span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="2" /><span>時間 / 日</span></span>
-              </label>
+              <label>平日<span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="1" /><span>時間 / 日</span></span></label>
+              <label>土日<span className="input-with-unit"><input type="number" min="0" step="0.25" defaultValue="2" /><span>時間 / 日</span></span></label>
             </div>
-            <fieldset className="weekday-fieldset">
-              <legend>学習できない曜日</legend>
-              <div className="weekday-options">
-                {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
-                  <label className={day === "水" ? "weekday-option selected" : "weekday-option"} key={day}>
-                    <input defaultChecked={day === "水"} type="checkbox" />
-                    {day}
-                  </label>
-                ))}
+            <div className="pace-condition-grid">
+              <label>学習量の総量（任意）<span className="input-with-unit"><input min="1" type="number" defaultValue="380" /><span>ページ</span></span></label>
+              <label>1日あたりの学習量（任意）<span className="input-with-unit"><input min="0.25" step="0.25" type="number" defaultValue="10" /><span>ページ</span></span></label>
+              <label>WBSの分割単位<select defaultValue="SECTION"><option value="SECTION">教材の章・節</option><option value="PAGE">ページ数</option><option value="QUESTION_SET">問題セット</option><option value="AI">AIに任せる</option></select><span className="field-hint">ページ数を選ぶ場合は、単位を「ページ」にして総量と1日あたりの学習量を入力します。</span></label>
+            </div>
+            <fieldset className="weekday-fieldset"><legend>学習できない曜日</legend><div className="weekday-options">{["月", "火", "水", "木", "金", "土", "日"].map((day) => <label className={day === "水" ? "weekday-option selected" : "weekday-option"} key={day}><input defaultChecked={day === "水"} type="checkbox" />{day}</label>)}</div></fieldset>
+            <label>日程の補足<textarea className="compact-textarea" defaultValue="6月20日と21日は学習できない。試験前の1週間は平日も2時間確保できる。" /></label>
+            <div className="form-row"><label>重点的に学ぶ範囲<textarea className="compact-textarea" defaultValue="クラス、継承、例外処理は問題演習を多めにする。" /></label><label>軽く確認・除外する範囲<textarea className="compact-textarea" defaultValue="Javaの実行環境の説明は理解済みなので短くする。" /></label></div>
+          </div>
+        )}
+
+        <div className="section-divider" />
+        <div className="section-heading"><span className="section-number">2</span><div><h2>{isSimple ? "学習内容の概要" : "教材の目次"}</h2></div></div>
+        {isSimple ? (
+          <label>学習内容の概要 <span className="required-label">必須</span><textarea className="toc-textarea summary-textarea" defaultValue={summarySampleText} /><span className="field-counter">{summarySampleText.length.toLocaleString()} / 8,000文字</span><span className="field-note">詳しい目次がないため、一般的な学習順序をもとに大まかなWBSを提案します。</span></label>
+        ) : (
+          <>
+            <div className="material-mode-tabs two-options" role="tablist" aria-label="目次の入力方法"><button className={materialMode === "image" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("image")} type="button">画像から読み取る</button><button className={materialMode === "text" ? "material-mode active" : "material-mode"} onClick={() => setMaterialMode("text")} type="button">目次を直接入力</button></div>
+            <label>教材名（任意）<input defaultValue="徹底攻略 Java SE 17 Silver 問題集" maxLength={100} /></label>
+            {materialMode === "image" ? (
+              <div className="ocr-workflow"><div className="upload-area"><div className="panel-header compact-header"><div><strong>目次画像</strong><p>スクリーンショットまたは画像をページ順に追加します。最大10枚です。</p></div><span className="badge neutral">10 / 10枚・19.0MB</span></div><button className="secondary-button" type="button">画像を追加</button><div className="ocr-file-grid">{tocImageFiles.map(([name, size], index) => <div className="ocr-file-row" key={name}><span className="ocr-page-number">{index + 1}</span><button className="ocr-file-name" onClick={() => setPreviewPage(index + 1)} type="button"><strong>{name}</strong><small>{size}</small></button><span className={ocrStatus === "complete" ? "badge good" : "badge neutral"}>{ocrStatus === "complete" ? "完了" : "待機中"}</span><button className="text-button" type="button">順番</button><button className="text-button danger-text" type="button">削除</button></div>)}</div>{ocrStatus === "uploaded" && <button className="primary-button" onClick={startOcr} type="button">10枚の目次を読み取る</button>}</div>{ocrStatus === "reading" && <div className="ocr-status-card reading" role="status"><strong>目次を読み取っています</strong><div className="ocr-progress"><span /></div></div>}{ocrStatus === "complete" && <div className="ocr-result"><div className="ocr-result-summary"><strong>読み取り完了</strong><div className="badge-list"><span className="badge neutral">10ページ</span><span className="badge neutral">8章</span><span className="badge neutral">約40項目</span></div></div><div className="ocr-result-editor-heading"><strong>読み取った目次</strong><button className="secondary-button" onClick={openOcrEditor} type="button">編集</button></div><pre aria-label="読み取った目次のプレビュー" className="ocr-result-preview" tabIndex={0}>{ocrText}</pre><span className="field-counter">{ocrText.length.toLocaleString()} / 20,000文字</span><span className="field-hint">内容を変更する場合は、右上の「編集」を押してください。</span><div className="ocr-result-actions"><button className="secondary-button" onClick={startOcr} type="button">もう一度読み取る</button><span>この修正済みテキストだけをOpenAIへ送信します。</span></div></div>}</div>
+            ) : <label>目次 <span className="required-label">必須</span><textarea className="toc-textarea" onChange={(event) => setDirectText(event.target.value)} value={directText} /><span className="field-counter">{directText.length.toLocaleString()} / 20,000文字</span></label>}
+          </>
+        )}
+
+        {previewPage !== null && (
+          <div aria-label={`目次画像 ${previewPage}ページ目を表示`} aria-modal="true" className="image-preview-backdrop" onClick={() => setPreviewPage(null)} role="dialog">
+            <div className="image-preview-dialog" onClick={(event) => event.stopPropagation()}>
+              <div className="image-preview-header">
+                <div><strong>目次_{String(previewPage).padStart(2, "0")}.png</strong><span>{previewPage} / 10ページ</span></div>
+                <button aria-label="画像プレビューを閉じる" className="close-button" onClick={() => setPreviewPage(null)} type="button">×</button>
               </div>
-            </fieldset>
-            <label>
-              日程の補足
-              <textarea className="compact-textarea" defaultValue="6月20日と21日は学習できない。試験前の1週間は平日も2時間確保できる。" />
-            </label>
-            <div className="form-row">
-              <label>
-                重点的に学ぶ範囲
-                <textarea className="compact-textarea" defaultValue="クラス、継承、例外処理は問題演習を多めにする。" />
-              </label>
-              <label>
-                軽く確認・除外する範囲
-                <textarea className="compact-textarea" defaultValue="Javaの実行環境の説明は理解済みなので短くする。" />
-              </label>
+              <div className="image-preview-stage"><div className="mock-book-page"><span className="mock-book-label">Flutter開発入門</span><h3>CONTENTS</h3><div className="mock-book-rule" /><strong>Chapter {previewPage} {previewChapterTitles[previewPage - 1]}</strong><ol><li>{previewPage}-1 基本概念を理解する</li><li>{previewPage}-2 実装方法を確認する</li><li>{previewPage}-3 練習問題を解く</li></ol><span className="mock-page-number">{24 + previewPage}</span></div></div>
+              <div className="image-preview-footer"><button className="secondary-button" disabled={previewPage === 1} onClick={() => setPreviewPage((page) => page && page - 1)} type="button">前の画像</button><span>{previewPage} / 10ページ</span><button className="secondary-button" disabled={previewPage === 10} onClick={() => setPreviewPage((page) => page && page + 1)} type="button">次の画像</button></div>
+            </div>
+          </div>
+        )}
+
+        {showOcrEditor && (
+          <div aria-label="読み取った目次を編集" aria-modal="true" className="image-preview-backdrop" onClick={() => setShowOcrEditor(false)} role="dialog">
+            <div className="ocr-editor-dialog" onClick={(event) => event.stopPropagation()}>
+              <div className="image-preview-header"><div><strong>読み取った目次を編集</strong><span>10ページ・8章・約40項目</span></div><button aria-label="目次編集を閉じる" className="close-button" onClick={() => setShowOcrEditor(false)} type="button">×</button></div>
+              <div className="ocr-editor-modal-body"><div className="ocr-editor-guide"><strong>修正ポイント</strong><span>誤字、章・節の改行、不要なページ番号を確認してください。</span></div><textarea aria-label="読み取った目次" className="ocr-modal-textarea" onChange={(event) => setOcrDraft(event.target.value)} value={ocrDraft} /></div>
+              <div className="ocr-editor-modal-footer"><span>「編集を完了」を押すとプレビューへ反映されます。</span><button className="primary-button" onClick={applyOcrEdit} type="button">編集を完了</button></div>
             </div>
           </div>
         )}
 
         <p className="form-helper">
-          計画案は未保存の下書きです。確認済みの入力内容だけを使って生成し、次の画面で編集してから作成します。
+          入力はまだ保存されていません。生成後、WBS下書きの名称・期間・工数を確認してから保存します。
         </p>
         <div className="form-submit-bar">
           <button className="secondary-button" onClick={() => onMove("aiPlanMethod")} type="button">作成方法へ戻る</button>
           <button
             className="primary-button"
             disabled={!canGenerate}
-            onClick={() => onMove("aiPlanResult")}
+            onClick={() => onMove("aiPlanDraft")}
             type="button"
           >
-            計画案を生成
+            WBS下書きを生成
           </button>
         </div>
       </div>
@@ -2517,7 +2347,7 @@ const AiPlanTaskEditPanel = ({
   );
 };
 
-const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
+const AiPlanDraft = ({ onMove }: { onMove: (screen: Screen) => void }) => {
   const [planTasks, setPlanTasks] = useState<AiPlanTask[]>(aiPlanTasks);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
@@ -2537,6 +2367,9 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
   const workTasks = planTasks.filter((t) => t.plannedHours > 0);
   const totalHours = workTasks.reduce((sum, t) => sum + t.plannedHours, 0);
   const parentTasksForSelect = planTasks.filter((t) => t.plannedHours === 0);
+  const validationErrors: string[] = [];
+  const validationNotices: string[] = [];
+  const canCreateProject = validationErrors.length === 0;
 
   const updateTask = (updated: AiPlanTask) => {
     setPlanTasks((current) => {
@@ -2570,12 +2403,13 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
   return (
     <section className="screen-grid ai-plan-flow">
       <CreationFlowHeader
-        description="名称、期間、WBS、予定工数を確認してください。この時点ではまだ保存されていません。"
+        description="入力した教材・学習ペース・分割単位から作ったWBS下書きです。名称、期間、階層、予定工数を保存前に確認してください。"
         steps={[
-          { label: "1 条件を入力", state: "done" },
-          { label: "2 計画案を確認して作成", state: "active" },
+          { label: "1 作成方法", state: "done" },
+          { label: "2 条件・教材", state: "done" },
+          { label: "3 WBS下書き", state: "active" },
         ]}
-        title="AIが作成した計画案を確認"
+        title="WBS下書きを確認してプロジェクトを作成"
       />
 
       <div className="metric-row">
@@ -2584,6 +2418,15 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
         <Metric label="予定工数" value={formatHours(totalHours)} />
         <Metric label="計画期間" value="38日" tone="good" />
       </div>
+
+      <details className="plan-generation-conditions">
+        <summary>生成条件を確認</summary>
+        <div>
+          <span><strong>教材入力</strong> 目次テキスト・画像10枚</span>
+          <span><strong>学習ペース</strong> 380ページを1日10ページ</span>
+          <span><strong>分割単位</strong> 教材の章・節</span>
+        </div>
+      </details>
 
       <section className="panel wide plan-project-summary">
         <div className="panel-header">
@@ -2619,9 +2462,12 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
             <h2>生成されたWBS案</h2>
             <p>タスク名・種別・親タスク・予定日・予定工数を直接編集できます。</p>
           </div>
-          <button className="secondary-button" onClick={() => onMove("aiPlanInput")} type="button">
-            条件を変えて再生成
-          </button>
+          <div className="button-group">
+            <span className="badge good">検証済み</span>
+            <button className="text-button" onClick={() => onMove("aiPlanInput")} type="button">
+              条件・教材を変更
+            </button>
+          </div>
         </div>
         <div
           className="plan-result-host"
@@ -2687,36 +2533,28 @@ const AiPlanResult = ({ onMove }: { onMove: (screen: Screen) => void }) => {
         </div>
       </section>
 
-      <section className="panel">
-        <h2>計画チェック</h2>
-        <div className="plan-check-list">
-          <span className="plan-check ok"><strong>期間</strong> 目標終了日までに完了</span>
-          <span className="plan-check ok"><strong>学習量</strong> 平日1h・休日2h以内</span>
-          <span className="plan-check ok"><strong>WBS</strong> 親タスクとタスクの2階層</span>
-          <span className="plan-check warning"><strong>確認</strong> 模擬試験は1回のみ</span>
-        </div>
-      </section>
+      {validationErrors.length > 0 && (
+        <section className="plan-validation-message error" role="alert">
+          <strong>保存前に修正が必要です</strong>
+          <ul>{validationErrors.map((error) => <li key={error}>{error}</li>)}</ul>
+        </section>
+      )}
 
-      <section className="panel">
-        <h2>作成する内容</h2>
-        <ul className="check-list">
-          <li>プロジェクトを未着手で作成</li>
-          <li>親タスクとタスクをまとめて保存</li>
-          <li>全タスクの進捗率を0%で作成</li>
-        </ul>
-        <div className="approval-box">
-          <label className="checkbox-label">
-            <input type="checkbox" defaultChecked />
-            プロジェクト情報とWBS案を確認しました
-          </label>
-          <button className="primary-button full-width-button" onClick={() => onMove("wbs")} type="button">
-            この計画でプロジェクトを作成
-          </button>
-          <button className="text-button full-width-button" onClick={() => onMove("aiPlanInput")} type="button">
-            条件を変えて再生成
-          </button>
-        </div>
-      </section>
+      {validationNotices.length > 0 && (
+        <section className="plan-validation-message notice">
+          <strong>確認事項</strong>
+          <ul>{validationNotices.map((notice) => <li key={notice}>{notice}</li>)}</ul>
+        </section>
+      )}
+
+      <div className="plan-approval-actions">
+        <button className="text-button" onClick={() => onMove("aiPlanInput")} type="button">
+          条件・教材を変更
+        </button>
+        <button className="primary-button" disabled={!canCreateProject} onClick={() => onMove("wbs")} type="button">
+          この計画でプロジェクトを作成
+        </button>
+      </div>
     </section>
   );
 };

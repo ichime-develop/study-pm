@@ -60,10 +60,10 @@ com.studypm
 | `studylog` | 学習記録の登録、更新、削除、同一プロジェクト内タスク付替 |
 | `summary` | ユーザー単位の総学習時間、連続学習日数などの横断集計 |
 | `analysis` | EVM、バーンダウン、計画不整合 |
-| `aiplan` | AI計画入力、学習項目候補、WBS下書き、変換ユースケース |
+| `aiplan` | AI計画入力、WBS下書き、変換ユースケース |
 | `aiplan.provider` | Google Cloud Vision、OpenAIのadapter。外部SDK型をドメインへ漏らさない |
 | `aiplan.job` | 非同期ジョブ、排他、期限、停止、再試行 |
-| `aiplan.cleanup` | 保持期限を過ぎたAI入力・候補・ジョブ・下書きの削除 |
+| `aiplan.cleanup` | 保持期限を過ぎたAI入力・ジョブ・下書きの削除 |
 | `aiplan.validation` | 入力矛盾、Structured Outputs、WBS構造、計画整合性の検証 |
 | `common.api` | API共通レスポンス、共通エラーレスポンス、Security用APIハンドラ |
 | `common.error` | アプリケーション例外、エラーコード、例外からHTTPステータスへの分類 |
@@ -256,7 +256,7 @@ PC WebでCookieを送信する場合、CORSは `allowCredentials=true` とし、
 - Cookie/CORS設定が環境別に切り替わること
 - AIジョブの全状態遷移、期限超過、停止と結果保存の競合
 - 同一ユーザーのactiveジョブが1件に制限されること
-- AI出力が必須項目、2階層、0.25時間単位、候補対応を満たすこと
+- AI出力が必須項目、2階層、0.25時間単位、入力元対応を満たすこと
 - 保持期限前のAIデータを残し、期限後のterminalデータを削除し、activeジョブを削除しないこと
 - 通常CIで有料のOCR・AIサービスを呼び出さないこと
 - OCR結果やAI入出力本文がログへ出ないこと
@@ -283,5 +283,4 @@ PC WebでCookieを送信する場合、CORSは `allowCredentials=true` とし、
 | 未決 | 422の採用 | MVP1では使わない。400/409で表現しにくい業務入力違反が増えた場合のみ検討する | API詳細設計またはMVP2以降 |
 | 未決 | 別サイト配置 | MVP1では同一サイト配置を前提とする。別サイトにする場合はCookie/CORSを再設計する | デプロイ構成検討時 |
 | 未決 | `react-router` の脆弱性報告（GHSA-qwww-vcr4-c8h2） | 現時点では対応しない。当該脆弱性はRSCモードでサーバー側actionを実行する構成が前提であり、本アプリは宣言的クライアントルーティングのみを使う（Data Router、loader/action、RSCを使用しない）ため影響しない。`^7.7.0` の範囲に修正版が存在せず `npm audit fix` では解消できないため、7.x系の修正版公開後に更新する | `react-router` 修正版公開時、または本番公開前の依存監査時 |
-| 既知の乖離 | MVP3 AI画面のモックがAI01〜AI03の3画面構成 | 設計正本はAI01〜AI04の4画面構成とする。現行モックは実装仕様として参照しない | MVP3実装前のモック同期タスクで解消 |
 | 既知の乖離 | 現行DB・Accountエンティティに未使用の `ai_usage_consent_at` が残存 | MVP3では同意状態を永続管理しない。DBカラムとJavaフィールドを同じ変更で削除する | MVP3のAI関連Flywayマイグレーション適用時に解消 |

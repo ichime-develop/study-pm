@@ -40,8 +40,7 @@ related: docs/basic-design/screen-flow.md, docs/requirements/details/data-screen
 | AN01 | 進捗分析画面 | progress-analysis | `AN01_ProgressAnalysisPage.tsx` | 2 | SCR-06A |
 | AI01 | AI計画作成: 作成方法選択画面 | ai-plan-method | `AI01_AiPlanMethodPage.tsx` | 3 | SCR-11 |
 | AI02 | AI計画作成: 条件・教材入力画面 | ai-plan-input | `AI02_AiPlanInputPage.tsx` | 3 | SCR-12 |
-| AI03 | AI計画作成: 学習項目候補確認画面 | ai-plan-items | `AI03_AiPlanItemsPage.tsx` | 3 | 新規 |
-| AI04 | AI計画作成: WBS下書き確認・編集画面 | ai-plan-draft | `AI04_AiPlanDraftPage.tsx` | 3 | SCR-13を分割 |
+| AI03 | AI計画作成: WBS下書き確認・編集画面 | ai-plan-draft | `AI03_AiPlanDraftPage.tsx` | 3 | SCR-13 |
 
 - モックの `Screen` 型ではプロジェクト概要のみ `projectDetail` という名前になっており、`projectOverview` へのリネーム対象とする。他は英語名のcamelCaseと一致している。
 
@@ -53,7 +52,7 @@ related: docs/basic-design/screen-flow.md, docs/requirements/details/data-screen
 | --- | --- | --- | --- | --- |
 | CM01 | アプリヘッダー | `CM01_AppHeader.tsx` | ログイン後の全画面 | 画面タイトル、ログアウト導線 |
 | CM02 | プロジェクト内ナビゲーション | `CM02_ProjectNav.tsx` | PJ03、WB01、SL01、AN01 | プロジェクト名・状態・期間の表示、状態変更モーダル、概要 / WBS / 学習記録 / 進捗分析のタブ切り替え |
-| CM03 | 作成フローステッパー | `CM03_FlowStepper.tsx` | PJ02、AI01、AI02、AI03、AI04 | 作成フローの現在ステップ表示 |
+| CM03 | 作成フローステッパー | `CM03_FlowStepper.tsx` | PJ02、AI01、AI02、AI03 | 作成フローの現在ステップ表示 |
 | CM04 | 認証レイアウト | `CM04_AuthLayout.tsx` | AU01、AU02 | 左のヒーローパネルと右の入力フォームの2カラム構成 |
 
 ### 4.1 モック専用の部品
@@ -81,10 +80,9 @@ UIモックのサイドバー（全画面切り替えナビ）は要件検証用
 | `/projects/new/ai` | AI01 |
 | `/projects/new/ai/input` | AI02 |
 | `/projects/new/ai/requests/:requestId/input` | AI02（保存済み入力の再開） |
-| `/projects/new/ai/requests/:requestId/items` | AI03 |
-| `/projects/new/ai/drafts/:draftId` | AI04 |
+| `/projects/new/ai/drafts/:draftId` | AI03 |
 
-AI03とAI04はURLのIDを正本としてサーバーから状態を再取得する。ブラウザ再読み込みや別画面からの復帰で、フロントエンドのメモリ内状態だけに依存しない。
+AI02（保存済み入力）とAI03はURLのIDを正本としてサーバーから状態を再取得する。ブラウザ再読み込みや別画面からの復帰で、フロントエンドのメモリ内状態だけに依存しない。
 
 ### 5.2 バックエンド（Java）
 
