@@ -27,6 +27,7 @@ class AiGenerationJobServiceTest {
 
     private final AiPlanGenerationRequestRepository requestRepository = mock(AiPlanGenerationRequestRepository.class);
     private final AiGenerationJobRepository jobRepository = mock(AiGenerationJobRepository.class);
+    private final AiPlanDraftRepository draftRepository = mock(AiPlanDraftRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-30T00:00:00Z"), ZoneOffset.UTC);
 
     private AiGenerationJobService service;
@@ -35,7 +36,18 @@ class AiGenerationJobServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AiGenerationJobService(requestRepository, jobRepository, clock, Duration.ofMinutes(5), 10, "test-model");
+        service = new AiGenerationJobService(
+                requestRepository,
+                jobRepository,
+                draftRepository,
+                clock,
+                Duration.ofMinutes(5),
+                10,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1"
+        );
         Account account = Account.create("user@example.com", "encoded", "User", clock.instant());
         accountId = account.id();
         request = AiPlanGenerationRequest.create(
@@ -60,6 +72,9 @@ class AiGenerationJobServiceTest {
                 clock.instant().minusSeconds(1),
                 false,
                 "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
                 clock.instant().minus(Duration.ofMinutes(6))
         );
         when(requestRepository.findByIdAndAccount_Id(request.id(), accountId)).thenReturn(Optional.of(request));

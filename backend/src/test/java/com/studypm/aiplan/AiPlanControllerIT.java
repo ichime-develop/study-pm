@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -49,6 +53,15 @@ class AiPlanControllerIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private AiWbsGenerationWorker generationWorker;
+
+    @Autowired
+    private AiWbsGenerationJobTransactions generationJobTransactions;
+
+    @MockitoBean
+    private AiWbsGenerationProvider generationProvider;
+
     @DynamicPropertySource
     static void registerDatasourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRESQL::getJdbcUrl);
@@ -57,6 +70,7 @@ class AiPlanControllerIT {
         registry.add("app.security.jwt.secret", () -> "study-pm-ai-plan-integration-test-secret-key");
         registry.add("app.security.refresh-cookie.secure", () -> "false");
         registry.add("app.ai.enabled", () -> "true");
+        registry.add("app.ai.worker.enabled", () -> "false");
         registry.add("app.ai.openai.api-key", () -> "test-openai-api-key");
     }
 
@@ -162,6 +176,170 @@ class AiPlanControllerIT {
         assertThat(jdbcTemplate.queryForObject(
                 "select status from ai_generation_jobs where id = ?", String.class, jobId
         )).isEqualTo("PROCESSING");
+    }
+
+    @Test
+    void generatesAndReturnsAValidatedDraftWithoutCallingTheLiveProvider() throws Exception {
+        Session session = signup("draft@example.com");
+        UUID requestId = createRequest(session, "Javaの基本を学ぶ");
+        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
+                new AiWbsDraftProject(
+                        "Java学習", "", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-09-01")
+                ),
+                List.of(
+                        new AiWbsDraftTask(
+                                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                                null, null, null, List.of()
+                        ),
+                        new AiWbsDraftTask(
+                                "leaf-1", AiDraftTaskType.LEAF, "parent-1", "Javaの基本を読む", "",
+                                LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-02"),
+                                BigDecimal.ONE, List.of("source-1")
+                        )
+                ),
+                WbsSplitUnit.SECTION
+        );
+        org.mockito.Mockito.when(generationProvider.generate(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new AiWbsGenerationProviderResult(proposal, "resp_integration", 120, 80));
+        MvcResult createdJob = mockMvc.perform(post("/api/ai-plan/requests/{requestId}/draft-jobs", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"deadlinePriority\": false }"))
+                .andExpect(status().isAccepted())
+                .andReturn();
+        UUID jobId = UUID.fromString(objectMapper.readTree(createdJob.getResponse().getContentAsString()).get("jobId").asText());
+
+        assertThat(generationWorker.runNext()).isTrue();
+
+        MvcResult completedJob = mockMvc.perform(get("/api/ai-plan/jobs/{jobId}", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.draftId").isNotEmpty())
+                .andReturn();
+        UUID draftId = UUID.fromString(objectMapper.readTree(completedJob.getResponse().getContentAsString())
+                .get("draftId").asText());
+        mockMvc.perform(get("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.draftRevision").value(1))
+                .andExpect(jsonPath("$.project.name").value("Java学習"))
+                .andExpect(jsonPath("$.tasks[1].temporaryKey").value("leaf-1"))
+                .andExpect(jsonPath("$.validation.status").value("VALID"))
+                .andExpect(jsonPath("$.validation.issues").doesNotExist());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select provider_request_id from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("resp_integration");
+    }
+
+    @Test
+    void discardsACompletedProviderResultAfterCancellationWasRequested() throws Exception {
+        Session session = signup("cancel-complete@example.com");
+        UUID requestId = createRequest(session, "content");
+        UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().plusSeconds(300));
+
+        mockMvc.perform(post("/api/ai-plan/jobs/{jobId}/cancel", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCEL_REQUESTED"));
+
+        AiWbsGenerationProviderResult providerResult = validProviderResult();
+        generationJobTransactions.complete(jobId, providerResult, validDraft(providerResult.proposal()));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("CANCELED");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where ai_generation_job_id = ?", Integer.class, jobId
+        )).isZero();
+    }
+
+    @Test
+    void stopsBeforeAnotherProviderAttemptAfterCancellationWasRequested() throws Exception {
+        Session session = signup("cancel-attempt@example.com");
+        UUID requestId = createRequest(session, "content");
+        UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().plusSeconds(300));
+
+        mockMvc.perform(post("/api/ai-plan/jobs/{jobId}/cancel", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCEL_REQUESTED"));
+
+        assertThat(generationJobTransactions.recordAttempt(jobId)).isFalse();
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("CANCELED");
+    }
+
+    @Test
+    void rejectsAProviderResultCompletedAfterTheJobDeadline() throws Exception {
+        Session session = signup("deadline-complete@example.com");
+        UUID requestId = createRequest(session, "content");
+        UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().minusSeconds(1));
+        AiWbsGenerationProviderResult providerResult = validProviderResult();
+
+        generationJobTransactions.complete(jobId, providerResult, validDraft(providerResult.proposal()));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("FAILED");
+        assertThat(jdbcTemplate.queryForObject(
+                "select error_code from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("AI_JOB_TIMEOUT");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where ai_generation_job_id = ?", Integer.class, jobId
+        )).isZero();
+    }
+
+    @Test
+    void completingTheSameJobTwiceKeepsOnlyOneDraft() throws Exception {
+        Session session = signup("complete-twice@example.com");
+        UUID requestId = createRequest(session, "content");
+        UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().plusSeconds(300));
+        AiWbsGenerationProviderResult providerResult = validProviderResult();
+        AiValidatedWbsDraft draft = validDraft(providerResult.proposal());
+
+        generationJobTransactions.complete(jobId, providerResult, draft);
+        generationJobTransactions.complete(jobId, providerResult, draft);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select status from ai_generation_jobs where id = ?", String.class, jobId
+        )).isEqualTo("COMPLETED");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where ai_generation_job_id = ?", Integer.class, jobId
+        )).isEqualTo(1);
+    }
+
+    private AiWbsGenerationProviderResult validProviderResult() {
+        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
+                new AiWbsDraftProject(
+                        "Java学習", "", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-09-01")
+                ),
+                List.of(
+                        new AiWbsDraftTask(
+                                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                                null, null, null, List.of()
+                        ),
+                        new AiWbsDraftTask(
+                                "leaf-1", AiDraftTaskType.LEAF, "parent-1", "Javaの基本を読む", "",
+                                LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-02"),
+                                BigDecimal.ONE, List.of("source-1")
+                        )
+                ),
+                WbsSplitUnit.SECTION
+        );
+        return new AiWbsGenerationProviderResult(proposal, "resp_race", 100, 50);
+    }
+
+    private AiValidatedWbsDraft validDraft(AiWbsDraftProposal proposal) {
+        return new AiValidatedWbsDraft(
+                proposal,
+                objectMapper.valueToTree(proposal.tasks()),
+                AiPlanDraftValidationStatus.VALID,
+                objectMapper.createArrayNode(),
+                objectMapper.createArrayNode()
+        );
     }
 
     private UUID createRequest(Session session, String content) throws Exception {

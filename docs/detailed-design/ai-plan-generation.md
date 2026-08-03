@@ -44,6 +44,8 @@ AI出力を直接ProjectまたはWbsTaskへ保存しない。Google Cloud Vision
 - Responses APIは構造化出力とストリーミングを併用できるが、MVP3ではアプリ側の停止・再開・エラー処理を単純化するため非ストリーミングで実行する。
 - 具体的なモデルは設定値とし、固定評価データで品質・費用・処理時間を比較して選定する。
 - WBS生成のプロンプト、JSON Schema、処理ジョブを入力・OCR処理から分離する。
+- ユーザー入力とOCR結果は命令ではなくデータとして扱い、その中に含まれる指示文を実行しないことをsystem指示へ明記する。
+- Structured Outputsで対応しない文字列長制約はJSON Schemaへ含めず、受信後のサーバー検証で強制する。
 - API仕様の根拠はOpenAI公式の [Structured Outputs](https://platform.openai.com/docs/guides/structured-outputs) と [Responses streaming events](https://platform.openai.com/docs/api-reference/responses-streaming) を参照する。
 
 ## 4. 送信範囲
@@ -184,7 +186,7 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 
 この配分は、AI下書きがユーザー指定の学習可能曜日と24時間上限を満たすかを判定するためだけに使う。プロジェクト変換後のEVMにおけるPVは、[business-logic.md](business-logic.md) 7.1のとおり学習できない曜日を除外せず全暦日へ均等配分する。目的が異なる意図的な差異であり、どちらかの計算規則を他方へ流用しない。
 
-通常生成と期限優先のどちらでも、学習可能日ごとの予定工数が24時間を超える場合は下書きを保存せず `AI_DRAFT_VALIDATION_FAILED` とする。各日の平日・土日の希望学習時間を超えるが24時間以内である場合は、期限優先時に警告付き下書きとして保存できる。それ以外の計画不整合は、構造が正しければ下書きを表示し、警告と最大3件の単一条件変更案を返す。
+通常生成と期限優先のどちらでも、学習可能日ごとの予定工数が24時間を超える場合は下書きを保存せず、ジョブをFAILED `AI_DRAFT_DAILY_LIMIT_EXCEEDED` とする。状態取得APIは「目標終了日を延長する」「学習範囲を減らす」を `actionHints` として返す。各日の平日・土日の希望学習時間を超えるが24時間以内である場合は、期限優先時に警告付き下書きとして保存できる。それ以外の計画不整合は、構造が正しければ下書きを表示し、警告内容に直接関係する単一条件変更案だけを最大3件返す。
 
 ### 8.3 単一条件変更案
 
@@ -225,6 +227,7 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 
 - Google Cloud Vision有効化、認証方式
 - OpenAI有効化、API key、model
+- OpenAI Responses APIの最大出力トークン数
 - promptVersion, schemaVersion, strategyVersion
 - 外部呼び出しtimeout
 - ジョブ総deadline
@@ -232,6 +235,28 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 - ユーザー別日次生成上限
 - AI一時データ保持期間
 - 入力文字数上限
+- scheduling pool size、worker有効化、poll間隔
+
+| 設定キー | 環境変数 | 開発時既定値 |
+| --- | --- | --- |
+| `app.ai.enabled` | `AI_ENABLED` | `false` |
+| `app.ai.retention-days` | `AI_RETENTION_DAYS` | `30` |
+| `app.ai.worker.enabled` | `AI_WORKER_ENABLED` | `true` |
+| `app.ai.worker.poll-interval` | `AI_WORKER_POLL_INTERVAL` | `2s` |
+| `app.ai.job-timeout` | `AI_JOB_TIMEOUT` | `5m` |
+| `app.ai.daily-generation-limit` | `AI_DAILY_GENERATION_LIMIT` | `10` |
+| `app.ai.openai.api-key` | `OPENAI_API_KEY` | 未設定 |
+| `app.ai.openai.model` | `OPENAI_MODEL` | `gpt-4.1-mini` |
+| `app.ai.openai.base-url` | `OPENAI_BASE_URL` | `https://api.openai.com` |
+| `app.ai.openai.request-timeout` | `OPENAI_REQUEST_TIMEOUT` | `60s` |
+| `app.ai.openai.max-output-tokens` | `OPENAI_MAX_OUTPUT_TOKENS` | `24000` |
+| `app.ai.openai.communication-retries` | `OPENAI_COMMUNICATION_RETRIES` | `2` |
+| `app.ai.openai.retry-backoff` | `OPENAI_RETRY_BACKOFF` | `1s` |
+| `app.ai.openai.prompt-version` | なし | `v1` |
+| `app.ai.openai.schema-version` | なし | `v1` |
+| `app.ai.openai.strategy-version` | なし | `v1` |
+| `app.ai.vision.api-key` | `GOOGLE_CLOUD_VISION_API_KEY` | 未設定 |
+| `spring.task.scheduling.pool.size` | `SCHEDULING_POOL_SIZE` | `2` |
 
 ユーザー別日次生成上限は、JST日付ごとに受け付けた `WBS_GENERATION` ジョブ数で判定する。通信再試行と構造再生成は同じジョブの試行として扱い、日次件数を追加消費しない。
 
@@ -242,6 +267,8 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 - 通常CIはGoogle Cloud Vision、OpenAIを呼ばない。
 - provider adapterのスタブと固定JSONでServiceを検証する。
 - JSON Schema契約、業務検証、状態遷移、停止競合、deadline、部分一意インデックスを自動テストする。
+- OpenAI応答の `status` 欠落、`incomplete`、出力トークン上限到達を固定JSONで自動テストする。
+- ログ検証では学習内容、OCR結果、外部応答本文、例外メッセージに含まれる本文が記録されないことを確認する。
 - ユーザー入力の数量条件とサーバー算出の必要日数がWBS生成payloadへ入り、競合する自然文の日程補足より優先されることを自動テストする。
 - 通常生成と期限優先の両方で、学習可能日ごとの予定工数が24時間以下なら保存でき、24時間を超える場合は保存されないことを自動テストする。
 - OCR APIの1画像10MB上限と、生成依頼保存時の `OCR_TEXT` 最大10件を自動テストする。クライアントの画像10枚・合計50MB検証はfrontendテストで確認する。

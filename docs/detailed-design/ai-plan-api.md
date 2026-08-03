@@ -61,7 +61,18 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 }
 ```
 
-完了時の `result` は `draftId` を返す。失敗時の `error` は安定した `code` とユーザー向け `message` を返し、外部サービスの生レスポンスを含めない。
+完了時の `result` は `draftId` を返す。失敗時の `error` は安定した `code`、ユーザー向け `message`、再生成に向けた `actionHints` を返し、外部サービスの生レスポンスを含めない。
+
+```json
+{
+  "code": "AI_OUTPUT_TOO_LARGE",
+  "message": "生成結果が大きすぎるため、WBS下書きを作成できませんでした。",
+  "actionHints": [
+    "学習範囲を複数回に分ける",
+    "WBS分割単位を粗くする"
+  ]
+}
+```
 
 ## 3. OCR
 
@@ -210,8 +221,7 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
     }
   ],
   "validation": {
-    "status": "WARNING",
-    "issues": []
+    "status": "WARNING"
   },
   "planWarnings": [],
   "relaxationOptions": []
@@ -269,3 +279,14 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | 429 | `AI_DAILY_LIMIT_REACHED` | ユーザー別日次上限 |
 | 502 | `AI_PROVIDER_ERROR` | 外部サービスの非一時的失敗 |
 | 503 | `AI_FEATURE_UNAVAILABLE` | 設定不足または外部サービス停止 |
+
+ジョブ失敗は状態取得APIのHTTP 200レスポンス内に次の安定コードを返す。
+
+| code | 用途 | 主なactionHints |
+| --- | --- | --- |
+| `AI_OUTPUT_TOO_LARGE` | OpenAI出力が設定トークン上限へ到達 | 学習範囲を分ける、WBS分割単位を粗くする |
+| `AI_DRAFT_DAILY_LIMIT_EXCEEDED` | 日別予定工数が24時間を超過 | 目標終了日を延長する、学習範囲を減らす |
+| `AI_STRUCTURED_OUTPUT_INVALID` | 再生成後も構造検証に失敗 | 入力内容を確認して再生成する |
+| `AI_PROVIDER_ERROR` | 外部サービス失敗 | 入力内容を確認して再生成する |
+| `AI_INTERNAL_ERROR` | アプリケーション内部の予期しない失敗 | 入力内容を確認して再生成する |
+| `AI_JOB_TIMEOUT` | ジョブ総期限を超過 | 時間をおいて再生成する |

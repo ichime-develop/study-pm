@@ -43,4 +43,49 @@ public class AiPlanDraft {
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
     protected AiPlanDraft() {}
+
+    private AiPlanDraft(
+            AiGenerationJob generationJob,
+            AiValidatedWbsDraft validatedDraft,
+            Instant now
+    ) {
+        this.id = UUID.randomUUID();
+        this.generationRequest = generationJob.generationRequest();
+        this.generationJob = generationJob;
+        this.account = generationJob.generationRequest().account();
+        this.revision = 1;
+        this.projectName = validatedDraft.proposal().project().name();
+        this.projectDescription = emptyToNull(validatedDraft.proposal().project().description());
+        this.startDate = validatedDraft.proposal().project().startDate();
+        this.targetEndDate = validatedDraft.proposal().project().targetEndDate();
+        this.tasks = validatedDraft.tasksJson();
+        this.validationStatus = validatedDraft.validationStatus();
+        this.warnings = validatedDraft.warnings();
+        this.relaxationOptions = validatedDraft.relaxationOptions();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    public static AiPlanDraft create(
+            AiGenerationJob generationJob,
+            AiValidatedWbsDraft validatedDraft,
+            Instant now
+    ) {
+        return new AiPlanDraft(generationJob, validatedDraft, now);
+    }
+
+    public UUID id() { return id; }
+    public int revision() { return revision; }
+    public String projectName() { return projectName; }
+    public String projectDescription() { return projectDescription; }
+    public LocalDate startDate() { return startDate; }
+    public LocalDate targetEndDate() { return targetEndDate; }
+    public JsonNode tasks() { return tasks; }
+    public AiPlanDraftValidationStatus validationStatus() { return validationStatus; }
+    public JsonNode warnings() { return warnings; }
+    public JsonNode relaxationOptions() { return relaxationOptions; }
+
+    private static String emptyToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
 }

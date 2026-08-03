@@ -44,6 +44,8 @@ public class AiGenerationJob {
     private int schemaRegenerationCount;
     @Column(name = "error_code", length = 100)
     private String errorCode;
+    @Column(name = "provider_request_id", length = 255)
+    private String providerRequestId;
     @Column(name = "model_name", nullable = false, length = 100)
     private String modelName;
     @Column(name = "prompt_version", nullable = false, length = 50)
@@ -52,6 +54,10 @@ public class AiGenerationJob {
     private String schemaVersion;
     @Column(name = "strategy_version", nullable = false, length = 50)
     private String strategyVersion;
+    @Column(name = "input_tokens")
+    private Integer inputTokens;
+    @Column(name = "output_tokens")
+    private Integer outputTokens;
     @Column(name = "started_at")
     private Instant startedAt;
     @Column(name = "completed_at")
@@ -64,7 +70,14 @@ public class AiGenerationJob {
     protected AiGenerationJob() {}
 
     private AiGenerationJob(
-            AiPlanGenerationRequest request, Instant deadlineAt, boolean deadlinePriority, String modelName, Instant now
+            AiPlanGenerationRequest request,
+            Instant deadlineAt,
+            boolean deadlinePriority,
+            String modelName,
+            String promptVersion,
+            String schemaVersion,
+            String strategyVersion,
+            Instant now
     ) {
         this.id = UUID.randomUUID();
         this.generationRequest = request;
@@ -74,17 +87,33 @@ public class AiGenerationJob {
         this.deadlineAt = deadlineAt;
         this.deadlinePriority = deadlinePriority;
         this.modelName = modelName;
-        this.promptVersion = "v1";
-        this.schemaVersion = "v1";
-        this.strategyVersion = "v1";
+        this.promptVersion = promptVersion;
+        this.schemaVersion = schemaVersion;
+        this.strategyVersion = strategyVersion;
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     public static AiGenerationJob queue(
-            AiPlanGenerationRequest request, Instant deadlineAt, boolean deadlinePriority, String modelName, Instant now
+            AiPlanGenerationRequest request,
+            Instant deadlineAt,
+            boolean deadlinePriority,
+            String modelName,
+            String promptVersion,
+            String schemaVersion,
+            String strategyVersion,
+            Instant now
     ) {
-        return new AiGenerationJob(request, deadlineAt, deadlinePriority, modelName, now);
+        return new AiGenerationJob(
+                request,
+                deadlineAt,
+                deadlinePriority,
+                modelName,
+                promptVersion,
+                schemaVersion,
+                strategyVersion,
+                now
+        );
     }
 
     public void requestCancel(Instant now) {
@@ -94,6 +123,73 @@ public class AiGenerationJob {
         } else if (status == AiGenerationJobStatus.PROCESSING) {
             status = AiGenerationJobStatus.CANCEL_REQUESTED;
         }
+        updatedAt = now;
+    }
+
+    public void start(Instant now) {
+        if (status != AiGenerationJobStatus.QUEUED) {
+            return;
+        }
+        status = AiGenerationJobStatus.PROCESSING;
+        startedAt = now;
+        updatedAt = now;
+    }
+
+    public boolean recordAttempt(Instant now) {
+        timeoutIfExpired(now);
+        if (status == AiGenerationJobStatus.CANCEL_REQUESTED) {
+            cancelAfterProcessing(now);
+            return false;
+        }
+        if (status != AiGenerationJobStatus.PROCESSING) {
+            return false;
+        }
+        attemptCount++;
+        updatedAt = now;
+        return true;
+    }
+
+    public boolean recordSchemaRegeneration(Instant now) {
+        if (status != AiGenerationJobStatus.PROCESSING || schemaRegenerationCount >= 1) {
+            return false;
+        }
+        schemaRegenerationCount++;
+        updatedAt = now;
+        return true;
+    }
+
+    public void complete(AiWbsGenerationProviderResult result, Instant now) {
+        if (status != AiGenerationJobStatus.PROCESSING) {
+            return;
+        }
+        status = AiGenerationJobStatus.COMPLETED;
+        providerRequestId = result.providerRequestId();
+        inputTokens = result.inputTokens();
+        outputTokens = result.outputTokens();
+        completedAt = now;
+        updatedAt = now;
+    }
+
+    public void fail(String nextErrorCode, Instant now) {
+        if (status.isTerminal()) {
+            return;
+        }
+        if (status == AiGenerationJobStatus.CANCEL_REQUESTED) {
+            cancelAfterProcessing(now);
+            return;
+        }
+        status = AiGenerationJobStatus.FAILED;
+        errorCode = nextErrorCode;
+        completedAt = now;
+        updatedAt = now;
+    }
+
+    public void cancelAfterProcessing(Instant now) {
+        if (status != AiGenerationJobStatus.CANCEL_REQUESTED) {
+            return;
+        }
+        status = AiGenerationJobStatus.CANCELED;
+        completedAt = now;
         updatedAt = now;
     }
 
@@ -112,10 +208,15 @@ public class AiGenerationJob {
     }
 
     public UUID id() { return id; }
+    public AiPlanGenerationRequest generationRequest() { return generationRequest; }
     public AiGenerationJobStatus status() { return status; }
     public String jobType() { return jobType; }
     public Instant createdAt() { return createdAt; }
     public Instant deadlineAt() { return deadlineAt; }
     public boolean isDeadlinePriority() { return deadlinePriority; }
     public String errorCode() { return errorCode; }
+    public String modelName() { return modelName; }
+    public String promptVersion() { return promptVersion; }
+    public String schemaVersion() { return schemaVersion; }
+    public String strategyVersion() { return strategyVersion; }
 }

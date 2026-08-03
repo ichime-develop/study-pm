@@ -24,15 +24,18 @@ public class AiPlanController {
 
     private final AiPlanRequestService requestService;
     private final AiGenerationJobService jobService;
+    private final AiPlanDraftService draftService;
     private final AiFeatureAvailability featureAvailability;
 
     public AiPlanController(
             AiPlanRequestService requestService,
             AiGenerationJobService jobService,
+            AiPlanDraftService draftService,
             AiFeatureAvailability featureAvailability
     ) {
         this.requestService = requestService;
         this.jobService = jobService;
+        this.draftService = draftService;
         this.featureAvailability = featureAvailability;
     }
 
@@ -92,5 +95,14 @@ public class AiPlanController {
     ) {
         featureAvailability.requireAvailable();
         return jobService.cancel(account.accountId(), jobId);
+    }
+
+    @GetMapping("/drafts/{draftId}")
+    AiPlanDraftResponse getDraft(
+            @AuthenticationPrincipal AuthenticatedAccount account,
+            @PathVariable UUID draftId
+    ) {
+        featureAvailability.requireAvailable();
+        return draftService.get(account.accountId(), draftId);
     }
 }

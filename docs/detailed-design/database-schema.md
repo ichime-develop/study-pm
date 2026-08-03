@@ -495,6 +495,7 @@ LEAF作成時に0%の初期行を追加する。以降は保存前後の進捗�
 | `ux_ai_generation_jobs_account_active` on `(account_id)` where `status in ('QUEUED','PROCESSING','CANCEL_REQUESTED')` | 同一ユーザーのAI処理を1件に制限 |
 | `idx_ai_generation_jobs_account_created` on `(account_id, created_at desc)` | 日次生成上限、利用量集計 |
 | `idx_ai_generation_jobs_deadline` on `(status, deadline_at)` | 期限超過ジョブの検出 |
+| `ux_ai_plan_drafts_generation_job` on `(ai_generation_job_id)` | 1ジョブから複数下書きが作成されることを防止 |
 | `ux_ai_plan_drafts_converted_project` on `(converted_project_id)` where `converted_project_id is not null` | 重複変換防止 |
 | `idx_ai_plan_drafts_account_updated` on `(account_id, updated_at desc)` | 下書き再開 |
 

@@ -27,25 +27,37 @@ public class AiGenerationJobService {
 
     private final AiPlanGenerationRequestRepository requestRepository;
     private final AiGenerationJobRepository jobRepository;
+    private final AiPlanDraftRepository draftRepository;
     private final Clock clock;
     private final java.time.Duration timeout;
     private final int dailyLimit;
     private final String modelName;
+    private final String promptVersion;
+    private final String schemaVersion;
+    private final String strategyVersion;
 
     public AiGenerationJobService(
             AiPlanGenerationRequestRepository requestRepository,
             AiGenerationJobRepository jobRepository,
+            AiPlanDraftRepository draftRepository,
             Clock clock,
             @Value("${app.ai.job-timeout:5m}") java.time.Duration timeout,
             @Value("${app.ai.daily-generation-limit:10}") int dailyLimit,
-            @Value("${app.ai.openai.model:gpt-4.1-mini}") String modelName
+            @Value("${app.ai.openai.model:gpt-4.1-mini}") String modelName,
+            @Value("${app.ai.openai.prompt-version:v1}") String promptVersion,
+            @Value("${app.ai.openai.schema-version:v1}") String schemaVersion,
+            @Value("${app.ai.openai.strategy-version:v1}") String strategyVersion
     ) {
         this.requestRepository = requestRepository;
         this.jobRepository = jobRepository;
+        this.draftRepository = draftRepository;
         this.clock = clock;
         this.timeout = timeout;
         this.dailyLimit = dailyLimit;
         this.modelName = modelName;
+        this.promptVersion = promptVersion;
+        this.schemaVersion = schemaVersion;
+        this.strategyVersion = strategyVersion;
     }
 
     @Transactional
@@ -62,7 +74,16 @@ public class AiGenerationJobService {
         }
         try {
             AiGenerationJob job = jobRepository.saveAndFlush(
-                    AiGenerationJob.queue(request, now.plus(timeout), deadlinePriority, modelName, now)
+                    AiGenerationJob.queue(
+                            request,
+                            now.plus(timeout),
+                            deadlinePriority,
+                            modelName,
+                            promptVersion,
+                            schemaVersion,
+                            strategyVersion,
+                            now
+                    )
             );
             return responseFor(job);
         } catch (org.springframework.dao.DataIntegrityViolationException exception) {
@@ -97,7 +118,37 @@ public class AiGenerationJobService {
 
     private AiGenerationJobResponse responseFor(AiGenerationJob job) {
         AiGenerationJobError error = job.errorCode() == null ? null
-                : new AiGenerationJobError(job.errorCode(), "WBS下書きの生成を完了できませんでした。");
-        return new AiGenerationJobResponse(job.id(), job.jobType(), job.status(), job.createdAt(), job.deadlineAt(), error, null);
+                : errorFor(job.errorCode());
+        UUID draftId = job.status() == AiGenerationJobStatus.COMPLETED
+                ? draftRepository.findByGenerationJob_Id(job.id()).map(AiPlanDraft::id).orElse(null)
+                : null;
+        return new AiGenerationJobResponse(
+                job.id(), job.jobType(), job.status(), job.createdAt(), job.deadlineAt(), error, draftId
+        );
+    }
+
+    private AiGenerationJobError errorFor(String errorCode) {
+        return switch (errorCode) {
+            case "AI_OUTPUT_TOO_LARGE" -> new AiGenerationJobError(
+                    errorCode,
+                    "生成結果が大きすぎるため、WBS下書きを作成できませんでした。",
+                    List.of("学習範囲を複数回に分ける", "WBS分割単位を粗くする")
+            );
+            case "AI_DRAFT_DAILY_LIMIT_EXCEEDED" -> new AiGenerationJobError(
+                    errorCode,
+                    "1日の予定工数が24時間を超えるため、WBS下書きを保存できませんでした。",
+                    List.of("目標終了日を延長する", "学習範囲を減らす")
+            );
+            case "AI_JOB_TIMEOUT" -> new AiGenerationJobError(
+                    errorCode,
+                    "WBS下書きの生成が制限時間内に完了しませんでした。",
+                    List.of("時間をおいて再度生成する")
+            );
+            default -> new AiGenerationJobError(
+                    errorCode,
+                    "WBS下書きの生成を完了できませんでした。",
+                    List.of("入力内容を確認して再度生成する")
+            );
+        };
     }
 }

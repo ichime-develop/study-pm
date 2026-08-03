@@ -2,9 +2,7 @@ package com.studypm.aiplan;
 
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.DayOfWeek;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
@@ -25,9 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AiPlanRequestService {
 
-    private static final BigDecimal QUARTER_HOUR = new BigDecimal("0.25");
-    private static final BigDecimal DEFAULT_WEEKDAY_AVAILABLE_HOURS = BigDecimal.ONE;
-    private static final BigDecimal DEFAULT_WEEKEND_AVAILABLE_HOURS = BigDecimal.valueOf(2);
+    private static final int MAX_OPENAI_TEXT_LENGTH = 30000;
     private final AiPlanGenerationRequestRepository requestRepository;
     private final AiPlanSourceRepository sourceRepository;
     private final AccountRepository accountRepository;
@@ -104,6 +100,32 @@ public class AiPlanRequestService {
         }
         validateSources(command.sources());
         validateConstraints(command);
+        validateOpenAiTextLength(command);
+    }
+
+    private void validateOpenAiTextLength(AiPlanRequestCommand command) {
+        int length = command.learningGoal().length();
+        for (AiPlanSourceCommand source : command.sources()) {
+            length += source.textContent().length();
+        }
+        length += textualLength(command.constraints());
+        if (length > MAX_OPENAI_TEXT_LENGTH) {
+            throw new InvalidRequestException("AI_INPUT_LIMIT_EXCEEDED", "OpenAIへ送信するテキストは合計30,000文字以下にしてください。");
+        }
+    }
+
+    private int textualLength(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return 0;
+        }
+        if (node.isTextual()) {
+            return node.asText().length();
+        }
+        int result = 0;
+        for (JsonNode child : node) {
+            result += textualLength(child);
+        }
+        return result;
     }
 
     private void validateSources(List<AiPlanSourceCommand> sources) {
@@ -134,27 +156,25 @@ public class AiPlanRequestService {
         if (!constraints.isObject()) {
             throw new InvalidRequestException("AI_INPUT_CONFLICT", "こだわり条件の形式が正しくありません。");
         }
-        BigDecimal weekdayHours = decimal(constraints, "weekdayAvailableHours", DEFAULT_WEEKDAY_AVAILABLE_HOURS);
-        BigDecimal weekendHours = decimal(constraints, "weekendAvailableHours", DEFAULT_WEEKEND_AVAILABLE_HOURS);
-        validateQuarterHours(weekdayHours, "平日の学習可能時間");
-        validateQuarterHours(weekendHours, "土日の学習可能時間");
-        Set<DayOfWeek> unavailable = unavailableWeekdays(constraints);
-        long availableDays = countAvailableDays(command.startDate(), command.targetEndDate(), weekdayHours, weekendHours, unavailable);
+        AiStudySchedule schedule;
+        try {
+            schedule = AiStudySchedule.from(constraints);
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidRequestException("AI_INPUT_CONFLICT", "学習可能時間または学習できない曜日が正しくありません。");
+        }
+        long availableDays = schedule.countAvailableDays(command.startDate(), command.targetEndDate());
         if (availableDays == 0) {
             throw new InvalidRequestException("AI_INPUT_CONFLICT", "期間内に学習可能な時間がありません。");
         }
         validatePageSplit(constraints);
-        JsonNode quantity = constraints.path("quantityCondition");
-        if (quantity.isObject() && quantity.hasNonNull("totalAmount") && quantity.hasNonNull("dailyAmount")) {
-            BigDecimal total = quantity.path("totalAmount").decimalValue();
-            BigDecimal daily = quantity.path("dailyAmount").decimalValue();
-            if (total.signum() <= 0 || daily.signum() <= 0) {
-                throw new InvalidRequestException("AI_INPUT_CONFLICT", "数量条件の総量と1日量を確認してください。");
-            }
-            long neededDays = total.divide(daily, 0, java.math.RoundingMode.CEILING).longValueExact();
-            if (neededDays > availableDays) {
+        try {
+            if (AiQuantityCondition.from(constraints)
+                    .filter(quantity -> quantity.requiredDays() > availableDays)
+                    .isPresent()) {
                 throw new InvalidRequestException("AI_INPUT_CONFLICT", "期限内の学習可能日数に対して、入力した学習量が多すぎます。");
             }
+        } catch (IllegalArgumentException | ArithmeticException exception) {
+            throw new InvalidRequestException("AI_INPUT_CONFLICT", "数量条件の総量と1日量を確認してください。");
         }
     }
 
@@ -163,9 +183,8 @@ public class AiPlanRequestService {
         try {
             WbsSplitUnit unit = WbsSplitUnit.valueOf(splitUnit);
             if (unit == WbsSplitUnit.PAGE) {
-                JsonNode quantity = constraints.path("quantityCondition");
-                if (!quantity.isObject() || !"ページ".equals(quantity.path("unit").asText())
-                        || !quantity.hasNonNull("totalAmount") || !quantity.hasNonNull("dailyAmount")) {
+                AiQuantityCondition quantity = AiQuantityCondition.from(constraints).orElse(null);
+                if (quantity == null || !"ページ".equals(quantity.unit())) {
                     throw new InvalidRequestException("AI_INPUT_CONFLICT", "ページ数で分割する場合は、ページ単位の総量と1日量を入力してください。");
                 }
             }
@@ -174,48 +193,4 @@ public class AiPlanRequestService {
         }
     }
 
-    private BigDecimal decimal(JsonNode constraints, String fieldName, BigDecimal defaultValue) {
-        JsonNode value = constraints.get(fieldName);
-        if (value == null || value.isNull()) {
-            return defaultValue;
-        }
-        if (!value.isNumber()) {
-            throw new InvalidRequestException("AI_INPUT_CONFLICT", fieldName + "は数値で入力してください。");
-        }
-        return value.decimalValue();
-    }
-
-    private void validateQuarterHours(BigDecimal hours, String label) {
-        if (hours.signum() < 0 || hours.remainder(QUARTER_HOUR).signum() != 0) {
-            throw new InvalidRequestException("AI_INPUT_CONFLICT", label + "は0.25時間単位の0以上で入力してください。");
-        }
-    }
-
-    private Set<DayOfWeek> unavailableWeekdays(JsonNode constraints) {
-        Set<DayOfWeek> result = new HashSet<>();
-        for (JsonNode day : constraints.path("unavailableWeekdays")) {
-            try {
-                result.add(DayOfWeek.valueOf(day.asText()));
-            } catch (IllegalArgumentException exception) {
-                throw new InvalidRequestException("AI_INPUT_CONFLICT", "学習できない曜日が正しくありません。");
-            }
-        }
-        return result;
-    }
-
-    private long countAvailableDays(
-            LocalDate startDate, LocalDate endDate, BigDecimal weekdayHours, BigDecimal weekendHours, Set<DayOfWeek> unavailable
-    ) {
-        long count = 0;
-        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            if (unavailable.contains(date.getDayOfWeek())) {
-                continue;
-            }
-            BigDecimal hours = date.getDayOfWeek().getValue() <= DayOfWeek.FRIDAY.getValue() ? weekdayHours : weekendHours;
-            if (hours.signum() > 0) {
-                count++;
-            }
-        }
-        return count;
-    }
 }
