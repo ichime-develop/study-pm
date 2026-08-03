@@ -126,6 +126,24 @@ class AiWbsGenerationWorkerTest {
     }
 
     @Test
+    void doesNotRetryWhenAiGenerationIsUnavailable() {
+        AiWbsGenerationWork work = work();
+        when(transactions.claimNext()).thenReturn(Optional.of(work));
+        when(transactions.recordAttempt(work.jobId())).thenReturn(true);
+        when(provider.generate(work, null)).thenThrow(new AiProviderException(
+                "AI_GENERATION_UNAVAILABLE",
+                "unavailable",
+                false
+        ));
+
+        worker(2).runNext();
+
+        org.mockito.Mockito.verify(provider).generate(work, null);
+        org.mockito.Mockito.verify(transactions).recordAttempt(work.jobId());
+        org.mockito.Mockito.verify(transactions).fail(work.jobId(), "AI_GENERATION_UNAVAILABLE");
+    }
+
+    @Test
     void classifiesAnUnexpectedFailureAsInternalWithoutCopyingItsMessage() {
         AiWbsGenerationWork work = work();
         AiWbsGenerationProviderResult result = providerResult("Java学習");

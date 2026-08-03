@@ -174,7 +174,7 @@ API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗�
 | API-AI-02 | POST | `/api/ai-plan/requests` | AI計画生成依頼の作成・入力保存 | AI02 | 3 | 必須 | sourceType, learningGoal, startDate, targetEndDate, sources, constraints | generationRequestId、保存済み入力 | PLN-01, PLN-05, PLN-20, PLN-28, PLN-38, PLN-39 |
 | API-AI-03 | PUT | `/api/ai-plan/requests/{requestId}` | 入力条件・入力元テキストの全体更新 | AI02 | 3 | 必須 | 更新後条件、sources | 更新後入力 | PLN-04, PLN-05, PLN-18 |
 | API-AI-04 | POST | `/api/ai-plan/requests/{requestId}/draft-jobs` | 入力と生成条件からWBS生成ジョブ開始 | AI02 | 3 | 必須 | requestId, deadlinePriority | jobId, status, deadlineAt | PLN-24, PLN-31〜34, PLN-39 |
-| API-AI-05 | GET | `/api/ai-plan/jobs/{jobId}` | AI処理ジョブ状態取得 | AI02 | 3 | 必須 | jobId | jobType, status, deadlineAt, errorCode, resultResourceId | PLN-08, PLN-31〜34 |
+| API-AI-05 | GET | `/api/ai-plan/jobs/{jobId}` | AI処理ジョブ状態取得 | AI02 | 3 | 必須 | jobId | jobType, status, deadlineAt, errorCode, resultResourceId | PLN-08, PLN-31〜34, PLN-40 |
 | API-AI-06 | POST | `/api/ai-plan/jobs/{jobId}/cancel` | AI処理の停止要求 | AI02 | 3 | 必須 | jobId | status | PLN-10, PLN-32 |
 | API-AI-07 | GET | `/api/ai-plan/drafts/{draftId}` | WBS下書き取得 | AI03 | 3 | 必須 | draftId | プロジェクト基本情報、WBS下書き、計画不整合、緩和案 | PLN-06, PLN-26〜30 |
 | API-AI-08 | PUT | `/api/ai-plan/drafts/{draftId}` | WBS下書きの一括編集・再検証 | AI03 | 3 | 必須 | draftRevision, project, draftWbsTasks | 更新後下書き、validation, warnings, relaxationOptions | PLN-16, PLN-17, PLN-26, PLN-29 |

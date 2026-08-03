@@ -144,6 +144,11 @@ public class AiGenerationJobService {
                     "WBS下書きの生成が制限時間内に完了しませんでした。",
                     List.of("時間をおいて再度生成する")
             );
+            case "AI_GENERATION_UNAVAILABLE" -> new AiGenerationJobError(
+                    errorCode,
+                    "AIは現在利用できません。WBSを手動で作成してください。",
+                    List.of("OKを押してプロジェクト一覧へ戻る")
+            );
             default -> new AiGenerationJobError(
                     errorCode,
                     "WBS下書きの生成を完了できませんでした。",

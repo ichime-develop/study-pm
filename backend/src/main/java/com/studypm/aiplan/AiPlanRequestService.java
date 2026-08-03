@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.studypm.account.AccountRepository;
+import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiPlanRequestService {
 
     private static final int MAX_OPENAI_TEXT_LENGTH = 30000;
+    private static final List<AiGenerationJobStatus> ACTIVE_JOB_STATUSES = List.of(
+            AiGenerationJobStatus.QUEUED,
+            AiGenerationJobStatus.PROCESSING,
+            AiGenerationJobStatus.CANCEL_REQUESTED
+    );
     private final AiPlanGenerationRequestRepository requestRepository;
     private final AiPlanSourceRepository sourceRepository;
+    private final AiGenerationJobRepository jobRepository;
     private final AccountRepository accountRepository;
     private final Clock clock;
     private final int retentionDays;
@@ -33,12 +40,14 @@ public class AiPlanRequestService {
     public AiPlanRequestService(
             AiPlanGenerationRequestRepository requestRepository,
             AiPlanSourceRepository sourceRepository,
+            AiGenerationJobRepository jobRepository,
             AccountRepository accountRepository,
             Clock clock,
             @Value("${app.ai.retention-days:30}") int retentionDays
     ) {
         this.requestRepository = requestRepository;
         this.sourceRepository = sourceRepository;
+        this.jobRepository = jobRepository;
         this.accountRepository = accountRepository;
         this.clock = clock;
         this.retentionDays = retentionDays;
@@ -59,6 +68,11 @@ public class AiPlanRequestService {
     public AiPlanRequestResponse update(UUID accountId, UUID requestId, AiPlanRequestCommand command) {
         validate(command);
         AiPlanGenerationRequest request = findOwned(accountId, requestId);
+        if (jobRepository.existsByGenerationRequest_IdAndStatusIn(request.id(), ACTIVE_JOB_STATUSES)) {
+            throw new BusinessConflictException(
+                    "AI_JOB_ALREADY_ACTIVE", "生成中の下書きがあるため、入力を変更できません。"
+            );
+        }
         Instant now = clock.instant();
         request.update(command, now.plus(retentionDays, ChronoUnit.DAYS), now);
         sourceRepository.deleteAllByGenerationRequest_Id(request.id());

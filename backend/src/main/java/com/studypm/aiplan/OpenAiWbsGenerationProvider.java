@@ -72,7 +72,7 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
                     .body(JsonNode.class);
         } catch (RestClientResponseException exception) {
             int status = exception.getStatusCode().value();
-            throw new AiProviderException("OpenAI request failed with status " + status + ".", status == 429 || status >= 500, exception);
+            throw providerFailure(status, exception);
         } catch (ResourceAccessException exception) {
             throw new AiProviderException("OpenAI request could not be completed.", true, exception);
         }
@@ -80,6 +80,22 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
             throw new AiProviderException("OpenAI returned an empty response.", true);
         }
         return resultFromResponse(response);
+    }
+
+    AiProviderException providerFailure(int status, Throwable cause) {
+        if (status == 429) {
+            return new AiProviderException(
+                    "AI_GENERATION_UNAVAILABLE",
+                    "OpenAI is currently unavailable.",
+                    false,
+                    cause
+            );
+        }
+        return new AiProviderException(
+                "OpenAI request failed with status " + status + ".",
+                status >= 500,
+                cause
+        );
     }
 
     AiWbsGenerationProviderResult resultFromResponse(JsonNode response) {

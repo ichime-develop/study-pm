@@ -105,4 +105,24 @@ public class AiPlanController {
         featureAvailability.requireAvailable();
         return draftService.get(account.accountId(), draftId);
     }
+
+    @PutMapping("/drafts/{draftId}")
+    AiPlanDraftResponse updateDraft(
+            @AuthenticationPrincipal AuthenticatedAccount account,
+            @PathVariable UUID draftId,
+            @Valid @RequestBody AiPlanDraftUpdatePayload payload
+    ) {
+        featureAvailability.requireAvailable();
+        return draftService.update(account.accountId(), draftId, payload);
+    }
+
+    @PostMapping("/drafts/{draftId}/convert")
+    ResponseEntity<AiPlanDraftConversionResponse> convertDraft(
+            @AuthenticationPrincipal AuthenticatedAccount account,
+            @PathVariable UUID draftId,
+            @Valid @RequestBody AiPlanDraftConvertPayload payload
+    ) {
+        featureAvailability.requireAvailable();
+        return ResponseEntity.status(201).body(draftService.convert(account.accountId(), draftId, payload));
+    }
 }

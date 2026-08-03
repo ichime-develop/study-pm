@@ -75,6 +75,15 @@ class OpenAiWbsGenerationProviderTest {
     }
 
     @Test
+    void classifiesRateLimitAsUnavailableWithoutRetry() {
+        AiProviderException exception = provider(RestClient.builder()).providerFailure(429, null);
+
+        assertThat(exception.errorCode()).isEqualTo("AI_GENERATION_UNAVAILABLE");
+        assertThat(exception.isRetryable()).isFalse();
+        assertThat(exception.getMessage()).doesNotContain("credit", "quota", "billing");
+    }
+
+    @Test
     void rejectsARefusalWithoutTryingToParseItAsAWbsDraft() throws Exception {
         ObjectNode response = (ObjectNode) objectMapper.readTree("""
                 {

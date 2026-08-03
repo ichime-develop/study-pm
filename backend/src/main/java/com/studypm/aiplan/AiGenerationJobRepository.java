@@ -18,6 +18,7 @@ import jakarta.persistence.LockModeType;
 public interface AiGenerationJobRepository extends JpaRepository<AiGenerationJob, UUID> {
     Optional<AiGenerationJob> findByIdAndAccount_Id(UUID id, UUID accountId);
     List<AiGenerationJob> findAllByAccount_IdAndStatusIn(UUID accountId, Collection<AiGenerationJobStatus> statuses);
+    boolean existsByGenerationRequest_IdAndStatusIn(UUID generationRequestId, Collection<AiGenerationJobStatus> statuses);
     long countByAccount_IdAndCreatedAtGreaterThanEqual(UUID accountId, Instant startOfDay);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

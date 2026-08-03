@@ -102,7 +102,6 @@ terminal状態から別状態へは遷移しない。
 対象:
 
 - 接続失敗
-- 429
 - 一時的な5xx
 
 対象外:
@@ -112,8 +111,11 @@ terminal状態から別状態へは遷移しない。
 - 安全性拒否
 - JSON Schema適合後の業務制約違反
 - 停止要求
+- OpenAIから返る429
 
 回数とbackoffは設定値とする。deadlineを超えて再試行しない。
+
+OpenAIから429が返った場合は、原因となるクレジット、課金、レート制限の詳細をユーザーへ公開せず、即時にFAILED `AI_GENERATION_UNAVAILABLE` とする。AI02はWBSの手動作成を案内し、「OK」押下後にPJ01へ遷移する。
 
 ### 6.2 構造再生成
 
@@ -205,11 +207,13 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 ## 9. プロジェクト変換
 
 - 変換時に下書きを再検証する。
-- project、PARENT、LEAF、初期進捗履歴を1トランザクションで作成する。
+- project、PARENT、LEAF、初期進捗履歴を1トランザクションで作成する。Project作成とWBSタスク作成は既存サービスを再利用し、初期0%進捗履歴を変換専用に実装しない。
 - 下書きは1回だけ変換できる。
 - 変換後は通常のProject/WbsTaskとして扱う。
 - source/draft対応をProject/WbsTaskへコピーしない。
 - 変換先プロジェクトを削除した場合は、`converted_project_id` をNULLにするが、`converted_at` は保持して下書きの再変換を禁止する。
+- 生成依頼の入力または入力元が下書き作成後に更新された場合、その下書きの編集・変換は409 `AI_DRAFT_REGENERATION_REQUIRED` として拒否し、再生成を要求する。
+- 下書き更新と変換では、構造違反および通常の業務制約違反を400 `AI_DRAFT_VALIDATION_FAILED`、1日予定工数の24時間超過を400 `AI_DRAFT_DAILY_LIMIT_EXCEEDED` として区別する。
 
 ### 9.1 一時データ削除
 

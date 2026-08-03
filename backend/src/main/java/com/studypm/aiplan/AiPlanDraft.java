@@ -84,6 +84,28 @@ public class AiPlanDraft {
     public AiPlanDraftValidationStatus validationStatus() { return validationStatus; }
     public JsonNode warnings() { return warnings; }
     public JsonNode relaxationOptions() { return relaxationOptions; }
+    public AiPlanGenerationRequest generationRequest() { return generationRequest; }
+    public Instant createdAt() { return createdAt; }
+    public boolean isConverted() { return convertedAt != null; }
+
+    public void update(AiValidatedWbsDraft validatedDraft, Instant now) {
+        this.revision++;
+        this.projectName = validatedDraft.proposal().project().name();
+        this.projectDescription = emptyToNull(validatedDraft.proposal().project().description());
+        this.startDate = validatedDraft.proposal().project().startDate();
+        this.targetEndDate = validatedDraft.proposal().project().targetEndDate();
+        this.tasks = validatedDraft.tasksJson();
+        this.validationStatus = validatedDraft.validationStatus();
+        this.warnings = validatedDraft.warnings();
+        this.relaxationOptions = validatedDraft.relaxationOptions();
+        this.updatedAt = now;
+    }
+
+    public void markConverted(UUID projectId, Instant now) {
+        this.convertedProjectId = projectId;
+        this.convertedAt = now;
+        this.updatedAt = now;
+    }
 
     private static String emptyToNull(String value) {
         return value == null || value.isBlank() ? null : value;

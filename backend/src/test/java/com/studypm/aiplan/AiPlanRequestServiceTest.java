@@ -29,6 +29,7 @@ class AiPlanRequestServiceTest {
 
     private final AiPlanGenerationRequestRepository requestRepository = mock(AiPlanGenerationRequestRepository.class);
     private final AiPlanSourceRepository sourceRepository = mock(AiPlanSourceRepository.class);
+    private final AiGenerationJobRepository jobRepository = mock(AiGenerationJobRepository.class);
     private final AccountRepository accountRepository = mock(AccountRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-30T00:00:00Z"), ZoneOffset.UTC);
 
@@ -38,12 +39,13 @@ class AiPlanRequestServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AiPlanRequestService(requestRepository, sourceRepository, accountRepository, clock, 30);
+        service = new AiPlanRequestService(requestRepository, sourceRepository, jobRepository, accountRepository, clock, 30);
         account = Account.create("user@example.com", "encoded", "User", clock.instant());
         accountId = account.id();
         when(accountRepository.getReferenceById(accountId)).thenReturn(account);
         when(requestRepository.save(any(AiPlanGenerationRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sourceRepository.findAllByGenerationRequest_IdOrderBySourceOrderAsc(any())).thenReturn(List.of());
+        when(jobRepository.existsByGenerationRequest_IdAndStatusIn(any(), any())).thenReturn(false);
     }
 
     @Test

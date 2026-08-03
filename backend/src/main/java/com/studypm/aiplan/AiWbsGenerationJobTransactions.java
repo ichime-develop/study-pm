@@ -2,7 +2,6 @@ package com.studypm.aiplan;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,18 +16,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiWbsGenerationJobTransactions {
 
     private final AiGenerationJobRepository jobRepository;
-    private final AiPlanSourceRepository sourceRepository;
+    private final AiWbsGenerationInputFactory inputFactory;
     private final AiPlanDraftRepository draftRepository;
     private final Clock clock;
 
     public AiWbsGenerationJobTransactions(
             AiGenerationJobRepository jobRepository,
-            AiPlanSourceRepository sourceRepository,
+            AiWbsGenerationInputFactory inputFactory,
             AiPlanDraftRepository draftRepository,
             Clock clock
     ) {
         this.jobRepository = jobRepository;
-        this.sourceRepository = sourceRepository;
+        this.inputFactory = inputFactory;
         this.draftRepository = draftRepository;
         this.clock = clock;
     }
@@ -47,26 +46,7 @@ public class AiWbsGenerationJobTransactions {
         }
         job.start(now);
         AiPlanGenerationRequest request = job.generationRequest();
-        List<AiWbsGenerationSource> sources = sourceRepository
-                .findAllByGenerationRequest_IdOrderBySourceOrderAsc(request.id())
-                .stream()
-                .map(source -> new AiWbsGenerationSource(
-                        source.temporaryKey(),
-                        source.sourceType(),
-                        source.sourceOrder(),
-                        source.label(),
-                        source.textContent()
-                ))
-                .toList();
-        AiWbsGenerationInput input = new AiWbsGenerationInput(
-                request.sourceType(),
-                request.learningGoal(),
-                request.startDate(),
-                request.targetEndDate(),
-                request.constraints(),
-                requiredDays(request.constraints()),
-                sources
-        );
+        AiWbsGenerationInput input = inputFactory.forRequest(request);
         return Optional.of(new AiWbsGenerationWork(
                 job.id(),
                 job.modelName(),
@@ -119,11 +99,5 @@ public class AiWbsGenerationJobTransactions {
     private AiGenerationJob findForUpdate(UUID jobId) {
         return jobRepository.findByIdForUpdate(jobId)
                 .orElseThrow(() -> new IllegalStateException("AI generation job disappeared during processing."));
-    }
-
-    private Integer requiredDays(com.fasterxml.jackson.databind.JsonNode constraints) {
-        return AiQuantityCondition.from(constraints)
-                .map(AiQuantityCondition::requiredDays)
-                .orElse(null);
     }
 }

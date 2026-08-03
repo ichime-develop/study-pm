@@ -109,4 +109,27 @@ class AiGenerationJobServiceTest {
         assertThat(response.deadlineAt()).isEqualTo(clock.instant().plus(Duration.ofMinutes(5)));
         assertThat(jobCaptor.getValue().isDeadlinePriority()).isTrue();
     }
+
+    @Test
+    void getExplainsManualCreationWhenAiGenerationIsUnavailable() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_GENERATION_UNAVAILABLE", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_GENERATION_UNAVAILABLE");
+        assertThat(response.error().message()).isEqualTo("AIは現在利用できません。WBSを手動で作成してください。");
+        assertThat(response.error().actionHints()).containsExactly("OKを押してプロジェクト一覧へ戻る");
+    }
 }

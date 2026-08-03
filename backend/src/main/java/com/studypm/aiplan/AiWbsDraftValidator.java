@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class AiWbsDraftValidator {
 
     private static final BigDecimal QUARTER_HOUR = new BigDecimal("0.25");
+    private static final BigDecimal MAX_PLANNED_HOURS = new BigDecimal("9999.99");
     private static final BigDecimal HOURS_PER_DAY = BigDecimal.valueOf(24);
     private final ObjectMapper objectMapper;
 
@@ -127,8 +128,9 @@ public class AiWbsDraftValidator {
             throw structureError("LEAFの予定開始日と予定終了日を正しく設定してください。");
         }
         BigDecimal hours = task.plannedHours();
-        if (hours == null || hours.compareTo(QUARTER_HOUR) < 0 || hours.remainder(QUARTER_HOUR).signum() != 0) {
-            throw structureError("LEAFの予定工数は0.25時間以上かつ0.25時間単位にしてください。");
+        if (hours == null || hours.compareTo(QUARTER_HOUR) < 0 || hours.compareTo(MAX_PLANNED_HOURS) > 0
+                || hours.remainder(QUARTER_HOUR).signum() != 0) {
+            throw structureError("LEAFの予定工数は0.25時間以上9999.99時間以下、0.25時間単位にしてください。");
         }
         if (task.sourceTemporaryKeys().isEmpty()) {
             throw structureError("LEAFには1件以上のsourceTemporaryKeysが必要です。");

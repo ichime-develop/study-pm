@@ -1,6 +1,9 @@
 package com.studypm.aiplan;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -16,6 +19,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.studypm.common.error.InvalidRequestException;
+import com.studypm.wbs.WbsTaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +32,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -62,6 +68,9 @@ class AiPlanControllerIT {
     @MockitoBean
     private AiWbsGenerationProvider generationProvider;
 
+    @MockitoSpyBean
+    private WbsTaskService wbsTaskService;
+
     @DynamicPropertySource
     static void registerDatasourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRESQL::getJdbcUrl);
@@ -76,6 +85,11 @@ class AiPlanControllerIT {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcTemplate.update("delete from wbs_task_progress_history");
+        jdbcTemplate.update("delete from wbs_task_plan_history");
+        jdbcTemplate.update("delete from wbs_tasks");
+        jdbcTemplate.update("delete from project_period_history");
+        jdbcTemplate.update("delete from projects");
         jdbcTemplate.update("delete from ai_plan_drafts");
         jdbcTemplate.update("delete from ai_generation_jobs");
         jdbcTemplate.update("delete from ai_plan_sources");
@@ -100,6 +114,20 @@ class AiPlanControllerIT {
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from ai_plan_sources where ai_plan_generation_request_id = ?", Integer.class, requestId
         )).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsRequestUpdatesWhileItsGenerationJobIsActive() throws Exception {
+        Session session = signup("request-active@example.com");
+        UUID requestId = createRequest(session, "content");
+        insertProcessingJob(session.accountId(), requestId, Instant.now().plusSeconds(300));
+
+        mockMvc.perform(put("/api/ai-plan/requests/{requestId}", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestPayload("changed")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AI_JOB_ALREADY_ACTIVE"));
     }
 
     @Test
@@ -176,6 +204,35 @@ class AiPlanControllerIT {
         assertThat(jdbcTemplate.queryForObject(
                 "select status from ai_generation_jobs where id = ?", String.class, jobId
         )).isEqualTo("PROCESSING");
+    }
+
+    @Test
+    void hidesDraftResourcesOwnedByAnotherAccount() throws Exception {
+        Session owner = signup("draft-owner@example.com");
+        UUID draftId = generateDraft(owner);
+        Session other = signup("draft-other@example.com");
+
+        mockMvc.perform(get("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(other)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("AI_PLAN_NOT_FOUND"));
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(other))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "不正な更新", "1.0")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("AI_PLAN_NOT_FOUND"));
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(other))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("AI_PLAN_NOT_FOUND"));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where id = ? and converted_at is null", Integer.class, draftId
+        )).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from projects", Integer.class)).isZero();
     }
 
     @Test
@@ -311,6 +368,168 @@ class AiPlanControllerIT {
         )).isEqualTo(1);
     }
 
+    @Test
+    void updatesAndConvertsADraftIntoAnOrdinaryProjectAndWbs() throws Exception {
+        Session session = signup("draft-convert@example.com");
+        UUID draftId = generateDraft(session);
+
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "Java学習を更新", "2.0")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.draftRevision").value(2))
+                .andExpect(jsonPath("$.project.name").value("Java学習を更新"))
+                .andExpect(jsonPath("$.tasks[1].plannedHours").value(2.0));
+
+        MvcResult converted = mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 2 }"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        UUID projectId = UUID.fromString(objectMapper.readTree(converted.getResponse().getContentAsString()).get("projectId").asText());
+        assertThat(objectMapper.readTree(converted.getResponse().getContentAsString()).get("wbsTaskIds")).hasSize(2);
+
+        mockMvc.perform(get("/api/projects/{projectId}/wbs", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks.length()").value(2))
+                .andExpect(jsonPath("$.tasks[0].taskType").value("PARENT"))
+                .andExpect(jsonPath("$.tasks[1].taskType").value("LEAF"))
+                .andExpect(jsonPath("$.tasks[1].name").value("Javaの基本を読む"))
+                .andExpect(jsonPath("$.tasks[1].plannedHours").value(2.0))
+                .andExpect(jsonPath("$.tasks[1].progressRate").value(0));
+        mockMvc.perform(get("/api/projects/{projectId}/overview", projectId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedHours").value(2.0))
+                .andExpect(jsonPath("$.progressRate").value(0));
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from wbs_task_progress_history where project_id = ?", Integer.class, projectId
+        )).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where id = ? and converted_at is not null", Integer.class, draftId
+        )).isEqualTo(1);
+
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AI_PLAN_ALREADY_CONVERTED"));
+    }
+
+    @Test
+    void rejectsStaleRevisionForDraftUpdateAndConversion() throws Exception {
+        Session session = signup("draft-stale@example.com");
+        UUID draftId = generateDraft(session);
+
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "Java学習を更新", "2.0")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.draftRevision").value(2));
+
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "古い画面からの更新", "1.0")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STALE_AI_PLAN_REVISION"));
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STALE_AI_PLAN_REVISION"));
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from projects", Integer.class)).isZero();
+    }
+
+    @Test
+    void doesNotCreateProjectWhenDraftRevalidationFails() throws Exception {
+        Session session = signup("draft-invalid@example.com");
+        UUID draftId = generateDraft(session);
+        jdbcTemplate.update("""
+                update ai_plan_drafts
+                set draft_wbs_tasks_json = jsonb_set(draft_wbs_tasks_json, '{1,plannedHours}', '0.3'::jsonb)
+                where id = ?
+                """, draftId);
+
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AI_DRAFT_VALIDATION_FAILED"));
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from projects", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from wbs_tasks", Integer.class)).isZero();
+    }
+
+    @Test
+    void rollsBackProjectAndParentWhenLeafCreationFails() throws Exception {
+        Session session = signup("draft-rollback@example.com");
+        UUID draftId = generateDraft(session);
+        doThrow(new InvalidRequestException("TEST_WBS_FAILURE", "LEAF作成失敗"))
+                .when(wbsTaskService)
+                .create(any(), any(), argThat(command -> "LEAF".equals(command.taskType())));
+
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TEST_WBS_FAILURE"));
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from projects", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from wbs_tasks", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from ai_plan_drafts where id = ? and converted_at is null", Integer.class, draftId
+        )).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsAnOldDraftAfterItsGenerationInputChanged() throws Exception {
+        Session session = signup("draft-regenerate@example.com");
+        UUID requestId = createRequest(session, "content");
+        UUID draftId = generateDraft(session, requestId);
+
+        mockMvc.perform(put("/api/ai-plan/requests/{requestId}", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestPayload("changed content")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "Java学習", "1.0")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AI_DRAFT_REGENERATION_REQUIRED"));
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AI_DRAFT_REGENERATION_REQUIRED"));
+    }
+
+    @Test
+    void keepsTheDailyLimitErrorCodeWhenUpdatingADraft() throws Exception {
+        Session session = signup("draft-hours@example.com");
+        UUID draftId = generateDraft(session);
+
+        mockMvc.perform(put("/api/ai-plan/drafts/{draftId}", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftPayload(1, "Java学習", "50.0")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AI_DRAFT_DAILY_LIMIT_EXCEEDED"));
+    }
+
     private AiWbsGenerationProviderResult validProviderResult() {
         AiWbsDraftProposal proposal = new AiWbsDraftProposal(
                 new AiWbsDraftProject(
@@ -340,6 +559,65 @@ class AiPlanControllerIT {
                 objectMapper.createArrayNode(),
                 objectMapper.createArrayNode()
         );
+    }
+
+    private UUID generateDraft(Session session) throws Exception {
+        return generateDraft(session, createRequest(session, "Javaの基本を学ぶ"));
+    }
+
+    private UUID generateDraft(Session session, UUID requestId) throws Exception {
+        AiWbsDraftProposal proposal = validProviderResult().proposal();
+        org.mockito.Mockito.when(generationProvider.generate(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new AiWbsGenerationProviderResult(proposal, "resp_draft", 120, 80));
+        MvcResult createdJob = mockMvc.perform(post("/api/ai-plan/requests/{requestId}/draft-jobs", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"deadlinePriority\": false }"))
+                .andExpect(status().isAccepted())
+                .andReturn();
+        assertThat(generationWorker.runNext()).isTrue();
+        UUID jobId = UUID.fromString(objectMapper.readTree(createdJob.getResponse().getContentAsString()).get("jobId").asText());
+        return jdbcTemplate.queryForObject(
+                "select id from ai_plan_drafts where ai_generation_job_id = ?", UUID.class, jobId
+        );
+    }
+
+    private String draftPayload(int revision, String projectName, String plannedHours) {
+        return """
+                {
+                  "draftRevision": %d,
+                  "project": {
+                    "name": "%s",
+                    "description": "",
+                    "startDate": "2026-08-01",
+                    "targetEndDate": "2026-09-01"
+                  },
+                  "tasks": [
+                    {
+                      "temporaryKey": "parent-1",
+                      "taskType": "PARENT",
+                      "parentTemporaryKey": null,
+                      "name": "基礎",
+                      "description": "",
+                      "plannedStartDate": null,
+                      "plannedEndDate": null,
+                      "plannedHours": null,
+                      "sourceTemporaryKeys": []
+                    },
+                    {
+                      "temporaryKey": "leaf-1",
+                      "taskType": "LEAF",
+                      "parentTemporaryKey": "parent-1",
+                      "name": "Javaの基本を読む",
+                      "description": "",
+                      "plannedStartDate": "2026-08-01",
+                      "plannedEndDate": "2026-08-02",
+                      "plannedHours": %s,
+                      "sourceTemporaryKeys": ["source-1"]
+                    }
+                  ]
+                }
+                """.formatted(revision, projectName, plannedHours);
     }
 
     private UUID createRequest(Session session, String content) throws Exception {

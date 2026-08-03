@@ -230,7 +230,9 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 
 ### 5.3 PUT `/api/ai-plan/drafts/{draftId}`
 
-`draftRevision`、project、tasksを一括送信する。サーバーはAI出力受信時と同じ構造・業務検証と、計画整合性判定を再実行する。警告は保存を許可するが、構造違反は400で拒否する。
+`draftRevision`、project、tasksを一括送信する。サーバーはAI出力受信時と同じ構造・業務検証と、計画整合性判定を再実行する。警告は保存を許可するが、構造違反は400で拒否する。1日24時間超過は `AI_DRAFT_DAILY_LIMIT_EXCEEDED`、それ以外の構造・業務制約違反は `AI_DRAFT_VALIDATION_FAILED` を返す。
+
+生成依頼の入力または入力元を下書き作成後に変更した場合、既存下書きは409 `AI_DRAFT_REGENERATION_REQUIRED` として更新・変換を拒否し、再生成を要求する。activeジョブがある生成依頼は入力更新を409 `AI_JOB_ALREADY_ACTIVE` として拒否する。変換済み下書きの編集も409 `AI_PLAN_ALREADY_CONVERTED` として拒否する。
 
 ### 5.4 POST `/api/ai-plan/drafts/{draftId}/convert`
 
@@ -240,12 +242,14 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 }
 ```
 
+成功時は201で、作成した `projectId` と `wbsTaskIds` を返す。
+
 変換トランザクション内で次を行う。
 
-1. draftを行ロックして所有者、revision、未変換を確認する。
+1. draftを行ロックして所有者、未変換、revisionの順に確認する。変換済みの場合はrevisionにかかわらず `AI_PLAN_ALREADY_CONVERTED` を返す。
 2. 構造・業務制約を再検証する。
 3. projectを作成する。
-4. PARENT、LEAF、初期0%進捗履歴を作成する。
+4. 既存のProject作成・WBSタスク作成サービスを呼び出して、PARENT、LEAF、初期0%進捗履歴を作成する。変換専用に進捗履歴生成を再実装しない。
 5. `convertedProjectId`, `convertedAt` を更新する。
 
 変換済みの場合は409 `AI_PLAN_ALREADY_CONVERTED` を返す。
@@ -272,10 +276,12 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | 400 | `AI_INPUT_LIMIT_EXCEEDED` | 文字数・1画像サイズ・生成依頼内のOCR入力元件数超過 |
 | 400 | `AI_INPUT_CONFLICT` | 開始日、学習可能時間、ページ・ペース等の事前矛盾 |
 | 400 | `AI_DRAFT_VALIDATION_FAILED` | 下書きの構造・業務制約違反 |
+| 400 | `AI_DRAFT_DAILY_LIMIT_EXCEEDED` | 下書きの1日予定工数が24時間を超過 |
 | 404 | `AI_PLAN_NOT_FOUND` | 未存在、削除済み、所有者不一致 |
 | 409 | `AI_JOB_ALREADY_ACTIVE` | 同一ユーザーのactiveジョブあり |
 | 409 | `STALE_AI_PLAN_REVISION` | 下書きの更新競合 |
 | 409 | `AI_PLAN_ALREADY_CONVERTED` | 下書きの重複変換 |
+| 409 | `AI_DRAFT_REGENERATION_REQUIRED` | 入力変更後の古い下書きの更新・変換 |
 | 429 | `AI_DAILY_LIMIT_REACHED` | ユーザー別日次上限 |
 | 502 | `AI_PROVIDER_ERROR` | 外部サービスの非一時的失敗 |
 | 503 | `AI_FEATURE_UNAVAILABLE` | 設定不足または外部サービス停止 |
@@ -288,5 +294,6 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | `AI_DRAFT_DAILY_LIMIT_EXCEEDED` | 日別予定工数が24時間を超過 | 目標終了日を延長する、学習範囲を減らす |
 | `AI_STRUCTURED_OUTPUT_INVALID` | 再生成後も構造検証に失敗 | 入力内容を確認して再生成する |
 | `AI_PROVIDER_ERROR` | 外部サービス失敗 | 入力内容を確認して再生成する |
+| `AI_GENERATION_UNAVAILABLE` | OpenAIから429が返りAI生成を利用不可 | OKを押してプロジェクト一覧へ戻り、WBSを手動で作成する |
 | `AI_INTERNAL_ERROR` | アプリケーション内部の予期しない失敗 | 入力内容を確認して再生成する |
 | `AI_JOB_TIMEOUT` | ジョブ総期限を超過 | 時間をおいて再生成する |
