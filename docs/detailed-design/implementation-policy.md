@@ -226,7 +226,7 @@ JWT/refresh token TTL、Cookie属性の具体値は `docs/basic-design/api-list.
 | DB接続情報 | `application-local.yml` と環境変数で分ける |
 | CORS許可origin | 環境別に明示する。ワイルドカードは禁止 |
 | Cookie `Secure` | 本番true。ローカル開発では環境別設定で無効化可能にする |
-| Google Cloud認証 | Application Default Credentialsまたはサービスアカウントで注入し、リポジトリへ保存しない |
+| Google Cloud Vision API key | 秘密情報管理または環境変数で注入し、リポジトリへ保存しない。利用APIと利用元を制限する |
 | OpenAI API key | 秘密情報管理または環境変数で注入し、リポジトリへ保存しない |
 | AI model / prompt / schema / strategy version | 環境設定とコード上の版を分離し、ジョブへ実行時の値を記録する |
 | AI timeout / deadline / retry / daily limit / retention | 環境別に外部化し、コードへ固定値を散在させない |
@@ -283,4 +283,5 @@ PC WebでCookieを送信する場合、CORSは `allowCredentials=true` とし、
 | 未決 | 422の採用 | MVP1では使わない。400/409で表現しにくい業務入力違反が増えた場合のみ検討する | API詳細設計またはMVP2以降 |
 | 未決 | 別サイト配置 | MVP1では同一サイト配置を前提とする。別サイトにする場合はCookie/CORSを再設計する | デプロイ構成検討時 |
 | 未決 | `react-router` の脆弱性報告（GHSA-qwww-vcr4-c8h2） | 現時点では対応しない。当該脆弱性はRSCモードでサーバー側actionを実行する構成が前提であり、本アプリは宣言的クライアントルーティングのみを使う（Data Router、loader/action、RSCを使用しない）ため影響しない。`^7.7.0` の範囲に修正版が存在せず `npm audit fix` では解消できないため、7.x系の修正版公開後に更新する | `react-router` 修正版公開時、または本番公開前の依存監査時 |
+| 未決 | OCR APIのサーバー側日次利用上限 | 個人利用のMVP3では、認証、1画像10MB上限、生成依頼内のOCR入力元最大10件、Google Cloud側のクォータで運用する。サーバー側の日次回数は永続管理しない | 多人数公開前、またはOCR費用・呼び出し量が運用上の閾値を超えた時点で、account単位の日次上限を設計する |
 | 既知の乖離 | 現行DB・Accountエンティティに未使用の `ai_usage_consent_at` が残存 | MVP3では同意状態を永続管理しない。DBカラムとJavaフィールドを同じ変更で削除する | MVP3のAI関連Flywayマイグレーション適用時に解消 |

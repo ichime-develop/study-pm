@@ -180,7 +180,7 @@ API-WB-02で `taskType = LEAF` のタスクを作成した場合、初期進捗�
 | API-AI-08 | PUT | `/api/ai-plan/drafts/{draftId}` | WBS下書きの一括編集・再検証 | AI03 | 3 | 必須 | draftRevision, project, draftWbsTasks | 更新後下書き、validation, warnings, relaxationOptions | PLN-16, PLN-17, PLN-26, PLN-29 |
 | API-AI-09 | POST | `/api/ai-plan/drafts/{draftId}/convert` | WBS下書きからプロジェクト作成 | AI03 | 3 | 必須 | draftRevision | projectId, wbsTaskIds | PLN-07, PLN-26, PLN-27 |
 
-OCRは画像1枚ごとの同期APIとし、PC Webは最大3件を並列実行する。最大10枚・合計50MBはOCR送信前にクライアントが検証し、サーバーはOCR APIで1画像10MB、生成依頼の保存時に `OCR_TEXT` 入力元が最大10件であることを検証する。画像を永続保存しない1画像単位APIのため、合計50MBはサーバー側で再集計しない。この責務分担はMVP3の意識的な例外とし、外部クライアントにも同じ事前検証を要求する。
+OCRは画像1枚ごとの同期APIとし、PC Webは最大3件を並列実行する。最大10枚・合計50MBはOCR送信前にクライアントが検証し、サーバーはOCR APIで1画像10MB、生成依頼の保存時に `OCR_TEXT` 入力元が最大10件であることを検証する。画像を永続保存しない1画像単位APIのため、合計50MBはサーバー側で再集計しない。この責務分担はMVP3の意識的な例外とし、外部クライアントにも同じ事前検証を要求する。10MB画像はGoogle公式JavaクライアントからgRPCでバイナリ送信し、base64化したREST JSONは使用しない。
 
 WBS下書き生成は非同期ジョブとして受付後にポーリングする。WBS下書きからプロジェクトを作成した後、作成済みプロジェクトとWBSは通常の `projects` / `wbs_tasks` として扱う。同じ `ai_plan_draft` から複数プロジェクトを作成することはできない。
 

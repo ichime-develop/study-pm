@@ -17,6 +17,10 @@ spring:
     scheduling:
       pool:
         size: ${SCHEDULING_POOL_SIZE:2}
+  servlet:
+    multipart:
+      max-file-size: 11MB
+      max-request-size: 12MB
 
 app:
   cors:
@@ -55,3 +59,7 @@ app:
       strategy-version: v1
     vision:
       api-key: ${GOOGLE_CLOUD_VISION_API_KEY:}
+      endpoint: ${GOOGLE_CLOUD_VISION_ENDPOINT:vision.googleapis.com:443}
+      request-timeout: ${GOOGLE_CLOUD_VISION_REQUEST_TIMEOUT:30s}
+      communication-retries: ${GOOGLE_CLOUD_VISION_COMMUNICATION_RETRIES:1}
+      retry-backoff: ${GOOGLE_CLOUD_VISION_RETRY_BACKOFF:500ms}

@@ -28,7 +28,7 @@ MVP3のOCR、WBS下書き生成、下書き変換のHTTP契約を定義する。
 ### 2.3 AI機能の可用性
 
 - AI機能を無効化した環境では、AI APIはすべて503 `AI_FEATURE_UNAVAILABLE` を返す。
-- AI機能を有効化した環境でOpenAI APIキーが未設定の場合は、起動時検証でアプリケーションを起動しない。
+- AI機能を有効化した環境でOpenAIまたはGoogle Cloud VisionのAPIキーが未設定の場合は、起動時検証でアプリケーションを起動しない。
 
 ### 2.4 ジョブ種別と状態
 
@@ -82,6 +82,8 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 - 画像1枚だけを受け付ける。
 - jpg、jpeg、png、webp、10MB以下を検証する。
 - Google Cloud Vision `DOCUMENT_TEXT_DETECTION` を同期呼び出しする。
+- Content-Typeや拡張子だけを信用せず、JPEG、PNG、WEBPのファイルシグネチャをサーバーで検証する。
+- Google公式JavaクライアントのgRPCバイナリ送信を使用する。10MB画像をbase64化したREST JSONはGoogle APIのJSONリクエスト上限を超えるため使用しない。
 - 成功時は200を返す。
 
 ```json
@@ -92,6 +94,8 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 ```
 
 複数画像の最大3並列実行、順序管理、画像単位の再試行はPC Webの責務とする。クライアントは送信前に最大10枚・合計50MBを検証する。サーバーは画像を永続保存しないため、OCR APIをまたいだ合計サイズは保持・再集計せず、1リクエストの画像が10MB以下であることを強制する。
+
+文字を検出できなかった場合は400 `AI_OCR_TEXT_NOT_DETECTED` とし、画像の確認または目次の直接入力を案内する。不正形式・破損画像は400 `AI_OCR_INVALID_IMAGE`、認証・権限・OCR側の利用上限により使用できない場合は503 `AI_FEATURE_UNAVAILABLE`、その他の外部サービス失敗は502 `AI_PROVIDER_ERROR` とする。Googleの応答本文、認証状態、APIキーはレスポンスへ含めない。
 
 ## 4. 生成依頼と入力
 
@@ -274,6 +278,8 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | HTTP | code | 用途 |
 | --- | --- | --- |
 | 400 | `AI_INPUT_LIMIT_EXCEEDED` | 文字数・1画像サイズ・生成依頼内のOCR入力元件数超過 |
+| 400 | `AI_OCR_INVALID_IMAGE` | OCR対象が空または対応画像形式でない |
+| 400 | `AI_OCR_TEXT_NOT_DETECTED` | 画像から文字を検出できない |
 | 400 | `AI_INPUT_CONFLICT` | 開始日、学習可能時間、ページ・ペース等の事前矛盾 |
 | 400 | `AI_DRAFT_VALIDATION_FAILED` | 下書きの構造・業務制約違反 |
 | 400 | `AI_DRAFT_DAILY_LIMIT_EXCEEDED` | 下書きの1日予定工数が24時間を超過 |

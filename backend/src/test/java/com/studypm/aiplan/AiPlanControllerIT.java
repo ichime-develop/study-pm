@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -35,6 +36,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockMultipartFile;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -68,6 +70,9 @@ class AiPlanControllerIT {
     @MockitoBean
     private AiWbsGenerationProvider generationProvider;
 
+    @MockitoBean
+    private AiOcrProvider ocrProvider;
+
     @MockitoSpyBean
     private WbsTaskService wbsTaskService;
 
@@ -81,6 +86,7 @@ class AiPlanControllerIT {
         registry.add("app.ai.enabled", () -> "true");
         registry.add("app.ai.worker.enabled", () -> "false");
         registry.add("app.ai.openai.api-key", () -> "test-openai-api-key");
+        registry.add("app.ai.vision.api-key", () -> "test-vision-api-key");
     }
 
     @BeforeEach
@@ -114,6 +120,92 @@ class AiPlanControllerIT {
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from ai_plan_sources where ai_plan_generation_request_id = ?", Integer.class, requestId
         )).isEqualTo(1);
+    }
+
+    @Test
+    void extractsTextFromOneAuthenticatedImage() throws Exception {
+        Session session = signup("ocr@example.com");
+        org.mockito.Mockito.when(ocrProvider.extractDocumentText(any()))
+                .thenReturn(new AiOcrProviderResult("第1章 Javaの基本", 1));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "toc.png",
+                "image/png",
+                new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00}
+        );
+
+        mockMvc.perform(multipart("/api/ai-plan/ocr")
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.text").value("第1章 Javaの基本"))
+                .andExpect(jsonPath("$.detectedPageCount").value(1));
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from ai_plan_generation_requests", Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from ai_plan_sources", Integer.class)).isZero();
+    }
+
+    @Test
+    void requiresAuthenticationForOcr() throws Exception {
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "toc.png",
+                "image/png",
+                new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00}
+        );
+
+        mockMvc.perform(multipart("/api/ai-plan/ocr").file(image))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectsAnOcrRequestWithoutAnImage() throws Exception {
+        Session session = signup("ocr-missing@example.com");
+
+        mockMvc.perform(multipart("/api/ai-plan/ocr")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AI_OCR_INVALID_IMAGE"));
+    }
+
+    @Test
+    void rejectsAnOcrImageLargerThanTenMegabytesWithTheStableCode() throws Exception {
+        Session session = signup("ocr-large@example.com");
+        byte[] content = new byte[10 * 1024 * 1024 + 1];
+        byte[] signature = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+        System.arraycopy(signature, 0, content, 0, signature.length);
+        MockMultipartFile image = new MockMultipartFile("image", "large.png", "image/png", content);
+
+        mockMvc.perform(multipart("/api/ai-plan/ocr")
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AI_INPUT_LIMIT_EXCEEDED"));
+    }
+
+    @Test
+    void hidesOcrProviderFailuresBehindTheStableApiError() throws Exception {
+        Session session = signup("ocr-provider-error@example.com");
+        org.mockito.Mockito.when(ocrProvider.extractDocumentText(any())).thenThrow(new AiOcrProviderException(
+                AiOcrProviderException.FailureType.PROVIDER_ERROR,
+                "secret provider response"
+        ));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "toc.png",
+                "image/png",
+                new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00}
+        );
+
+        mockMvc.perform(multipart("/api/ai-plan/ocr")
+                        .file(image)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session)))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("AI_PROVIDER_ERROR"))
+                .andExpect(jsonPath("$.message").value(
+                        "画像の文字読み取りに失敗しました。時間をおいて再試行してください。"
+                ));
     }
 
     @Test

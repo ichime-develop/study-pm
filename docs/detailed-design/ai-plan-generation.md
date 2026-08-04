@@ -33,10 +33,12 @@ AI出力を直接ProjectまたはWbsTaskへ保存しない。Google Cloud Vision
 
 - `DOCUMENT_TEXT_DETECTION` を使用する。
 - 画像1枚を1リクエストとして同期実行する。
+- Google公式JavaクライアントのgRPC transportで画像バイト列を送信し、APIキーはクライアント設定から付与する。APIキーをURLへ含めない。
 - PC Webは最大3件を並列実行する。
 - 順序はクライアントの画像一時IDと配列順で管理する。
 - サーバーは画像バイト列を処理完了後に破棄し、DB・ファイル・オブジェクトストレージへ保存しない。
 - OCR結果の全文をログへ出力しない。
+- Vision呼び出しに失敗した場合は、画像、OCR結果、APIキー、外部応答本文を含めず、アプリ内の失敗分類とgRPCステータスコードだけを運用ログへ記録する。
 
 ### 3.2 OpenAI
 
@@ -102,7 +104,7 @@ terminal状態から別状態へは遷移しない。
 対象:
 
 - 接続失敗
-- 一時的な5xx
+- 外部サービスの一時的な利用不可
 
 対象外:
 
@@ -112,10 +114,13 @@ terminal状態から別状態へは遷移しない。
 - JSON Schema適合後の業務制約違反
 - 停止要求
 - OpenAIから返る429
+- Google Cloud Visionから返る認証・権限・利用上限エラー
 
 回数とbackoffは設定値とする。deadlineを超えて再試行しない。
 
 OpenAIから429が返った場合は、原因となるクレジット、課金、レート制限の詳細をユーザーへ公開せず、即時にFAILED `AI_GENERATION_UNAVAILABLE` とする。AI02はWBSの手動作成を案内し、「OK」押下後にPJ01へ遷移する。
+
+Google Cloud Visionの認証・権限・利用上限エラーは自動再試行せず、503 `AI_FEATURE_UNAVAILABLE` とする。画像不正は400として同じ画像の自動再試行を行わない。`DEADLINE_EXCEEDED`、`INTERNAL`、`UNAVAILABLE` だけをVision用の回数・backoff設定に従って同期リクエスト内で再試行する。
 
 ### 6.2 構造再生成
 
@@ -260,6 +265,10 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 | `app.ai.openai.schema-version` | なし | `v1` |
 | `app.ai.openai.strategy-version` | なし | `v1` |
 | `app.ai.vision.api-key` | `GOOGLE_CLOUD_VISION_API_KEY` | 未設定 |
+| `app.ai.vision.endpoint` | `GOOGLE_CLOUD_VISION_ENDPOINT` | `vision.googleapis.com:443` |
+| `app.ai.vision.request-timeout` | `GOOGLE_CLOUD_VISION_REQUEST_TIMEOUT` | `30s` |
+| `app.ai.vision.communication-retries` | `GOOGLE_CLOUD_VISION_COMMUNICATION_RETRIES` | `1` |
+| `app.ai.vision.retry-backoff` | `GOOGLE_CLOUD_VISION_RETRY_BACKOFF` | `500ms` |
 | `spring.task.scheduling.pool.size` | `SCHEDULING_POOL_SIZE` | `2` |
 
 ユーザー別日次生成上限は、JST日付ごとに受け付けた `WBS_GENERATION` ジョブ数で判定する。通信再試行と構造再生成は同じジョブの試行として扱い、日次件数を追加消費しない。
@@ -276,6 +285,7 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 - ユーザー入力の数量条件とサーバー算出の必要日数がWBS生成payloadへ入り、競合する自然文の日程補足より優先されることを自動テストする。
 - 通常生成と期限優先の両方で、学習可能日ごとの予定工数が24時間以下なら保存でき、24時間を超える場合は保存されないことを自動テストする。
 - OCR APIの1画像10MB上限と、生成依頼保存時の `OCR_TEXT` 最大10件を自動テストする。クライアントの画像10枚・合計50MB検証はfrontendテストで確認する。
+- OCR APIのファイルシグネチャ、文字未検出、認証必須、外部エラー安全化を固定応答で自動テストする。実Vision APIの確認は環境変数で明示実行するsmoke testへ分離する。
 - AI03取得レスポンスのLEAFと入力元対応が所有者制御と参照整合性を満たし、変換後の通常WBSへコピーされないことを自動テストする。
 - 保持期限前、保持期限後、activeジョブあり、変換済みプロジェクトありのcleanupを自動テストする。
 - 実サービスのsmoke testは明示的な手動実行とし、CI secretと課金を既定で要求しない。
