@@ -83,6 +83,7 @@ terminal状態から別状態へは遷移しない。
 
 - `deadlineAt` はジョブ受付時に設定し、queue待機時間を含む。
 - 外部呼び出し単位のtimeoutと、ジョブ全体のdeadlineを分離する。
+- 外部呼び出しがtimeoutになった場合は通信再試行の対象とし、最終失敗時は`AI_JOB_TIMEOUT`として「タイムアウトしたため終了した」と利用者へ通知する。
 - GET status時と、新規ジョブ作成前のactiveジョブ確認時に期限切れを解消する。
 - activeジョブの期限切れを解消する定期sweeperを追加する場合も、GET・作成前判定を省略しない。
 
@@ -104,6 +105,7 @@ terminal状態から別状態へは遷移しない。
 対象:
 
 - 接続失敗
+- 外部応答の読み取り・JSON変換中に発生した通信失敗
 - 外部サービスの一時的な利用不可
 
 対象外:
@@ -127,6 +129,8 @@ Google Cloud Visionの認証・権限・利用上限エラーは自動再試行�
 JSON解析、Schema、参照一時キー、業務構造の検証に失敗した場合、エラー内容を外部向けに安全化して同一段階を1回だけ再生成する。2回目も失敗した場合はFAILED `AI_STRUCTURED_OUTPUT_INVALID` とし、ユーザー操作による再試行を待つ。
 
 ## 7. WBS下書き生成
+
+目次入力を `SECTION` で分割する場合、除外指定された範囲を除いて入力目次の全ChapterをPARENTとして網羅し、入力後半を途中で打ち切らないようプロンプトで指示する。この指示を追加した版を `promptVersion = v2` とする。
 
 ### 7.1 出力スキーマ
 
@@ -257,16 +261,16 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 | `app.ai.openai.api-key` | `OPENAI_API_KEY` | 未設定 |
 | `app.ai.openai.model` | `OPENAI_MODEL` | `gpt-4.1-mini` |
 | `app.ai.openai.base-url` | `OPENAI_BASE_URL` | `https://api.openai.com` |
-| `app.ai.openai.request-timeout` | `OPENAI_REQUEST_TIMEOUT` | `60s` |
+| `app.ai.openai.request-timeout` | `OPENAI_REQUEST_TIMEOUT` | `120s` |
 | `app.ai.openai.max-output-tokens` | `OPENAI_MAX_OUTPUT_TOKENS` | `24000` |
 | `app.ai.openai.communication-retries` | `OPENAI_COMMUNICATION_RETRIES` | `2` |
 | `app.ai.openai.retry-backoff` | `OPENAI_RETRY_BACKOFF` | `1s` |
-| `app.ai.openai.prompt-version` | なし | `v1` |
+| `app.ai.openai.prompt-version` | なし | `v2` |
 | `app.ai.openai.schema-version` | なし | `v1` |
 | `app.ai.openai.strategy-version` | なし | `v1` |
 | `app.ai.vision.api-key` | `GOOGLE_CLOUD_VISION_API_KEY` | 未設定 |
 | `app.ai.vision.endpoint` | `GOOGLE_CLOUD_VISION_ENDPOINT` | `vision.googleapis.com:443` |
-| `app.ai.vision.request-timeout` | `GOOGLE_CLOUD_VISION_REQUEST_TIMEOUT` | `30s` |
+| `app.ai.vision.request-timeout` | `GOOGLE_CLOUD_VISION_REQUEST_TIMEOUT` | `60s` |
 | `app.ai.vision.communication-retries` | `GOOGLE_CLOUD_VISION_COMMUNICATION_RETRIES` | `1` |
 | `app.ai.vision.retry-backoff` | `GOOGLE_CLOUD_VISION_RETRY_BACKOFF` | `500ms` |
 | `spring.task.scheduling.pool.size` | `SCHEDULING_POOL_SIZE` | `2` |

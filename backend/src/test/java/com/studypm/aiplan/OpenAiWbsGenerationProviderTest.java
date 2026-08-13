@@ -3,6 +3,7 @@ package com.studypm.aiplan;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Responses APIへ送るStructured Outputs契約と送信範囲を検証する。
@@ -48,6 +50,9 @@ class OpenAiWbsGenerationProviderTest {
         assertThat(request.toString()).doesNotContain(work.jobId().toString());
         assertThat(request.toString()).doesNotContain("promptVersion", "schemaVersion", "strategyVersion");
         assertThat(request.toString()).contains("source-1");
+        assertThat(request.at("/input/0/content").asText())
+                .contains("入力目次の全ChapterをPARENTとして網羅")
+                .contains("途中のChapterで生成を打ち切ったりしない");
         assertThat(objectMapper.readTree(request.at("/input/1/content").asText()).path("requiredDays").asInt())
                 .isEqualTo(4);
     }
@@ -81,6 +86,28 @@ class OpenAiWbsGenerationProviderTest {
         assertThat(exception.errorCode()).isEqualTo("AI_GENERATION_UNAVAILABLE");
         assertThat(exception.isRetryable()).isFalse();
         assertThat(exception.getMessage()).doesNotContain("credit", "quota", "billing");
+    }
+
+    @Test
+    void classifiesResponseProcessingFailureAsRetryableProviderFailure() {
+        AiProviderException exception = provider(RestClient.builder()).providerCommunicationFailure(
+                new RestClientException("response conversion failed")
+        );
+
+        assertThat(exception.errorCode()).isEqualTo("AI_PROVIDER_ERROR");
+        assertThat(exception.isRetryable()).isTrue();
+        assertThat(exception.getMessage()).doesNotContain("response conversion failed");
+    }
+
+    @Test
+    void classifiesRequestTimeoutWithDedicatedErrorCode() {
+        AiProviderException exception = provider(RestClient.builder()).providerCommunicationFailure(
+                new RestClientException("request failed", new SocketTimeoutException("Read timed out"))
+        );
+
+        assertThat(exception.errorCode()).isEqualTo("AI_JOB_TIMEOUT");
+        assertThat(exception.isRetryable()).isTrue();
+        assertThat(exception.getMessage()).doesNotContain("Read timed out");
     }
 
     @Test

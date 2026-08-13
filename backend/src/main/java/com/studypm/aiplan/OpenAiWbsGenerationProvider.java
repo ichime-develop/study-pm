@@ -1,5 +1,7 @@
 package com.studypm.aiplan;
 
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
@@ -33,6 +36,8 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
             数量条件の構造化値は自然文の日程補足より優先してください。
             wbsSplitUnitがSECTIONなら章・節、PAGEなら1日量を目安にしたページ範囲、
             QUESTION_SETなら問題群・模擬試験、AIなら実行しやすい粒度を優先してください。
+            TABLE_OF_CONTENTSかつSECTIONの場合、除外指定された範囲を除き、入力目次の全ChapterをPARENTとして網羅してください。
+            入力目次の後半を省略したり、途中のChapterで生成を打ち切ったりしないでください。
             """;
 
     private final ObjectMapper objectMapper;
@@ -45,7 +50,7 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
             RestClient.Builder restClientBuilder,
             @Value("${app.ai.openai.api-key:}") String apiKey,
             @Value("${app.ai.openai.base-url:https://api.openai.com}") String baseUrl,
-            @Value("${app.ai.openai.request-timeout:60s}") Duration requestTimeout,
+            @Value("${app.ai.openai.request-timeout:120s}") Duration requestTimeout,
             @Value("${app.ai.openai.max-output-tokens:24000}") int maxOutputTokens
     ) {
         this.objectMapper = objectMapper;
@@ -74,7 +79,10 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
             int status = exception.getStatusCode().value();
             throw providerFailure(status, exception);
         } catch (ResourceAccessException exception) {
-            throw new AiProviderException("OpenAI request could not be completed.", true, exception);
+            throw providerCommunicationFailure(exception);
+        } catch (RestClientException exception) {
+            // 応答本文の読み取り・JSON変換中の通信失敗もRestClientExceptionとして通知される。
+            throw providerCommunicationFailure(exception);
         }
         if (response == null) {
             throw new AiProviderException("OpenAI returned an empty response.", true);
@@ -96,6 +104,29 @@ public class OpenAiWbsGenerationProvider implements AiWbsGenerationProvider {
                 status >= 500,
                 cause
         );
+    }
+
+    AiProviderException providerCommunicationFailure(Throwable cause) {
+        if (isTimeoutFailure(cause)) {
+            return new AiProviderException(
+                    "AI_JOB_TIMEOUT",
+                    "OpenAI request timed out.",
+                    true,
+                    cause
+            );
+        }
+        return new AiProviderException("OpenAI response could not be processed.", true, cause);
+    }
+
+    private boolean isTimeoutFailure(Throwable cause) {
+        Throwable current = cause;
+        while (current != null) {
+            if (current instanceof SocketTimeoutException || current instanceof HttpTimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     AiWbsGenerationProviderResult resultFromResponse(JsonNode response) {

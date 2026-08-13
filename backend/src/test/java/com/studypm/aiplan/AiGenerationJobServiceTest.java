@@ -132,4 +132,27 @@ class AiGenerationJobServiceTest {
         assertThat(response.error().message()).isEqualTo("AIは現在利用できません。WBSを手動で作成してください。");
         assertThat(response.error().actionHints()).containsExactly("OKを押してプロジェクト一覧へ戻る");
     }
+
+    @Test
+    void getExplainsThatGenerationEndedBecauseOfTimeout() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_JOB_TIMEOUT", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_JOB_TIMEOUT");
+        assertThat(response.error().message()).isEqualTo("WBS下書きの生成がタイムアウトしたため終了しました。");
+        assertThat(response.error().actionHints()).containsExactly("時間をおいて再度生成する");
+    }
 }

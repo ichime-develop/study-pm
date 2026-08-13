@@ -14,6 +14,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.83.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "heic-to": "^1.5.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.7.0",

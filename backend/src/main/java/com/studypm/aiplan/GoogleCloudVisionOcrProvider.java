@@ -47,7 +47,7 @@ public class GoogleCloudVisionOcrProvider implements AiOcrProvider {
     public GoogleCloudVisionOcrProvider(
             @Value("${app.ai.vision.api-key:}") String apiKey,
             @Value("${app.ai.vision.endpoint:vision.googleapis.com:443}") String endpoint,
-            @Value("${app.ai.vision.request-timeout:30s}") Duration requestTimeout,
+            @Value("${app.ai.vision.request-timeout:60s}") Duration requestTimeout,
             @Value("${app.ai.vision.communication-retries:1}") int communicationRetries,
             @Value("${app.ai.vision.retry-backoff:500ms}") Duration retryBackoff
     ) {

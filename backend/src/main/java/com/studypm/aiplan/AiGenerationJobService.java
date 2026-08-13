@@ -44,7 +44,7 @@ public class AiGenerationJobService {
             @Value("${app.ai.job-timeout:5m}") java.time.Duration timeout,
             @Value("${app.ai.daily-generation-limit:10}") int dailyLimit,
             @Value("${app.ai.openai.model:gpt-4.1-mini}") String modelName,
-            @Value("${app.ai.openai.prompt-version:v1}") String promptVersion,
+            @Value("${app.ai.openai.prompt-version:v2}") String promptVersion,
             @Value("${app.ai.openai.schema-version:v1}") String schemaVersion,
             @Value("${app.ai.openai.strategy-version:v1}") String strategyVersion
     ) {
@@ -141,7 +141,7 @@ public class AiGenerationJobService {
             );
             case "AI_JOB_TIMEOUT" -> new AiGenerationJobError(
                     errorCode,
-                    "WBS下書きの生成が制限時間内に完了しませんでした。",
+                    "WBS下書きの生成がタイムアウトしたため終了しました。",
                     List.of("時間をおいて再度生成する")
             );
             case "AI_GENERATION_UNAVAILABLE" -> new AiGenerationJobError(

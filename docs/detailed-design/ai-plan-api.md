@@ -81,6 +81,8 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 - `multipart/form-data`
 - 画像1枚だけを受け付ける。
 - jpg、jpeg、png、webp、10MB以下を検証する。
+- PC Webで選択されたHEIC・HEIFはクライアント内で1枚ずつJPEGへ変換し、このAPIには変換後のJPEGだけを送信する。元のHEIC・HEIF、クライアント内の変換処理、変換前のファイル名はAPI契約へ含めない。
+- クライアントは変換後にも1画像10MB・合計50MBを検証する。JPEG・PNG・WebPは変換せず送信する。
 - Google Cloud Vision `DOCUMENT_TEXT_DETECTION` を同期呼び出しする。
 - Content-Typeや拡張子だけを信用せず、JPEG、PNG、WEBPのファイルシグネチャをサーバーで検証する。
 - Google公式JavaクライアントのgRPCバイナリ送信を使用する。10MB画像をbase64化したREST JSONはGoogle APIのJSONリクエスト上限を超えるため使用しない。
@@ -302,4 +304,4 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | `AI_PROVIDER_ERROR` | 外部サービス失敗 | 入力内容を確認して再生成する |
 | `AI_GENERATION_UNAVAILABLE` | OpenAIから429が返りAI生成を利用不可 | OKを押してプロジェクト一覧へ戻り、WBSを手動で作成する |
 | `AI_INTERNAL_ERROR` | アプリケーション内部の予期しない失敗 | 入力内容を確認して再生成する |
-| `AI_JOB_TIMEOUT` | ジョブ総期限を超過 | 時間をおいて再生成する |
+| `AI_JOB_TIMEOUT` | 外部呼び出しまたはジョブ総期限がタイムアウト | タイムアウトしたため終了したことを示し、時間をおいて再生成する |

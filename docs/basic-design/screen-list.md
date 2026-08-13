@@ -52,7 +52,7 @@ related: docs/basic-design/screen-flow.md, docs/requirements/details/data-screen
 | --- | --- | --- | --- | --- |
 | CM01 | アプリヘッダー | `CM01_AppHeader.tsx` | ログイン後の全画面 | 画面タイトル、ログアウト導線 |
 | CM02 | プロジェクト内ナビゲーション | `CM02_ProjectNav.tsx` | PJ03、WB01、SL01、AN01 | プロジェクト名・状態・期間の表示、状態変更モーダル、概要 / WBS / 学習記録 / 進捗分析のタブ切り替え |
-| CM03 | 作成フローステッパー | `CM03_FlowStepper.tsx` | PJ02、AI01、AI02、AI03 | 作成フローの現在ステップ表示 |
+| CM03 | 作成フローステッパー | `CM03_FlowStepper.tsx` | AI01、AI02、AI03 | AI作成フローの現在ステップ表示 |
 | CM04 | 認証レイアウト | `CM04_AuthLayout.tsx` | AU01、AU02 | 左のヒーローパネルと右の入力フォームの2カラム構成 |
 
 ### 4.1 モック専用の部品
@@ -79,7 +79,7 @@ UIモックのサイドバー（全画面切り替えナビ）は要件検証用
 | `/projects/:id/analysis` | AN01 |
 | `/projects/new/ai` | AI01 |
 | `/projects/new/ai/input` | AI02 |
-| `/projects/new/ai/requests/:requestId/input` | AI02（保存済み入力の再開） |
+| `/projects/new/ai/requests/:requestId` | AI02（保存済み入力の再開） |
 | `/projects/new/ai/drafts/:draftId` | AI03 |
 
 AI02（保存済み入力）とAI03はURLのIDを正本としてサーバーから状態を再取得する。ブラウザ再読み込みや別画面からの復帰で、フロントエンドのメモリ内状態だけに依存しない。

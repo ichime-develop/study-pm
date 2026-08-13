@@ -41,7 +41,7 @@ related: docs/requirements/summary/README.md, docs/requirements/details/non-func
 | テスト（バックエンド） | JUnit 5 + Testcontainers | 集計・履歴ロジックは本物のPostgreSQLで検証する |
 | テスト（フロントエンド） | Vitest + Testing Library | 画面コンポーネントとユーザー操作単位のテストに使う |
 | ローカル開発環境 | Docker Compose（PostgreSQL）+ Vite dev server | バックエンドはローカルJVM、DBはDocker Composeで起動する |
-| OCR | Google Cloud Vision Java client `DOCUMENT_TEXT_DETECTION` | 教材目次画像を画像1枚単位でgRPCバイナリ送信してOCRする。画像はOpenAIへ送信しない |
+| OCR | PC Webのブラウザ内HEIC/HEIF→JPEG変換 + Google Cloud Vision Java client `DOCUMENT_TEXT_DETECTION` | HEIC・HEIFはクライアント内でJPEGへ変換し、対応形式の教材目次画像を1枚単位でgRPCバイナリ送信してOCRする。元のHEIC・HEIFと画像全般はOpenAIへ送信しない |
 | AI生成 | OpenAI Responses API + Structured Outputs | 入力内容と生成条件からWBS下書きを生成する。具体モデルは品質評価で選定し、設定で変更可能にする |
 | AI実行方式 | アプリ内非同期ジョブ + ポーリング | MVP3ではストリーミングを採用せず、停止・期限・再試行・排他をサーバーで管理する |
 
