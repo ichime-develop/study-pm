@@ -1,10 +1,14 @@
 package com.studypm.aiplan;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.studypm.account.Account;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +42,7 @@ public class AiPlanDraft {
     @Enumerated(EnumType.STRING) @Column(name = "validation_status", nullable = false, length = 20) private AiPlanDraftValidationStatus validationStatus;
     @JdbcTypeCode(SqlTypes.JSON) @Column(name = "warnings_json", nullable = false, columnDefinition = "jsonb") private JsonNode warnings;
     @JdbcTypeCode(SqlTypes.JSON) @Column(name = "relaxation_options_json", nullable = false, columnDefinition = "jsonb") private JsonNode relaxationOptions;
+    @JdbcTypeCode(SqlTypes.JSON) @Column(name = "daily_planned_hours_json", columnDefinition = "jsonb") private JsonNode dailyPlannedHours;
     @Column(name = "converted_project_id") private UUID convertedProjectId;
     @Column(name = "converted_at") private Instant convertedAt;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
@@ -62,6 +67,7 @@ public class AiPlanDraft {
         this.validationStatus = validatedDraft.validationStatus();
         this.warnings = validatedDraft.warnings();
         this.relaxationOptions = validatedDraft.relaxationOptions();
+        this.dailyPlannedHours = dailyPlannedHoursJson(validatedDraft.dailyPlannedHours());
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -84,6 +90,7 @@ public class AiPlanDraft {
     public AiPlanDraftValidationStatus validationStatus() { return validationStatus; }
     public JsonNode warnings() { return warnings; }
     public JsonNode relaxationOptions() { return relaxationOptions; }
+    public JsonNode dailyPlannedHours() { return dailyPlannedHours; }
     public AiPlanGenerationRequest generationRequest() { return generationRequest; }
     public Instant createdAt() { return createdAt; }
     public boolean isConverted() { return convertedAt != null; }
@@ -98,6 +105,7 @@ public class AiPlanDraft {
         this.validationStatus = validatedDraft.validationStatus();
         this.warnings = validatedDraft.warnings();
         this.relaxationOptions = validatedDraft.relaxationOptions();
+        this.dailyPlannedHours = dailyPlannedHoursJson(validatedDraft.dailyPlannedHours());
         this.updatedAt = now;
     }
 
@@ -109,5 +117,11 @@ public class AiPlanDraft {
 
     private static String emptyToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    private static JsonNode dailyPlannedHoursJson(Map<LocalDate, BigDecimal> dailyPlannedHours) {
+        ObjectNode result = JsonNodeFactory.instance.objectNode();
+        dailyPlannedHours.forEach((date, hours) -> result.put(date.toString(), hours));
+        return result;
     }
 }

@@ -164,7 +164,28 @@ class AiWbsDraftValidatorTest {
     }
 
     @Test
-    void warnsWhenASectionDraftHasFewerParentsThanDetectedChapters() {
+    void keepsTheScopeReductionOptionWhenPeriodAndDailyHoursWarningsCoexist() {
+        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
+                project(),
+                List.of(
+                        parent(),
+                        new AiWbsDraftTask(
+                                "leaf-1", AiDraftTaskType.LEAF, "parent-1", "学ぶ", "",
+                                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-01"),
+                                BigDecimal.valueOf(2), List.of("source-1")
+                        )
+                ),
+                WbsSplitUnit.SECTION
+        );
+
+        AiValidatedWbsDraft result = validator.validate(input(BigDecimal.ONE), proposal);
+
+        assertThat(result.relaxationOptions()).extracting(node -> node.path("code").asText())
+                .containsExactly("INCREASE_AVAILABLE_HOURS", "EXTEND_TARGET_END_DATE", "REDUCE_SCOPE");
+    }
+
+    @Test
+    void warnsWhenASectionDraftHasFewerLeavesThanDetectedChapters() {
         AiWbsGenerationInput input = tableOfContentsInput("""
                 Chapter 1 基礎
                 Chapter 2 文法
@@ -178,8 +199,33 @@ class AiWbsDraftValidatorTest {
         assertThat(result.warnings()).extracting(node -> node.path("code").asText())
                 .containsExactly("SOURCE_COVERAGE_MAY_BE_INCOMPLETE");
         assertThat(result.warnings().get(0).path("message").asText())
-                .isEqualTo("入力から4件の章見出しを検出しましたが、下書きの親タスクは1件です。"
+                .isEqualTo("入力から4件の章見出しを検出しましたが、下書きの実行タスクは1件です。"
                         + "学習範囲が不足していないか確認してください。");
+    }
+
+    @Test
+    void doesNotWarnWhenAFlatDraftHasOneLeafForEachDetectedChapter() {
+        AiWbsGenerationInput input = tableOfContentsInput("""
+                Chapter 1 基礎
+                Chapter 2 文法
+                Chapter 3 API
+                Chapter 4 テスト
+                """);
+        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
+                project(),
+                List.of(
+                        parent(),
+                        leaf("leaf-1", "第1章"),
+                        leaf("leaf-2", "第2章"),
+                        leaf("leaf-3", "第3章"),
+                        leaf("leaf-4", "第4章")
+                ),
+                WbsSplitUnit.SECTION
+        );
+
+        AiValidatedWbsDraft result = validator.validate(input, proposal);
+
+        assertThat(result.warnings()).isEmpty();
     }
 
     @Test
@@ -244,6 +290,14 @@ class AiWbsDraftValidatorTest {
                         )
                 ),
                 WbsSplitUnit.SECTION
+        );
+    }
+
+    private AiWbsDraftTask leaf(String temporaryKey, String name) {
+        return new AiWbsDraftTask(
+                temporaryKey, AiDraftTaskType.LEAF, "parent-1", name, "",
+                LocalDate.parse("2026-08-03"), LocalDate.parse("2026-08-03"),
+                BigDecimal.ONE, List.of("source-1")
         );
     }
 

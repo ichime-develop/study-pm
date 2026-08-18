@@ -41,20 +41,26 @@ class OpenAiWbsGenerationProviderTest {
         assertThat(request.at("/text/format/type").asText()).isEqualTo("json_schema");
         assertThat(request.at("/text/format/strict").asBoolean()).isTrue();
         assertThat(request.at("/text/format/schema/additionalProperties").asBoolean()).isFalse();
-        assertThat(request.at("/text/format/schema/properties/tasks/minItems").asInt()).isEqualTo(1);
-        assertThat(request.at("/text/format/schema/properties/tasks/items/properties/plannedHours/minimum").decimalValue())
-                .isEqualByComparingTo("0.25");
-        assertThat(request.at("/text/format/schema/properties/tasks/items/properties/plannedHours/multipleOf").decimalValue())
-                .isEqualByComparingTo("0.25");
+        assertThat(request.at("/text/format/schema/properties/outlineNodes/minItems").asInt()).isEqualTo(1);
+        assertThat(request.at(
+                "/text/format/schema/properties/outlineNodes/items/properties/plannedEffortHundredths/minimum"
+        ).asInt()).isEqualTo(25);
+        assertThat(request.at(
+                "/text/format/schema/properties/outlineNodes/items/properties/plannedEffortHundredths/maximum"
+        ).asInt()).isEqualTo(999999);
+        assertThat(request.at(
+                "/text/format/schema/properties/outlineNodes/items/properties/plannedEffortHundredths/multipleOf"
+        ).asInt()).isEqualTo(25);
         assertThat(request.toString()).doesNotContain("minLength", "maxLength");
         assertThat(request.toString()).doesNotContain(work.jobId().toString());
         assertThat(request.toString()).doesNotContain("promptVersion", "schemaVersion", "strategyVersion");
         assertThat(request.toString()).contains("source-1");
         assertThat(request.at("/input/0/content").asText())
-                .contains("入力目次の全ChapterをPARENTとして網羅")
+                .contains("入力目次の全Chapterを最上位outlineNodeとして網羅")
                 .contains("途中のChapterで生成を打ち切ったりしない")
-                .contains("PARENTではparentTemporaryKey、plannedStartDate、plannedEndDate、plannedHoursをnull")
-                .contains("sourceTemporaryKeysを空配列");
+                .contains("子を持つoutlineNodeではplannedEffortHundredthsをnull")
+                .contains("親outlineNodeは子より前")
+                .contains("予定開始日と予定終了日は出力しない");
         assertThat(objectMapper.readTree(request.at("/input/1/content").asText()).path("requiredDays").asInt())
                 .isEqualTo(4);
     }

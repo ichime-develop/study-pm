@@ -25,6 +25,7 @@ public class AiWbsGenerationWorker {
 
     private final AiWbsGenerationJobTransactions transactions;
     private final AiWbsGenerationProvider provider;
+    private final AiWbsDraftAssembler assembler;
     private final AiWbsDraftValidator validator;
     private final Clock clock;
     private final boolean isWorkerEnabled;
@@ -34,6 +35,7 @@ public class AiWbsGenerationWorker {
     public AiWbsGenerationWorker(
             AiWbsGenerationJobTransactions transactions,
             AiWbsGenerationProvider provider,
+            AiWbsDraftAssembler assembler,
             AiWbsDraftValidator validator,
             Clock clock,
             @Value("${app.ai.worker.enabled:true}") boolean isWorkerEnabled,
@@ -42,6 +44,7 @@ public class AiWbsGenerationWorker {
     ) {
         this.transactions = transactions;
         this.provider = provider;
+        this.assembler = assembler;
         this.validator = validator;
         this.clock = clock;
         this.isWorkerEnabled = isWorkerEnabled;
@@ -104,7 +107,17 @@ public class AiWbsGenerationWorker {
                 return;
             }
             try {
-                AiValidatedWbsDraft validatedDraft = validator.validate(work.input(), providerResult.proposal());
+                AiWbsDraftAssembly assembly = assembler.assemble(
+                        work.input(),
+                        work.deadlinePriority(),
+                        providerResult.proposal()
+                );
+                AiValidatedWbsDraft validatedDraft = validator.validate(
+                        work.input(),
+                        assembly.proposal(),
+                        assembly.warnings(),
+                        assembly.dailyPlannedHours()
+                );
                 transactions.complete(work.jobId(), providerResult, validatedDraft);
                 return;
             } catch (AiStructuredOutputException exception) {

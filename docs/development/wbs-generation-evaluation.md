@@ -40,7 +40,7 @@ OpenAIモデル、プロンプト、Structured Outputsスキーマ、サーバ�
 
 評価fixtureは実装時に版管理し、変更理由を記録する。
 
-著作物の実目次を置き換えた8章構成の合成fixtureは、`backend/src/test/resources/fixtures/wbs-generation/eight-chapter-toc-v1.json` で管理する。章見出しの概数検出と、長い目次を使う評価入力の基礎データとして利用する。
+著作物の実目次を置き換えた8章構成の合成fixtureに加え、誤字、改行欠け、章表記混在、番号欠番・重複、3階層、4階層の合成fixtureを`backend/src/test/resources/fixtures/wbs-generation/`で管理する。`dataset-v2.json`を一覧と比較条件の正本とし、現行基準`prompt v4 / schema v1 / strategy v1`と候補`prompt v7 / schema v4 / strategy v3`を区別する。
 
 ## 4. 自動ハードゲート
 
@@ -49,8 +49,9 @@ OpenAIモデル、プロンプト、Structured Outputsスキーマ、サーバ�
 - JSON Schema適合
 - 必須項目充足
 - temporaryKeyの一意性
-- WBS最大2階層
-- PARENT/LEAFの保持項目
+- OpenAIアウトラインの一時キー一意性、親参照順序、非循環
+- サーバー変換後WBS最大2階層
+- 変換後PARENT/LEAFの保持項目
 - 予定工数0.25時間単位
 - 開始日 <= 終了日
 - 親参照・入力元参照の存在
@@ -58,7 +59,7 @@ OpenAIモデル、プロンプト、Structured Outputsスキーマ、サーバ�
 - 入力元にないtemporaryKeyを参照しない
 - サーバー検証を通過する
 - 1日24時間を超える計画を生成しない
-- 平日・土日と学習できない曜日から算出した日別上限を満たす
+- 平日・土日と学習できない曜日から算出した通常配置上限、または期限優先の警告条件を満たす
 - `PAGE`選択時はページ数量条件を満たす
 
 ## 5. 自動指標
@@ -153,6 +154,17 @@ AI03の下書き編集・変換が実装された後に次を測る。
 - strategyVersion
 - applicationCommit
 - 実行日時
+
+各fixtureは原則1回実行し、`riskLevel = HIGH`のfixtureだけ追加で2回実行する。実API未実行の結果を成功として記録せず、未測定として明示する。
+
+dataset v2の実API評価は、APIキーを環境変数へ設定した上で、明示的に次を実行する。通常の`test`や`verify`では外部APIを呼び出さない。
+
+```bash
+RUN_OPENAI_WBS_EVALUATION=true \
+  ./mvnw -f backend/pom.xml -Dtest=OpenAiWbsGenerationEvaluationTest test
+```
+
+結果は`backend/target/wbs-generation-evaluation-v2-result.json`へ出力する。各実行には構造通過、カバレッジ、親・LEAF数、総工数、構造再生成有無、入出力トークン数を記録し、全体には構造通過率と構造再生成率を記録する。構造ゲートに失敗した実行がある場合は、結果を書き出した後にテストを失敗させる。
 
 どれかを変更した比較結果を別版として扱う。
 

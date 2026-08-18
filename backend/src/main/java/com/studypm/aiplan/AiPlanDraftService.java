@@ -1,13 +1,16 @@
 package com.studypm.aiplan;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
@@ -69,7 +72,13 @@ public class AiPlanDraftService {
         validateRevision(draft, payload.draftRevision());
         requireCurrentInput(draft);
         AiWbsGenerationInput input = inputFactory.forRequest(draft.generationRequest());
-        AiValidatedWbsDraft validatedDraft = validate(input, payload.toProposal(wbsSplitUnitFor(input)));
+        AiWbsDraftProposal proposal = payload.toProposal(wbsSplitUnitFor(input));
+        Map<LocalDate, BigDecimal> savedDailyHours = dailyPlannedHoursFrom(draft);
+        AiValidatedWbsDraft validatedDraft = validate(
+                input,
+                proposal,
+                keepsSavedDailyAllocation(draft, proposal, savedDailyHours) ? savedDailyHours : null
+        );
         draft.update(validatedDraft, clock.instant());
         return responseFor(draft);
     }
@@ -83,7 +92,11 @@ public class AiPlanDraftService {
         validateRevision(draft, payload.draftRevision());
         requireCurrentInput(draft);
         AiWbsGenerationInput input = inputFactory.forRequest(draft.generationRequest());
-        AiValidatedWbsDraft validatedDraft = validate(input, proposalFrom(draft, wbsSplitUnitFor(input)));
+        AiValidatedWbsDraft validatedDraft = validate(
+                input,
+                proposalFrom(draft, wbsSplitUnitFor(input)),
+                dailyPlannedHoursFrom(draft)
+        );
 
         ProjectBasicResponse project = projectService.create(accountId, new ProjectCreateCommand(
                 validatedDraft.proposal().project().name(),
@@ -151,14 +164,74 @@ public class AiPlanDraftService {
         }
     }
 
-    private AiValidatedWbsDraft validate(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
+    private AiValidatedWbsDraft validate(
+            AiWbsGenerationInput input,
+            AiWbsDraftProposal proposal,
+            Map<LocalDate, BigDecimal> assignedDailyHours
+    ) {
         try {
-            return draftValidator.validate(input, proposal);
+            return assignedDailyHours == null
+                    ? draftValidator.validate(input, proposal)
+                    : draftValidator.validate(input, proposal, List.of(), assignedDailyHours);
         } catch (AiDraftBusinessValidationException exception) {
             throw new InvalidRequestException(exception.errorCode(), exception.getMessage());
         } catch (AiStructuredOutputException exception) {
             throw new InvalidRequestException("AI_DRAFT_VALIDATION_FAILED", exception.getMessage());
         }
+    }
+
+    private boolean keepsSavedDailyAllocation(
+            AiPlanDraft draft,
+            AiWbsDraftProposal proposal,
+            Map<LocalDate, BigDecimal> savedDailyHours
+    ) {
+        if (savedDailyHours == null) {
+            return false;
+        }
+        List<AiWbsDraftTask> savedTasks = proposalFrom(draft, proposal.wbsSplitUnit()).tasks();
+        Map<String, AiWbsDraftTask> savedLeaves = leavesByKey(savedTasks);
+        Map<String, AiWbsDraftTask> requestedLeaves = leavesByKey(proposal.tasks());
+        if (!savedLeaves.keySet().equals(requestedLeaves.keySet())) {
+            return false;
+        }
+        return savedLeaves.keySet().stream().allMatch(key -> hasSameSchedule(
+                savedLeaves.get(key), requestedLeaves.get(key)
+        ));
+    }
+
+    private Map<String, AiWbsDraftTask> leavesByKey(List<AiWbsDraftTask> tasks) {
+        Map<String, AiWbsDraftTask> leaves = new HashMap<>();
+        for (AiWbsDraftTask task : tasks) {
+            if (task.taskType() == AiDraftTaskType.LEAF) {
+                leaves.put(task.temporaryKey(), task);
+            }
+        }
+        return leaves;
+    }
+
+    private boolean hasSameSchedule(AiWbsDraftTask saved, AiWbsDraftTask requested) {
+        return java.util.Objects.equals(saved.plannedStartDate(), requested.plannedStartDate())
+                && java.util.Objects.equals(saved.plannedEndDate(), requested.plannedEndDate())
+                && java.util.Objects.equals(saved.plannedHours(), requested.plannedHours());
+    }
+
+    private Map<LocalDate, BigDecimal> dailyPlannedHoursFrom(AiPlanDraft draft) {
+        JsonNode storedHours = draft.dailyPlannedHours();
+        if (storedHours == null || storedHours.isNull() || !storedHours.isObject() || storedHours.size() == 0) {
+            return null;
+        }
+        Map<LocalDate, BigDecimal> result = new HashMap<>();
+        storedHours.fields().forEachRemaining(entry -> {
+            try {
+                if (!entry.getValue().isNumber()) {
+                    throw new IllegalArgumentException("daily planned hours must be numeric");
+                }
+                result.put(LocalDate.parse(entry.getKey()), entry.getValue().decimalValue());
+            } catch (IllegalArgumentException exception) {
+                throw new InvalidRequestException("AI_DRAFT_VALIDATION_FAILED", "保存済みの日別予定工数を読み取れません。");
+            }
+        });
+        return Map.copyOf(result);
     }
 
     private AiWbsDraftProposal proposalFrom(AiPlanDraft draft, WbsSplitUnit wbsSplitUnit) {

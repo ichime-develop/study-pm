@@ -1,0 +1,11 @@
+{
+  "fixtureId": "missing-line-breaks-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "HIGH",
+  "recommendedRuns": 3,
+  "textContent": "Chapter 1 導入 01 準備 02 最初の操作 Chapter 2 実装 01 入力 02 保存 Chapter 3 確認 01 テスト 02 改善",
+  "expectedLearningScopes": ["導入", "実装", "確認"],
+  "expectedOutlineDepth": 2
+}

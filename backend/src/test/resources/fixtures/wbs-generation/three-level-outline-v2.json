@@ -1,0 +1,11 @@
+{
+  "fixtureId": "three-level-outline-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "NORMAL",
+  "recommendedRuns": 1,
+  "textContent": "第1章 データ処理\n1. 入力\n1.1 文字入力\n1.2 数値入力\n2. 変換\n2.1 正規化\n2.2 検証\n第2章 出力\n1. 表示\n1.1 一覧\n1.2 詳細",
+  "expectedLearningScopes": ["データ処理", "出力"],
+  "expectedOutlineDepth": 3
+}

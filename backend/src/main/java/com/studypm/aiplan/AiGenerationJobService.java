@@ -44,9 +44,9 @@ public class AiGenerationJobService {
             @Value("${app.ai.job-timeout:5m}") java.time.Duration timeout,
             @Value("${app.ai.daily-generation-limit:10}") int dailyLimit,
             @Value("${app.ai.openai.model:gpt-4.1-mini}") String modelName,
-            @Value("${app.ai.openai.prompt-version:v4}") String promptVersion,
-            @Value("${app.ai.openai.schema-version:v1}") String schemaVersion,
-            @Value("${app.ai.openai.strategy-version:v1}") String strategyVersion
+            @Value("${app.ai.openai.prompt-version:v7}") String promptVersion,
+            @Value("${app.ai.openai.schema-version:v4}") String schemaVersion,
+            @Value("${app.ai.openai.strategy-version:v3}") String strategyVersion
     ) {
         this.requestRepository = requestRepository;
         this.jobRepository = jobRepository;

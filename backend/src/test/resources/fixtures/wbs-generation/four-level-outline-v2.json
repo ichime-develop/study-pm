@@ -1,0 +1,11 @@
+{
+  "fixtureId": "four-level-outline-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "HIGH",
+  "recommendedRuns": 3,
+  "textContent": "第1章 アプリ構築\n1. 画面\n1.1 入力画面\n1.1.1 必須項目\n1.1.2 任意項目\n1.2 確認画面\n1.2.1 表示\n2. 保存\n2.1 ローカル保存\n2.1.1 新規\n2.1.2 更新\n第2章 品質\n1. テスト\n1.1 単体テスト\n1.1.1 正常系\n1.1.2 異常系",
+  "expectedLearningScopes": ["アプリ構築", "品質"],
+  "expectedOutlineDepth": 4
+}

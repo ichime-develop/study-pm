@@ -33,6 +33,7 @@ class AiWbsGenerationWorkerTest {
 
     private final AiWbsGenerationJobTransactions transactions = mock(AiWbsGenerationJobTransactions.class);
     private final AiWbsGenerationProvider provider = mock(AiWbsGenerationProvider.class);
+    private final AiWbsDraftAssembler assembler = mock(AiWbsDraftAssembler.class);
     private final AiWbsDraftValidator validator = mock(AiWbsDraftValidator.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-30T00:00:00Z"), ZoneOffset.UTC);
 
@@ -40,11 +41,16 @@ class AiWbsGenerationWorkerTest {
     void savesAValidatedDraftAndCompletesTheJob() {
         AiWbsGenerationWork work = work();
         AiWbsGenerationProviderResult providerResult = providerResult("Java学習");
-        AiValidatedWbsDraft validated = validated(providerResult.proposal());
+        AiWbsDraftAssembly assembly = assembly("Java学習");
+        AiValidatedWbsDraft validated = validated(assembly.proposal());
         when(transactions.claimNext()).thenReturn(Optional.of(work));
         when(transactions.recordAttempt(work.jobId())).thenReturn(true);
         when(provider.generate(work, null)).thenReturn(providerResult);
-        when(validator.validate(work.input(), providerResult.proposal())).thenReturn(validated);
+        when(assembler.assemble(work.input(), work.deadlinePriority(), providerResult.proposal()))
+                .thenReturn(assembly);
+        when(validator.validate(
+                work.input(), assembly.proposal(), assembly.warnings(), assembly.dailyPlannedHours()
+        )).thenReturn(validated);
 
         worker(0).runNext();
 
@@ -56,12 +62,13 @@ class AiWbsGenerationWorkerTest {
         AiWbsGenerationWork work = work();
         AiWbsGenerationProviderResult first = providerResult("初回案");
         AiWbsGenerationProviderResult second = providerResult("再生成案");
-        AiValidatedWbsDraft validated = validated(second.proposal());
+        AiWbsDraftAssembly secondAssembly = assembly("再生成案");
+        AiValidatedWbsDraft validated = validated(secondAssembly.proposal());
         when(transactions.claimNext()).thenReturn(Optional.of(work));
         when(transactions.recordAttempt(work.jobId())).thenReturn(true);
         when(transactions.recordSchemaRegeneration(work.jobId())).thenReturn(true);
         when(provider.generate(eq(work), isNull())).thenReturn(first);
-        when(validator.validate(work.input(), first.proposal()))
+        when(assembler.assemble(work.input(), work.deadlinePriority(), first.proposal()))
                 .thenThrow(new AiStructuredOutputException(
                         "PARENT_SOURCE_KEYS_NOT_EMPTY",
                         "PARENTのsourceTemporaryKeysは空配列にしてください。"
@@ -72,7 +79,12 @@ class AiWbsGenerationWorkerTest {
                         + "PARENTのsourceTemporaryKeysは空配列にしてください。"
         )))
                 .thenReturn(second);
-        when(validator.validate(work.input(), second.proposal())).thenReturn(validated);
+        when(assembler.assemble(work.input(), work.deadlinePriority(), second.proposal()))
+                .thenReturn(secondAssembly);
+        when(validator.validate(
+                work.input(), secondAssembly.proposal(), secondAssembly.warnings(), secondAssembly.dailyPlannedHours()
+        ))
+                .thenReturn(validated);
 
         worker(0).runNext();
 
@@ -92,13 +104,17 @@ class AiWbsGenerationWorkerTest {
     void retriesATransientProviderFailureWithoutCreatingANewJob() {
         AiWbsGenerationWork work = work();
         AiWbsGenerationProviderResult result = providerResult("Java学習");
-        AiValidatedWbsDraft validated = validated(result.proposal());
+        AiWbsDraftAssembly assembly = assembly("Java学習");
+        AiValidatedWbsDraft validated = validated(assembly.proposal());
         when(transactions.claimNext()).thenReturn(Optional.of(work));
         when(transactions.recordAttempt(work.jobId())).thenReturn(true);
         when(provider.generate(work, null))
                 .thenThrow(new AiProviderException("temporary", true))
                 .thenReturn(result);
-        when(validator.validate(work.input(), result.proposal())).thenReturn(validated);
+        when(assembler.assemble(work.input(), work.deadlinePriority(), result.proposal())).thenReturn(assembly);
+        when(validator.validate(
+                work.input(), assembly.proposal(), assembly.warnings(), assembly.dailyPlannedHours()
+        )).thenReturn(validated);
 
         worker(1).runNext();
 
@@ -163,7 +179,11 @@ class AiWbsGenerationWorkerTest {
         when(transactions.claimNext()).thenReturn(Optional.of(work));
         when(transactions.recordAttempt(work.jobId())).thenReturn(true);
         when(provider.generate(work, null)).thenReturn(result);
-        when(validator.validate(work.input(), result.proposal()))
+        AiWbsDraftAssembly assembly = assembly("Java学習");
+        when(assembler.assemble(work.input(), work.deadlinePriority(), result.proposal())).thenReturn(assembly);
+        when(validator.validate(
+                work.input(), assembly.proposal(), assembly.warnings(), assembly.dailyPlannedHours()
+        ))
                 .thenThrow(new IllegalStateException("sensitive provider response"));
 
         assertThatThrownBy(() -> worker(0).runNext())
@@ -180,7 +200,11 @@ class AiWbsGenerationWorkerTest {
         when(transactions.claimNext()).thenReturn(Optional.of(work));
         when(transactions.recordAttempt(work.jobId())).thenReturn(true);
         when(provider.generate(work, null)).thenReturn(result);
-        when(validator.validate(work.input(), result.proposal()))
+        AiWbsDraftAssembly assembly = assembly("Java学習");
+        when(assembler.assemble(work.input(), work.deadlinePriority(), result.proposal())).thenReturn(assembly);
+        when(validator.validate(
+                work.input(), assembly.proposal(), assembly.warnings(), assembly.dailyPlannedHours()
+        ))
                 .thenThrow(new IllegalStateException("sensitive provider response"));
         Logger logger = (Logger) LoggerFactory.getLogger(AiWbsGenerationWorker.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -214,12 +238,12 @@ class AiWbsGenerationWorkerTest {
                 "元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正して、"
                         + "WBS全体を再生成してください。 構造上の問題: sensitive validation detail"
         )).thenReturn(second);
-        when(validator.validate(work.input(), first.proposal()))
+        when(assembler.assemble(work.input(), work.deadlinePriority(), first.proposal()))
                 .thenThrow(new AiStructuredOutputException(
                         "LEAF_PARENT_REFERENCE_INVALID",
                         "sensitive validation detail"
                 ));
-        when(validator.validate(work.input(), second.proposal()))
+        when(assembler.assemble(work.input(), work.deadlinePriority(), second.proposal()))
                 .thenThrow(new AiStructuredOutputException(
                         "LEAF_PARENT_REFERENCE_INVALID",
                         "sensitive validation detail"
@@ -247,7 +271,7 @@ class AiWbsGenerationWorkerTest {
 
     private AiWbsGenerationWorker worker(int retries) {
         return new AiWbsGenerationWorker(
-                transactions, provider, validator, clock, true, retries, Duration.ZERO
+                transactions, provider, assembler, validator, clock, true, retries, Duration.ZERO
         );
     }
 
@@ -268,6 +292,15 @@ class AiWbsGenerationWorkerTest {
     }
 
     private AiWbsGenerationProviderResult providerResult(String projectName) {
+        AiWbsGenerationProposal proposal = new AiWbsGenerationProposal(
+                new AiWbsGenerationProject(projectName, ""),
+                List.of(),
+                WbsSplitUnit.SECTION
+        );
+        return new AiWbsGenerationProviderResult(proposal, "resp_test", 100, 50);
+    }
+
+    private AiWbsDraftAssembly assembly(String projectName) {
         AiWbsDraftProposal proposal = new AiWbsDraftProposal(
                 new AiWbsDraftProject(
                         projectName, "", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-31")
@@ -275,7 +308,7 @@ class AiWbsGenerationWorkerTest {
                 List.of(),
                 WbsSplitUnit.SECTION
         );
-        return new AiWbsGenerationProviderResult(proposal, "resp_test", 100, 50);
+        return new AiWbsDraftAssembly(proposal, List.of(), java.util.Map.of());
     }
 
     private AiValidatedWbsDraft validated(AiWbsDraftProposal proposal) {
@@ -285,7 +318,8 @@ class AiWbsGenerationWorkerTest {
                 objectMapper.createArrayNode(),
                 AiPlanDraftValidationStatus.VALID,
                 objectMapper.createArrayNode(),
-                objectMapper.createArrayNode()
+                objectMapper.createArrayNode(),
+                java.util.Map.of()
         );
     }
 }

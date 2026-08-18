@@ -34,6 +34,15 @@ public class AiWbsDraftValidator {
     }
 
     public AiValidatedWbsDraft validate(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
+        return validate(input, proposal, List.of(), null);
+    }
+
+    AiValidatedWbsDraft validate(
+            AiWbsGenerationInput input,
+            AiWbsDraftProposal proposal,
+            List<AiWbsDraftIssue> initialWarnings,
+            Map<LocalDate, BigDecimal> assignedDailyHours
+    ) {
         validateProject(input, proposal);
         Map<String, AiWbsDraftTask> tasksByKey = validateTaskFields(proposal.tasks());
         Set<String> sourceKeys = input.sources().stream()
@@ -43,13 +52,20 @@ public class AiWbsDraftValidator {
         validateSplitUnit(input.constraints(), proposal.wbsSplitUnit());
 
         AiStudySchedule schedule = studySchedule(input.constraints());
-        ArrayNode warnings = objectMapper.createArrayNode();
-        addSourceCoverageWarning(input, proposal, warnings);
-        DailyAllocation allocation = allocateDailyPlannedHours(input, proposal.tasks(), schedule);
-        warnings.addAll(allocation.warnings());
+        ArrayNode collectedWarnings = objectMapper.createArrayNode();
+        initialWarnings.forEach(warning -> collectedWarnings.add(issue(
+                warning.code(), warning.message(), warning.target()
+        )));
+        addSourceCoverageWarning(input, proposal, collectedWarnings);
+        addPeriodWarnings(input, proposal.tasks(), collectedWarnings);
+        DailyAllocation allocation = assignedDailyHours == null
+                ? allocateDailyPlannedHours(input, proposal.tasks(), schedule)
+                : new DailyAllocation(Map.copyOf(assignedDailyHours), List.of());
+        collectedWarnings.addAll(allocation.warnings());
         Map<LocalDate, BigDecimal> dailyPlannedHours = allocation.dailyHours();
         validateDailyMaximum(dailyPlannedHours);
-        addAvailableHoursWarnings(dailyPlannedHours, schedule, warnings);
+        addAvailableHoursWarnings(dailyPlannedHours, schedule, collectedWarnings);
+        ArrayNode warnings = deduplicate(collectedWarnings);
         ArrayNode relaxationOptions = relaxationOptions(input, proposal.tasks(), dailyPlannedHours, schedule, warnings);
         AiPlanDraftValidationStatus status = warnings.isEmpty()
                 ? AiPlanDraftValidationStatus.VALID
@@ -59,8 +75,21 @@ public class AiWbsDraftValidator {
                 objectMapper.valueToTree(proposal.tasks()),
                 status,
                 warnings,
-                relaxationOptions
+                relaxationOptions,
+                dailyPlannedHours
         );
+    }
+
+    private ArrayNode deduplicate(ArrayNode warnings) {
+        ArrayNode result = objectMapper.createArrayNode();
+        Set<String> keys = new HashSet<>();
+        warnings.forEach(warning -> {
+            String key = warning.path("code").asText() + "\u0000" + warning.path("target").asText();
+            if (keys.add(key)) {
+                result.add(warning);
+            }
+        });
+        return result;
     }
 
     private void validateProject(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
@@ -69,7 +98,7 @@ public class AiWbsDraftValidator {
         }
         AiWbsDraftProject project = proposal.project();
         requireText(project.name(), 100, "project.name");
-        if (project.description() == null || project.description().length() > 5000) {
+        if (project.description() == null || codePointCount(project.description()) > 5000) {
             throw structureError("PROJECT_DESCRIPTION_INVALID", "project.descriptionは5,000文字以下で必須です。");
         }
         if (project.startDate() == null || project.targetEndDate() == null
@@ -93,7 +122,7 @@ public class AiWbsDraftValidator {
             }
             requireText(task.temporaryKey(), 100, "task.temporaryKey");
             requireText(task.name(), 100, "task.name");
-            if (task.description() == null || task.description().length() > 5000) {
+            if (task.description() == null || codePointCount(task.description()) > 5000) {
                 throw structureError("TASK_DESCRIPTION_INVALID", "task.descriptionは5,000文字以下で必須です。");
             }
             if (tasksByKey.putIfAbsent(task.temporaryKey(), task) != null) {
@@ -215,14 +244,14 @@ public class AiWbsDraftValidator {
             return;
         }
         int detectedChapterCount = chapterHeadingDetector.count(input.sources());
-        int parentCount = (int) proposal.tasks().stream()
-                .filter(task -> task.taskType() == AiDraftTaskType.PARENT)
+        int leafCount = (int) proposal.tasks().stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.LEAF)
                 .count();
-        if (detectedChapterCount > 1 && parentCount < detectedChapterCount) {
+        if (detectedChapterCount > 1 && leafCount < detectedChapterCount) {
             warnings.add(issue(
                     "SOURCE_COVERAGE_MAY_BE_INCOMPLETE",
-                    "入力から" + detectedChapterCount + "件の章見出しを検出しましたが、下書きの親タスクは"
-                            + parentCount + "件です。学習範囲が不足していないか確認してください。",
+                    "入力から" + detectedChapterCount + "件の章見出しを検出しましたが、下書きの実行タスクは"
+                            + leafCount + "件です。学習範囲が不足していないか確認してください。",
                     "tasks"
             ));
         }
@@ -234,17 +263,9 @@ public class AiWbsDraftValidator {
             AiStudySchedule schedule
     ) {
         Map<LocalDate, BigDecimal> result = new HashMap<>();
-        List<ObjectNode> warnings = new ArrayList<>();
         for (AiWbsDraftTask task : tasks) {
             if (task.taskType() != AiDraftTaskType.LEAF) {
                 continue;
-            }
-            if (task.plannedStartDate().isBefore(input.startDate()) || task.plannedEndDate().isAfter(input.targetEndDate())) {
-                warnings.add(issue(
-                        "TASK_OUTSIDE_PROJECT_PERIOD",
-                        "プロジェクト期間外の予定を持つタスクがあります。",
-                        task.temporaryKey()
-                ));
             }
             List<LocalDate> availableDates = task.plannedStartDate().datesUntil(task.plannedEndDate().plusDays(1))
                     .filter(date -> schedule.availableHours(date).signum() > 0)
@@ -261,7 +282,23 @@ public class AiWbsDraftValidator {
                 result.merge(date, dailyHours, BigDecimal::add);
             }
         }
-        return new DailyAllocation(Map.copyOf(result), List.copyOf(warnings));
+        return new DailyAllocation(Map.copyOf(result), List.of());
+    }
+
+    private void addPeriodWarnings(
+            AiWbsGenerationInput input,
+            List<AiWbsDraftTask> tasks,
+            ArrayNode warnings
+    ) {
+        tasks.stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.LEAF)
+                .filter(task -> task.plannedStartDate().isBefore(input.startDate())
+                        || task.plannedEndDate().isAfter(input.targetEndDate()))
+                .forEach(task -> warnings.add(issue(
+                        "TASK_OUTSIDE_PROJECT_PERIOD",
+                        "プロジェクト期間外の予定を持つタスクがあります。",
+                        task.temporaryKey()
+                )));
     }
 
     private void validateDailyMaximum(Map<LocalDate, BigDecimal> dailyPlannedHours) {
@@ -303,13 +340,14 @@ public class AiWbsDraftValidator {
         }
         Set<String> warningCodes = warningCodes(warnings);
         Map<String, ObjectNode> optionsByCode = new LinkedHashMap<>();
-        if (warningCodes.contains("TASK_OUTSIDE_PROJECT_PERIOD")) {
+        boolean hasDailyAvailableHoursExceeded = warningCodes.contains("DAILY_AVAILABLE_HOURS_EXCEEDED");
+        if (warningCodes.contains("TASK_OUTSIDE_PROJECT_PERIOD") && !hasDailyAvailableHoursExceeded) {
             optionsByCode.put(
                     "ADJUST_PROJECT_PERIOD",
-                    option("ADJUST_PROJECT_PERIOD", "プロジェクト期間をタスクの予定期間に合わせて広げる")
+                    option("ADJUST_PROJECT_PERIOD", "目標終了日を延長する")
             );
         }
-        if (!warningCodes.contains("DAILY_AVAILABLE_HOURS_EXCEEDED")) {
+        if (!hasDailyAvailableHoursExceeded) {
             optionsByCode.values().stream().limit(3).forEach(options::add);
             return options;
         }
@@ -370,9 +408,13 @@ public class AiWbsDraftValidator {
     }
 
     private void requireText(String value, int maximumLength, String fieldName) {
-        if (value == null || value.isBlank() || value.length() > maximumLength) {
+        if (value == null || value.isBlank() || codePointCount(value) > maximumLength) {
             throw structureError("TEXT_FIELD_INVALID", fieldName + "は1〜" + maximumLength + "文字で必須です。");
         }
+    }
+
+    private int codePointCount(String value) {
+        return value.codePointCount(0, value.length());
     }
 
     private String displayHours(BigDecimal value) {

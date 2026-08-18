@@ -31,7 +31,7 @@ class OpenAiWbsGenerationProviderSmokeTest {
                 RestClient.builder(),
                 apiKey,
                 "https://api.openai.com",
-                Duration.ofSeconds(60),
+                Duration.ofSeconds(120),
                 4000
         );
         ObjectNode constraints = objectMapper.createObjectNode();
@@ -54,9 +54,9 @@ class OpenAiWbsGenerationProviderSmokeTest {
         AiWbsGenerationWork work = new AiWbsGenerationWork(
                 UUID.randomUUID(),
                 System.getenv().getOrDefault("OPENAI_MODEL", "gpt-4.1-mini"),
-                "smoke",
-                "smoke",
-                "smoke",
+                "v7",
+                "v4",
+                "v3",
                 Instant.now().plusSeconds(120),
                 false,
                 input
@@ -64,7 +64,7 @@ class OpenAiWbsGenerationProviderSmokeTest {
 
         AiWbsGenerationProviderResult result = provider.generate(work, null);
 
-        assertThat(result.proposal().tasks()).isNotEmpty();
+        assertThat(result.proposal().outlineNodes()).isNotEmpty();
         assertThat(result.providerRequestId()).isNotBlank();
     }
 }

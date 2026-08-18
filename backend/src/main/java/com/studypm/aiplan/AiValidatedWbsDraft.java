@@ -1,5 +1,9 @@
 package com.studypm.aiplan;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -10,6 +14,10 @@ public record AiValidatedWbsDraft(
         JsonNode tasksJson,
         AiPlanDraftValidationStatus validationStatus,
         JsonNode warnings,
-        JsonNode relaxationOptions
+        JsonNode relaxationOptions,
+        Map<LocalDate, BigDecimal> dailyPlannedHours
 ) {
+    public AiValidatedWbsDraft {
+        dailyPlannedHours = Map.copyOf(dailyPlannedHours);
+    }
 }

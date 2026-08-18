@@ -331,19 +331,16 @@ class AiPlanControllerIT {
     void generatesAndReturnsAValidatedDraftWithoutCallingTheLiveProvider() throws Exception {
         Session session = signup("draft@example.com");
         UUID requestId = createRequest(session, "Javaの基本を学ぶ");
-        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
-                new AiWbsDraftProject(
-                        "Java学習", "", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-09-01")
-                ),
+        AiWbsGenerationProposal proposal = new AiWbsGenerationProposal(
+                new AiWbsGenerationProject("Java学習", ""),
                 List.of(
-                        new AiWbsDraftTask(
-                                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
-                                null, null, null, List.of()
+                        new AiWbsOutlineNode(
+                                "parent-1", null, "基礎", "",
+                                null, List.of()
                         ),
-                        new AiWbsDraftTask(
-                                "leaf-1", AiDraftTaskType.LEAF, "parent-1", "Javaの基本を読む", "",
-                                LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-02"),
-                                BigDecimal.ONE, List.of("source-1")
+                        new AiWbsOutlineNode(
+                                "leaf-1", "parent-1", "Javaの基本を読む", "",
+                                100, List.of("source-1")
                         )
                 ),
                 WbsSplitUnit.SECTION
@@ -383,6 +380,45 @@ class AiPlanControllerIT {
     }
 
     @Test
+    void convertsAnUneditedDeadlineScheduledDraftUsingItsSavedDailyAllocation() throws Exception {
+        Session session = signup("draft-deadline-allocation@example.com");
+        UUID requestId = createDeadlineRequest(session);
+        AiWbsGenerationProposal proposal = new AiWbsGenerationProposal(
+                new AiWbsGenerationProject("Java学習", ""),
+                List.of(
+                        new AiWbsOutlineNode("parent-1", null, "基礎", "", null, List.of()),
+                        new AiWbsOutlineNode("leaf-1", "parent-1", "前半", "", 2425, List.of("source-1")),
+                        new AiWbsOutlineNode("leaf-2", "parent-1", "後半", "", 2375, List.of("source-1"))
+                ),
+                WbsSplitUnit.SECTION
+        );
+        org.mockito.Mockito.when(generationProvider.generate(any(), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(new AiWbsGenerationProviderResult(proposal, "resp_deadline", 120, 80));
+
+        MvcResult createdJob = mockMvc.perform(post("/api/ai-plan/requests/{requestId}/draft-jobs", requestId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"deadlinePriority\": true }"))
+                .andExpect(status().isAccepted())
+                .andReturn();
+        assertThat(generationWorker.runNext()).isTrue();
+
+        UUID jobId = UUID.fromString(objectMapper.readTree(createdJob.getResponse().getContentAsString()).get("jobId").asText());
+        UUID draftId = jdbcTemplate.queryForObject(
+                "select id from ai_plan_drafts where ai_generation_job_id = ?", UUID.class, jobId
+        );
+        assertThat(jdbcTemplate.queryForObject(
+                "select daily_planned_hours_json is not null from ai_plan_drafts where id = ?", Boolean.class, draftId
+        )).isTrue();
+
+        mockMvc.perform(post("/api/ai-plan/drafts/{draftId}/convert", draftId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"draftRevision\": 1 }"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void discardsACompletedProviderResultAfterCancellationWasRequested() throws Exception {
         Session session = signup("cancel-complete@example.com");
         UUID requestId = createRequest(session, "content");
@@ -394,7 +430,7 @@ class AiPlanControllerIT {
                 .andExpect(jsonPath("$.status").value("CANCEL_REQUESTED"));
 
         AiWbsGenerationProviderResult providerResult = validProviderResult();
-        generationJobTransactions.complete(jobId, providerResult, validDraft(providerResult.proposal()));
+        generationJobTransactions.complete(jobId, providerResult, validDraft());
 
         assertThat(jdbcTemplate.queryForObject(
                 "select status from ai_generation_jobs where id = ?", String.class, jobId
@@ -428,7 +464,7 @@ class AiPlanControllerIT {
         UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().minusSeconds(1));
         AiWbsGenerationProviderResult providerResult = validProviderResult();
 
-        generationJobTransactions.complete(jobId, providerResult, validDraft(providerResult.proposal()));
+        generationJobTransactions.complete(jobId, providerResult, validDraft());
 
         assertThat(jdbcTemplate.queryForObject(
                 "select status from ai_generation_jobs where id = ?", String.class, jobId
@@ -447,7 +483,7 @@ class AiPlanControllerIT {
         UUID requestId = createRequest(session, "content");
         UUID jobId = insertProcessingJob(session.accountId(), requestId, Instant.now().plusSeconds(300));
         AiWbsGenerationProviderResult providerResult = validProviderResult();
-        AiValidatedWbsDraft draft = validDraft(providerResult.proposal());
+        AiValidatedWbsDraft draft = validDraft();
 
         generationJobTransactions.complete(jobId, providerResult, draft);
         generationJobTransactions.complete(jobId, providerResult, draft);
@@ -623,6 +659,20 @@ class AiPlanControllerIT {
     }
 
     private AiWbsGenerationProviderResult validProviderResult() {
+        AiWbsGenerationProposal proposal = new AiWbsGenerationProposal(
+                new AiWbsGenerationProject("Java学習", ""),
+                List.of(
+                        new AiWbsOutlineNode("parent-1", null, "基礎", "", null, List.of()),
+                        new AiWbsOutlineNode(
+                                "leaf-1", "parent-1", "Javaの基本を読む", "", 100, List.of("source-1")
+                        )
+                ),
+                WbsSplitUnit.SECTION
+        );
+        return new AiWbsGenerationProviderResult(proposal, "resp_race", 100, 50);
+    }
+
+    private AiValidatedWbsDraft validDraft() {
         AiWbsDraftProposal proposal = new AiWbsDraftProposal(
                 new AiWbsDraftProject(
                         "Java学習", "", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-09-01")
@@ -640,16 +690,13 @@ class AiPlanControllerIT {
                 ),
                 WbsSplitUnit.SECTION
         );
-        return new AiWbsGenerationProviderResult(proposal, "resp_race", 100, 50);
-    }
-
-    private AiValidatedWbsDraft validDraft(AiWbsDraftProposal proposal) {
         return new AiValidatedWbsDraft(
                 proposal,
                 objectMapper.valueToTree(proposal.tasks()),
                 AiPlanDraftValidationStatus.VALID,
                 objectMapper.createArrayNode(),
-                objectMapper.createArrayNode()
+                objectMapper.createArrayNode(),
+                java.util.Map.of()
         );
     }
 
@@ -658,7 +705,7 @@ class AiPlanControllerIT {
     }
 
     private UUID generateDraft(Session session, UUID requestId) throws Exception {
-        AiWbsDraftProposal proposal = validProviderResult().proposal();
+        AiWbsGenerationProposal proposal = validProviderResult().proposal();
         org.mockito.Mockito.when(generationProvider.generate(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull()))
                 .thenReturn(new AiWbsGenerationProviderResult(proposal, "resp_draft", 120, 80));
         MvcResult createdJob = mockMvc.perform(post("/api/ai-plan/requests/{requestId}/draft-jobs", requestId)
@@ -717,6 +764,37 @@ class AiPlanControllerIT {
                         .header(HttpHeaders.AUTHORIZATION, bearer(session))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestPayload(content)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("generationRequestId").asText());
+    }
+
+    private UUID createDeadlineRequest(Session session) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/ai-plan/requests")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(session))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sourceType": "OVERVIEW",
+                                  "learningGoal": "Javaを学ぶ",
+                                  "startDate": "2026-08-03",
+                                  "targetEndDate": "2026-08-04",
+                                  "constraints": {
+                                    "weekdayAvailableHours": 1,
+                                    "weekendAvailableHours": 1
+                                  },
+                                  "sources": [
+                                    {
+                                      "temporaryKey": "source-1",
+                                      "sourceType": "OVERVIEW",
+                                      "sourceOrder": 0,
+                                      "label": "概要",
+                                      "textContent": "Javaの基本"
+                                    }
+                                  ]
+                                }
+                                """))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())

@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class AiWbsStructuredOutputSchema {
 
-    private static final String DATE_PATTERN = "^\\d{4}-\\d{2}-\\d{2}$";
-
     private final ObjectMapper objectMapper;
 
     public AiWbsStructuredOutputSchema(ObjectMapper objectMapper) {
@@ -22,34 +20,29 @@ public class AiWbsStructuredOutputSchema {
         ObjectNode project = object(
                 properties(
                         property("name", string()),
-                        property("description", string()),
-                        property("startDate", date()),
-                        property("targetEndDate", date())
+                        property("description", string())
                 ),
-                "name", "description", "startDate", "targetEndDate"
+                "name", "description"
         );
-        ObjectNode task = object(
+        ObjectNode outlineNode = object(
                 properties(
                         property("temporaryKey", string()),
-                        property("taskType", enumeration("PARENT", "LEAF")),
                         property("parentTemporaryKey", nullableString()),
                         property("name", string()),
                         property("description", string()),
-                        property("plannedStartDate", nullableDate()),
-                        property("plannedEndDate", nullableDate()),
-                        property("plannedHours", nullablePlannedHours()),
+                        property("plannedEffortHundredths", nullablePlannedEffortHundredths()),
                         property("sourceTemporaryKeys", array(string()))
                 ),
-                "temporaryKey", "taskType", "parentTemporaryKey", "name", "description",
-                "plannedStartDate", "plannedEndDate", "plannedHours", "sourceTemporaryKeys"
+                "temporaryKey", "parentTemporaryKey", "name", "description",
+                "plannedEffortHundredths", "sourceTemporaryKeys"
         );
         return object(
                 properties(
                         property("project", project),
-                        property("tasks", nonEmptyArray(task)),
+                        property("outlineNodes", nonEmptyArray(outlineNode)),
                         property("wbsSplitUnit", enumeration("SECTION", "PAGE", "QUESTION_SET", "AI"))
                 ),
-                "project", "tasks", "wbsSplitUnit"
+                "project", "outlineNodes", "wbsSplitUnit"
         );
     }
 
@@ -86,23 +79,12 @@ public class AiWbsStructuredOutputSchema {
         return result;
     }
 
-    private ObjectNode date() {
-        ObjectNode result = string();
-        result.put("pattern", DATE_PATTERN);
-        return result;
-    }
-
-    private ObjectNode nullableDate() {
-        ObjectNode result = nullableString();
-        result.put("pattern", DATE_PATTERN);
-        return result;
-    }
-
-    private ObjectNode nullablePlannedHours() {
+    private ObjectNode nullablePlannedEffortHundredths() {
         ObjectNode result = objectMapper.createObjectNode();
-        result.set("type", arrayOf("number", "null"));
-        result.put("minimum", 0.25);
-        result.put("multipleOf", 0.25);
+        result.set("type", arrayOf("integer", "null"));
+        result.put("minimum", 25);
+        result.put("maximum", 999999);
+        result.put("multipleOf", 25);
         return result;
     }
 

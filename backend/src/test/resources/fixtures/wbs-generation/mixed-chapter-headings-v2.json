@@ -1,0 +1,11 @@
+{
+  "fixtureId": "mixed-chapter-headings-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "NORMAL",
+  "recommendedRuns": 1,
+  "textContent": "Chapter 1 準備\n1.1 道具\n第2章 基本操作\n2.1 入力\n3章 応用\n3.1 組み合わせ\n第四章 まとめ\n4.1 振り返り",
+  "expectedLearningScopes": ["準備", "基本操作", "応用", "まとめ"],
+  "expectedOutlineDepth": 2
+}
