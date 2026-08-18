@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AiPlanShell } from "../features/aiPlan/AiPlanShell";
 import { AiUnavailableDialog } from "../features/aiPlan/AiUnavailableDialog";
 import { aiPlanApi } from "../features/aiPlan/aiPlanApi";
+import { countChapterHeadings } from "../features/aiPlan/chapterHeadings";
 import {
   loadAiPlanInput,
   saveAiPlanInput,
@@ -119,6 +120,8 @@ export const AiPlanInputPage = () => {
   const jobError = jobQuery.data?.status === "FAILED" && jobQuery.data.error?.code !== "AI_GENERATION_UNAVAILABLE"
     ? jobQuery.data.error
     : null;
+  const hasTableOfContentsLikeOverview = input.method === "overview"
+    && countChapterHeadings(input.overview) > 1;
 
   return (
     <AiPlanShell currentStep={2} title="AIと学習計画を作成">
@@ -168,7 +171,16 @@ export const AiPlanInputPage = () => {
         <section className="ai-form-section">
           <div className="ai-section-heading"><span>3</span><h2>{input.method === "overview" ? "学習内容の概要" : "教材の目次"}</h2></div>
           {input.method === "overview" ? (
-            <label>学習内容の概要 <span className="required-label">必須</span><textarea className="ai-long-textarea" maxLength={5000} onChange={(event) => setField("overview", event.target.value)} value={input.overview} /><small className="field-counter">{input.overview.length.toLocaleString()} / 5,000文字</small></label>
+            <>
+              <label>学習内容の概要 <span className="required-label">必須</span><textarea className="ai-long-textarea" maxLength={5000} onChange={(event) => setField("overview", event.target.value)} value={input.overview} /><small className="field-counter">{input.overview.length.toLocaleString()} / 5,000文字</small></label>
+              {hasTableOfContentsLikeOverview && (
+                <div className="notice notice-warning ai-input-method-warning" role="status">
+                  <strong>目次のような入力が含まれています。</strong>
+                  <span>教材の全体構成に沿わせる場合は、「目次から作成」を選び直してください。</span>
+                  <button className="text-button" onClick={() => navigate("/projects/new/ai")} type="button">作成方法を選び直す</button>
+                </div>
+              )}
+            </>
           ) : (
             <>
               <div aria-label="目次の入力方法" className="ai-material-tabs" role="tablist"><button aria-selected={input.materialMode === "image"} className={input.materialMode === "image" ? "active" : ""} onClick={() => setField("materialMode", "image")} role="tab" type="button">画像から読み取る</button><button aria-selected={input.materialMode === "text"} className={input.materialMode === "text" ? "active" : ""} onClick={() => setField("materialMode", "text")} role="tab" type="button">目次を直接入力</button></div>

@@ -52,7 +52,9 @@ class OpenAiWbsGenerationProviderTest {
         assertThat(request.toString()).contains("source-1");
         assertThat(request.at("/input/0/content").asText())
                 .contains("入力目次の全ChapterをPARENTとして網羅")
-                .contains("途中のChapterで生成を打ち切ったりしない");
+                .contains("途中のChapterで生成を打ち切ったりしない")
+                .contains("PARENTではparentTemporaryKey、plannedStartDate、plannedEndDate、plannedHoursをnull")
+                .contains("sourceTemporaryKeysを空配列");
         assertThat(objectMapper.readTree(request.at("/input/1/content").asText()).path("requiredDays").asInt())
                 .isEqualTo(4);
     }

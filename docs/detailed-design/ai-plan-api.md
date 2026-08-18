@@ -229,7 +229,13 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
   "validation": {
     "status": "WARNING"
   },
-  "planWarnings": [],
+  "planWarnings": [
+    {
+      "code": "SOURCE_COVERAGE_MAY_BE_INCOMPLETE",
+      "message": "入力から8件の章見出しを検出しましたが、下書きの親タスクは3件です。学習範囲が不足していないか確認してください。",
+      "target": "tasks"
+    }
+  ],
   "relaxationOptions": []
 }
 ```
@@ -300,7 +306,7 @@ active状態は `QUEUED`, `PROCESSING`, `CANCEL_REQUESTED` とする。terminal�
 | --- | --- | --- |
 | `AI_OUTPUT_TOO_LARGE` | OpenAI出力が設定トークン上限へ到達 | 学習範囲を分ける、WBS分割単位を粗くする |
 | `AI_DRAFT_DAILY_LIMIT_EXCEEDED` | 日別予定工数が24時間を超過 | 目標終了日を延長する、学習範囲を減らす |
-| `AI_STRUCTURED_OUTPUT_INVALID` | 再生成後も構造検証に失敗 | 入力内容を確認して再生成する |
+| `AI_STRUCTURED_OUTPUT_INVALID` | 再生成後も構造検証に失敗 | AI生成結果が形式要件を満たさなかった旨を表示し、同じ内容での再生成または学習範囲の分割を案内する |
 | `AI_PROVIDER_ERROR` | 外部サービス失敗 | 入力内容を確認して再生成する |
 | `AI_GENERATION_UNAVAILABLE` | OpenAIから429が返りAI生成を利用不可 | OKを押してプロジェクト一覧へ戻り、WBSを手動で作成する |
 | `AI_INTERNAL_ERROR` | アプリケーション内部の予期しない失敗 | 入力内容を確認して再生成する |

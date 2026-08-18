@@ -111,7 +111,7 @@ export const AiPlanDraftPage = () => {
             <div><span>検証状態</span><strong>{validationLabel(draft.validation.status)}</strong></div>
           </section>
 
-          <Panel className="ai-plan-content-panel">
+          <Panel className="ai-plan-content-panel ai-plan-form-panel">
             <PanelHeader description="AIの提案をそのまま使わず、保存前に修正できます。" title="プロジェクト基本情報" />
             <div className="ai-form-grid">
               <label>プロジェクト名<input maxLength={100} onChange={(event) => setDraft({ ...draft, project: { ...draft.project, name: event.target.value } })} value={draft.project.name} /></label>

@@ -155,4 +155,29 @@ class AiGenerationJobServiceTest {
         assertThat(response.error().message()).isEqualTo("WBS下書きの生成がタイムアウトしたため終了しました。");
         assertThat(response.error().actionHints()).containsExactly("時間をおいて再度生成する");
     }
+
+    @Test
+    void getExplainsThatTheGeneratedDraftFailedStructuralValidation() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_STRUCTURED_OUTPUT_INVALID", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_STRUCTURED_OUTPUT_INVALID");
+        assertThat(response.error().message())
+                .isEqualTo("生成されたWBS下書きが形式要件を満たさなかったため、保存できませんでした。");
+        assertThat(response.error().actionHints())
+                .containsExactly("同じ内容で再度生成する", "繰り返し失敗する場合は学習範囲を分ける");
+    }
 }

@@ -1,0 +1,17 @@
+{
+  "fixtureId": "eight-chapter-toc-v1",
+  "datasetVersion": "v1",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "textContent": "Chapter 1 基礎知識\n01 はじめに\n02 開発環境\n\nChapter 2 基本文法\n01 変数\n02 制御構文\n\nChapter 3 画面構築\n01 レイアウト\n02 入力フォーム\n\nChapter 4 データ管理\n01 状態管理\n02 永続化\n\nChapter 5 通信\n01 HTTP\n02 エラー処理\n\nChapter 6 テスト\n01 単体テスト\n02 結合テスト\n\nChapter 7 配布\n01 ビルド\n02 リリース\n\nChapter 8 運用\n01 監視\n02 改善",
+  "expectedLearningScopes": [
+    "基礎知識",
+    "基本文法",
+    "画面構築",
+    "データ管理",
+    "通信",
+    "テスト",
+    "配布",
+    "運用"
+  ]
+}

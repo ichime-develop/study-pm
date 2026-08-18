@@ -18,7 +18,10 @@ import org.junit.jupiter.api.Test;
 class AiWbsDraftValidatorTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
-    private final AiWbsDraftValidator validator = new AiWbsDraftValidator(objectMapper);
+    private final AiWbsDraftValidator validator = new AiWbsDraftValidator(
+            objectMapper,
+            new AiChapterHeadingDetector()
+    );
 
     @Test
     void acceptsAValidTwoLevelDraft() {
@@ -47,6 +50,76 @@ class AiWbsDraftValidatorTest {
         assertThatThrownBy(() -> validator.validate(input(BigDecimal.ONE), proposal))
                 .isInstanceOf(AiStructuredOutputException.class)
                 .hasMessageContaining("入力元参照");
+    }
+
+    @Test
+    void identifiesAParentTemporaryKeyViolation() {
+        AiWbsDraftTask invalidParent = new AiWbsDraftTask(
+                "parent-1", AiDraftTaskType.PARENT, "another-parent", "基礎", "",
+                null, null, null, List.of()
+        );
+
+        assertParentViolation(
+                invalidParent,
+                "PARENT_PARENT_KEY_NOT_NULL",
+                "PARENTのparentTemporaryKeyはnullにしてください。"
+        );
+    }
+
+    @Test
+    void identifiesAParentStartDateViolation() {
+        AiWbsDraftTask invalidParent = new AiWbsDraftTask(
+                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                LocalDate.parse("2026-08-01"), null, null, List.of()
+        );
+
+        assertParentViolation(
+                invalidParent,
+                "PARENT_START_DATE_NOT_NULL",
+                "PARENTのplannedStartDateはnullにしてください。"
+        );
+    }
+
+    @Test
+    void identifiesAParentEndDateViolation() {
+        AiWbsDraftTask invalidParent = new AiWbsDraftTask(
+                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                null, LocalDate.parse("2026-08-31"), null, List.of()
+        );
+
+        assertParentViolation(
+                invalidParent,
+                "PARENT_END_DATE_NOT_NULL",
+                "PARENTのplannedEndDateはnullにしてください。"
+        );
+    }
+
+    @Test
+    void identifiesAParentPlannedHoursViolation() {
+        AiWbsDraftTask invalidParent = new AiWbsDraftTask(
+                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                null, null, BigDecimal.ONE, List.of()
+        );
+
+        assertParentViolation(
+                invalidParent,
+                "PARENT_HOURS_NOT_NULL",
+                "PARENTのplannedHoursはnullにしてください。"
+        );
+    }
+
+    @Test
+    void identifiesAParentSourceKeysViolation() {
+        AiWbsDraftTask invalidParent = new AiWbsDraftTask(
+                "parent-1", AiDraftTaskType.PARENT, null, "基礎", "",
+                null, null, null, List.of("source-1")
+        );
+
+        assertParentViolation(
+                invalidParent,
+                "PARENT_SOURCE_KEYS_NOT_EMPTY",
+                "PARENTのsourceTemporaryKeysは空配列にしてください。"
+        );
     }
 
     @Test
@@ -90,7 +163,40 @@ class AiWbsDraftValidatorTest {
                 .containsExactly("ADJUST_PROJECT_PERIOD");
     }
 
+    @Test
+    void warnsWhenASectionDraftHasFewerParentsThanDetectedChapters() {
+        AiWbsGenerationInput input = tableOfContentsInput("""
+                Chapter 1 基礎
+                Chapter 2 文法
+                Chapter 3 API
+                Chapter 4 テスト
+                """);
+
+        AiValidatedWbsDraft result = validator.validate(input, proposal(BigDecimal.ONE));
+
+        assertThat(result.validationStatus()).isEqualTo(AiPlanDraftValidationStatus.WARNING);
+        assertThat(result.warnings()).extracting(node -> node.path("code").asText())
+                .containsExactly("SOURCE_COVERAGE_MAY_BE_INCOMPLETE");
+        assertThat(result.warnings().get(0).path("message").asText())
+                .isEqualTo("入力から4件の章見出しを検出しましたが、下書きの親タスクは1件です。"
+                        + "学習範囲が不足していないか確認してください。");
+    }
+
+    @Test
+    void doesNotWarnAboutChapterCoverageForAnOverviewRequest() {
+        AiWbsGenerationInput input = input(BigDecimal.ONE, "Chapter 1 基礎\nChapter 2 文法");
+
+        AiValidatedWbsDraft result = validator.validate(input, proposal(BigDecimal.ONE));
+
+        assertThat(result.validationStatus()).isEqualTo(AiPlanDraftValidationStatus.VALID);
+        assertThat(result.warnings()).isEmpty();
+    }
+
     private AiWbsGenerationInput input(BigDecimal weekdayHours) {
+        return input(weekdayHours, "Javaの基本");
+    }
+
+    private AiWbsGenerationInput input(BigDecimal weekdayHours, String sourceText) {
         ObjectNode constraints = JsonNodeFactory.instance.objectNode();
         constraints.put("weekdayAvailableHours", weekdayHours);
         constraints.put("weekendAvailableHours", 2);
@@ -103,7 +209,26 @@ class AiWbsDraftValidatorTest {
                 LocalDate.parse("2026-08-31"),
                 constraints,
                 null,
-                List.of(new AiWbsGenerationSource("source-1", AiPlanSourceType.OVERVIEW, 0, "概要", "Javaの基本"))
+                List.of(new AiWbsGenerationSource("source-1", AiPlanSourceType.OVERVIEW, 0, "概要", sourceText))
+        );
+    }
+
+    private AiWbsGenerationInput tableOfContentsInput(String sourceText) {
+        ObjectNode constraints = JsonNodeFactory.instance.objectNode();
+        constraints.put("weekdayAvailableHours", 8);
+        constraints.put("weekendAvailableHours", 8);
+        constraints.put("wbsSplitUnit", "SECTION");
+        constraints.putArray("unavailableWeekdays");
+        return new AiWbsGenerationInput(
+                AiPlanRequestSourceType.TABLE_OF_CONTENTS,
+                "Javaを学ぶ",
+                LocalDate.parse("2026-08-01"),
+                LocalDate.parse("2026-08-31"),
+                constraints,
+                null,
+                List.of(new AiWbsGenerationSource(
+                        "source-1", AiPlanSourceType.PASTED_TOC, 0, "目次", sourceText
+                ))
         );
     }
 
@@ -120,6 +245,27 @@ class AiWbsDraftValidatorTest {
                 ),
                 WbsSplitUnit.SECTION
         );
+    }
+
+    private void assertParentViolation(AiWbsDraftTask invalidParent, String reasonCode, String message) {
+        AiWbsDraftProposal proposal = new AiWbsDraftProposal(
+                project(),
+                List.of(
+                        invalidParent,
+                        new AiWbsDraftTask(
+                                "leaf-1", AiDraftTaskType.LEAF, "parent-1", "学ぶ", "",
+                                LocalDate.parse("2026-08-03"), LocalDate.parse("2026-08-03"),
+                                BigDecimal.ONE, List.of("source-1")
+                        )
+                ),
+                WbsSplitUnit.SECTION
+        );
+
+        assertThatThrownBy(() -> validator.validate(input(BigDecimal.ONE), proposal))
+                .isInstanceOfSatisfying(AiStructuredOutputException.class, exception -> {
+                    assertThat(exception.reasonCode()).isEqualTo(reasonCode);
+                    assertThat(exception).hasMessage(message);
+                });
     }
 
     private AiWbsDraftProject project() {

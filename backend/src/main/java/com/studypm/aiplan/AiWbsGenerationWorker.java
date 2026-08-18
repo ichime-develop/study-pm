@@ -18,6 +18,9 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.ai", name = "enabled", havingValue = "true")
 public class AiWbsGenerationWorker {
 
+    private static final String REGENERATION_INSTRUCTION =
+            "元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正して、WBS全体を再生成してください。";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AiWbsGenerationWorker.class);
 
     private final AiWbsGenerationJobTransactions transactions;
@@ -89,6 +92,7 @@ public class AiWbsGenerationWorker {
             try {
                 providerResult = callProviderWithRetry(work, validationFeedback);
             } catch (AiStructuredOutputException exception) {
+                logStructuredOutputFailure(work, generation, "PROVIDER", exception);
                 if (!prepareSchemaRegeneration(work, generation)) {
                     transactions.fail(work.jobId(), "AI_STRUCTURED_OUTPUT_INVALID");
                     return;
@@ -104,6 +108,7 @@ public class AiWbsGenerationWorker {
                 transactions.complete(work.jobId(), providerResult, validatedDraft);
                 return;
             } catch (AiStructuredOutputException exception) {
+                logStructuredOutputFailure(work, generation, "VALIDATOR", exception);
                 if (!prepareSchemaRegeneration(work, generation)) {
                     transactions.fail(work.jobId(), "AI_STRUCTURED_OUTPUT_INVALID");
                     return;
@@ -115,6 +120,21 @@ public class AiWbsGenerationWorker {
             }
         }
         transactions.fail(work.jobId(), "AI_STRUCTURED_OUTPUT_INVALID");
+    }
+
+    private void logStructuredOutputFailure(
+            AiWbsGenerationWork work,
+            int generation,
+            String stage,
+            AiStructuredOutputException exception
+    ) {
+        LOGGER.warn(
+                "AI WBS structured output validation failed. jobId={}, generation={}, stage={}, reason={}",
+                work.jobId(),
+                generation + 1,
+                stage,
+                exception.reasonCode()
+        );
     }
 
     private AiWbsGenerationProviderResult callProviderWithRetry(
@@ -163,8 +183,9 @@ public class AiWbsGenerationWorker {
     private String safeFeedback(AiStructuredOutputException exception) {
         String message = exception.getMessage();
         if (message == null || message.isBlank()) {
-            return "前回の出力がWBS下書きの構造要件を満たしませんでした。";
+            return REGENERATION_INSTRUCTION + " 前回の出力がWBS下書きの構造要件を満たしませんでした。";
         }
-        return message.length() <= 500 ? message : message.substring(0, 500);
+        String safeMessage = message.length() <= 500 ? message : message.substring(0, 500);
+        return REGENERATION_INSTRUCTION + " 構造上の問題: " + safeMessage;
     }
 }

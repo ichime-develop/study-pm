@@ -126,11 +126,15 @@ Google Cloud Visionの認証・権限・利用上限エラーは自動再試行�
 
 ### 6.2 構造再生成
 
-JSON解析、Schema、参照一時キー、業務構造の検証に失敗した場合、エラー内容を外部向けに安全化して同一段階を1回だけ再生成する。2回目も失敗した場合はFAILED `AI_STRUCTURED_OUTPUT_INVALID` とし、ユーザー操作による再試行を待つ。
+JSON解析、Schema、参照一時キー、業務構造の検証に失敗した場合、エラー内容を外部向けに安全化して同一段階を1回だけ再生成する。再生成時は、元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正してWBS全体を再生成するよう指示する。2回目も失敗した場合はFAILED `AI_STRUCTURED_OUTPUT_INVALID` とし、ユーザー操作による再試行を待つ。
+
+構造検証に失敗した場合は、入力本文、AI応答本文、例外メッセージを記録せず、ジョブID、生成回数、失敗段階、サーバー定義の固定理由コードだけをWARNログへ記録する。
 
 ## 7. WBS下書き生成
 
-目次入力を `SECTION` で分割する場合、除外指定された範囲を除いて入力目次の全ChapterをPARENTとして網羅し、入力後半を途中で打ち切らないようプロンプトで指示する。この指示を追加した版を `promptVersion = v2` とする。
+目次入力を `SECTION` で分割する場合、除外指定された範囲を除いて入力目次の全ChapterをPARENTとして網羅し、入力後半を途中で打ち切らないようプロンプトで指示する。PARENTの親参照、予定日、予定工数は `null`、入力元参照は空配列とすることもフィールド単位で指示する。構造再生成時の範囲維持指示を含む版を `promptVersion = v4` とする。
+
+`TABLE_OF_CONTENTS` かつ `SECTION` の場合は、入力行の `Chapter N`、`第N章`、`N章` という明示的な見出しから章数の概数を重複排除して算出する。下書きのPARENT数が検出章数より少ない場合は、`SOURCE_COVERAGE_MAY_BE_INCOMPLETE` を保存可能な警告として追加する。章検出は自由形式の目次を完全に解釈するものではないため、構造検証や保存可否には使用しない。
 
 ### 7.1 出力スキーマ
 
@@ -148,7 +152,7 @@ JSON解析、Schema、参照一時キー、業務構造の検証に失敗した�
 
 - project名、開始日、終了日の必須
 - WBS最大2階層
-- PARENTは最上位で、予定日・工数を持たない
+- PARENTは最上位で、親参照・予定日・工数を持たず、入力元参照を空配列とする
 - LEAFの予定工数は0.25h以上かつ0.25h単位
 - LEAFの開始日 <= 終了日
 - 親参照と入力元参照が存在する
@@ -265,7 +269,7 @@ WBS下書きのLEAF予定工数と利用可能時間から、次を算出する�
 | `app.ai.openai.max-output-tokens` | `OPENAI_MAX_OUTPUT_TOKENS` | `24000` |
 | `app.ai.openai.communication-retries` | `OPENAI_COMMUNICATION_RETRIES` | `2` |
 | `app.ai.openai.retry-backoff` | `OPENAI_RETRY_BACKOFF` | `1s` |
-| `app.ai.openai.prompt-version` | なし | `v2` |
+| `app.ai.openai.prompt-version` | なし | `v4` |
 | `app.ai.openai.schema-version` | なし | `v1` |
 | `app.ai.openai.strategy-version` | なし | `v1` |
 | `app.ai.vision.api-key` | `GOOGLE_CLOUD_VISION_API_KEY` | 未設定 |

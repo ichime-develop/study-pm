@@ -40,6 +40,8 @@ OpenAIモデル、プロンプト、Structured Outputsスキーマ、サーバ�
 
 評価fixtureは実装時に版管理し、変更理由を記録する。
 
+著作物の実目次を置き換えた8章構成の合成fixtureは、`backend/src/test/resources/fixtures/wbs-generation/eight-chapter-toc-v1.json` で管理する。章見出しの概数検出と、長い目次を使う評価入力の基礎データとして利用する。
+
 ## 4. 自動ハードゲート
 
 次の1件でも失敗した生成結果は採用候補にしない。

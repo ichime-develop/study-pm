@@ -28,9 +28,17 @@
       "dependsOrder": "sequence",
       "problemMatcher": {
         "owner": "custom",
-        "pattern": [],
+        "pattern": [
+          {
+            "regexp": "^(?!)((.*))$",
+            "kind": "file",
+            "file": 1,
+            "message": 2
+          }
+        ],
         "background": {
           "activeOnStart": true,
+          "beginsPattern": "(?!)",
           "endsPattern": "Started StudyPmApplication in"
         }
       },
@@ -49,9 +57,17 @@
       "isBackground": true,
       "problemMatcher": {
         "owner": "custom",
-        "pattern": [],
+        "pattern": [
+          {
+            "regexp": "^(?!)((.*))$",
+            "kind": "file",
+            "file": 1,
+            "message": 2
+          }
+        ],
         "background": {
           "activeOnStart": true,
+          "beginsPattern": "(?!)",
           "endsPattern": "(Local:\\s+http://localhost:5173/|frontend is already running at http://localhost:5173)"
         }
       },
@@ -70,9 +86,17 @@
       "isBackground": true,
       "problemMatcher": {
         "owner": "custom",
-        "pattern": [],
+        "pattern": [
+          {
+            "regexp": "^(?!)((.*))$",
+            "kind": "file",
+            "file": 1,
+            "message": 2
+          }
+        ],
         "background": {
           "activeOnStart": true,
+          "beginsPattern": "(?!)",
           "endsPattern": "(Local:\\s+http://localhost:5174/|mock is already running at http://localhost:5174)"
         }
       },

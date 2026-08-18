@@ -1351,6 +1351,16 @@ small {
   color: #80510b;
 }
 
+.ai-input-method-warning {
+  align-items: start;
+  display: grid;
+  gap: 6px;
+}
+
+.ai-input-method-warning .text-button {
+  justify-self: start;
+}
+
 .analysis-panel {
   gap: 16px;
 }

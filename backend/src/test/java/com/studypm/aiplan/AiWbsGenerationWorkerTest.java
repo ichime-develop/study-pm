@@ -62,8 +62,16 @@ class AiWbsGenerationWorkerTest {
         when(transactions.recordSchemaRegeneration(work.jobId())).thenReturn(true);
         when(provider.generate(eq(work), isNull())).thenReturn(first);
         when(validator.validate(work.input(), first.proposal()))
-                .thenThrow(new AiStructuredOutputException("LEAFの親参照が不正です。"));
-        when(provider.generate(eq(work), eq("LEAFの親参照が不正です。"))).thenReturn(second);
+                .thenThrow(new AiStructuredOutputException(
+                        "PARENT_SOURCE_KEYS_NOT_EMPTY",
+                        "PARENTのsourceTemporaryKeysは空配列にしてください。"
+                ));
+        when(provider.generate(eq(work), eq(
+                "元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正して、"
+                        + "WBS全体を再生成してください。 構造上の問題: "
+                        + "PARENTのsourceTemporaryKeysは空配列にしてください。"
+        )))
+                .thenReturn(second);
         when(validator.validate(work.input(), second.proposal())).thenReturn(validated);
 
         worker(0).runNext();
@@ -71,7 +79,12 @@ class AiWbsGenerationWorkerTest {
         InOrder order = inOrder(provider, transactions);
         order.verify(provider).generate(work, null);
         order.verify(transactions).recordSchemaRegeneration(work.jobId());
-        order.verify(provider).generate(work, "LEAFの親参照が不正です。");
+        order.verify(provider).generate(
+                work,
+                "元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正して、"
+                        + "WBS全体を再生成してください。 構造上の問題: "
+                        + "PARENTのsourceTemporaryKeysは空配列にしてください。"
+        );
         order.verify(transactions).complete(work.jobId(), second, validated);
     }
 
@@ -185,6 +198,51 @@ class AiWbsGenerationWorkerTest {
                 .allMatch(message -> !message.contains("sensitive provider response"))
                 .anyMatch(message -> message.contains(work.jobId().toString())
                         && message.contains(IllegalStateException.class.getName()));
+    }
+
+    @Test
+    void logsTheStructuredFailureReasonWithoutTheValidationMessage() {
+        AiWbsGenerationWork work = work();
+        AiWbsGenerationProviderResult first = providerResult("初回案");
+        AiWbsGenerationProviderResult second = providerResult("再生成案");
+        when(transactions.claimNext()).thenReturn(Optional.of(work));
+        when(transactions.recordAttempt(work.jobId())).thenReturn(true);
+        when(transactions.recordSchemaRegeneration(work.jobId())).thenReturn(true);
+        when(provider.generate(work, null)).thenReturn(first);
+        when(provider.generate(
+                work,
+                "元の入力条件と学習範囲を省略せず、指摘された構造上の問題だけを修正して、"
+                        + "WBS全体を再生成してください。 構造上の問題: sensitive validation detail"
+        )).thenReturn(second);
+        when(validator.validate(work.input(), first.proposal()))
+                .thenThrow(new AiStructuredOutputException(
+                        "LEAF_PARENT_REFERENCE_INVALID",
+                        "sensitive validation detail"
+                ));
+        when(validator.validate(work.input(), second.proposal()))
+                .thenThrow(new AiStructuredOutputException(
+                        "LEAF_PARENT_REFERENCE_INVALID",
+                        "sensitive validation detail"
+                ));
+        Logger logger = (Logger) LoggerFactory.getLogger(AiWbsGenerationWorker.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            worker(0).runNext();
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                .allMatch(message -> !message.contains("sensitive validation detail"))
+                .anyMatch(message -> message.contains(work.jobId().toString())
+                        && message.contains("generation=2")
+                        && message.contains("stage=VALIDATOR")
+                        && message.contains("reason=LEAF_PARENT_REFERENCE_INVALID"));
+        org.mockito.Mockito.verify(transactions).fail(work.jobId(), "AI_STRUCTURED_OUTPUT_INVALID");
     }
 
     private AiWbsGenerationWorker worker(int retries) {

@@ -26,9 +26,11 @@ public class AiWbsDraftValidator {
     private static final BigDecimal MAX_PLANNED_HOURS = new BigDecimal("9999.99");
     private static final BigDecimal HOURS_PER_DAY = BigDecimal.valueOf(24);
     private final ObjectMapper objectMapper;
+    private final AiChapterHeadingDetector chapterHeadingDetector;
 
-    public AiWbsDraftValidator(ObjectMapper objectMapper) {
+    public AiWbsDraftValidator(ObjectMapper objectMapper, AiChapterHeadingDetector chapterHeadingDetector) {
         this.objectMapper = objectMapper;
+        this.chapterHeadingDetector = chapterHeadingDetector;
     }
 
     public AiValidatedWbsDraft validate(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
@@ -42,6 +44,7 @@ public class AiWbsDraftValidator {
 
         AiStudySchedule schedule = studySchedule(input.constraints());
         ArrayNode warnings = objectMapper.createArrayNode();
+        addSourceCoverageWarning(input, proposal, warnings);
         DailyAllocation allocation = allocateDailyPlannedHours(input, proposal.tasks(), schedule);
         warnings.addAll(allocation.warnings());
         Map<LocalDate, BigDecimal> dailyPlannedHours = allocation.dailyHours();
@@ -62,39 +65,39 @@ public class AiWbsDraftValidator {
 
     private void validateProject(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
         if (proposal == null || proposal.project() == null) {
-            throw structureError("projectは必須です。");
+            throw structureError("PROJECT_MISSING", "projectは必須です。");
         }
         AiWbsDraftProject project = proposal.project();
         requireText(project.name(), 100, "project.name");
         if (project.description() == null || project.description().length() > 5000) {
-            throw structureError("project.descriptionは5,000文字以下で必須です。");
+            throw structureError("PROJECT_DESCRIPTION_INVALID", "project.descriptionは5,000文字以下で必須です。");
         }
         if (project.startDate() == null || project.targetEndDate() == null
                 || project.startDate().isAfter(project.targetEndDate())) {
-            throw structureError("projectの期間が正しくありません。");
+            throw structureError("PROJECT_PERIOD_INVALID", "projectの期間が正しくありません。");
         }
         if (!project.startDate().equals(input.startDate()) || !project.targetEndDate().equals(input.targetEndDate())) {
-            throw structureError("projectの期間は生成依頼の期間と一致させてください。");
+            throw structureError("PROJECT_PERIOD_MISMATCH", "projectの期間は生成依頼の期間と一致させてください。");
         }
     }
 
     private Map<String, AiWbsDraftTask> validateTaskFields(List<AiWbsDraftTask> tasks) {
         if (tasks == null || tasks.isEmpty()) {
-            throw structureError("tasksには1件以上のタスクが必要です。");
+            throw structureError("TASKS_EMPTY", "tasksには1件以上のタスクが必要です。");
         }
         Map<String, AiWbsDraftTask> tasksByKey = new HashMap<>();
         int leafCount = 0;
         for (AiWbsDraftTask task : tasks) {
             if (task == null || task.taskType() == null) {
-                throw structureError("各taskのtaskTypeは必須です。");
+                throw structureError("TASK_TYPE_MISSING", "各taskのtaskTypeは必須です。");
             }
             requireText(task.temporaryKey(), 100, "task.temporaryKey");
             requireText(task.name(), 100, "task.name");
             if (task.description() == null || task.description().length() > 5000) {
-                throw structureError("task.descriptionは5,000文字以下で必須です。");
+                throw structureError("TASK_DESCRIPTION_INVALID", "task.descriptionは5,000文字以下で必須です。");
             }
             if (tasksByKey.putIfAbsent(task.temporaryKey(), task) != null) {
-                throw structureError("task.temporaryKeyは重複できません。");
+                throw structureError("TASK_KEY_DUPLICATE", "task.temporaryKeyは重複できません。");
             }
             if (task.taskType() == AiDraftTaskType.PARENT) {
                 validateParent(task);
@@ -104,36 +107,50 @@ public class AiWbsDraftValidator {
             }
         }
         if (leafCount == 0) {
-            throw structureError("LEAFタスクが1件以上必要です。");
+            throw structureError("LEAF_MISSING", "LEAFタスクが1件以上必要です。");
         }
         return tasksByKey;
     }
 
     private void validateParent(AiWbsDraftTask task) {
-        if (task.parentTemporaryKey() != null
-                || task.plannedStartDate() != null
-                || task.plannedEndDate() != null
-                || task.plannedHours() != null
-                || !task.sourceTemporaryKeys().isEmpty()) {
-            throw structureError("PARENTは親参照、予定日、予定工数、入力元参照を持てません。");
+        if (task.parentTemporaryKey() != null) {
+            throw structureError("PARENT_PARENT_KEY_NOT_NULL", "PARENTのparentTemporaryKeyはnullにしてください。");
+        }
+        if (task.plannedStartDate() != null) {
+            throw structureError("PARENT_START_DATE_NOT_NULL", "PARENTのplannedStartDateはnullにしてください。");
+        }
+        if (task.plannedEndDate() != null) {
+            throw structureError("PARENT_END_DATE_NOT_NULL", "PARENTのplannedEndDateはnullにしてください。");
+        }
+        if (task.plannedHours() != null) {
+            throw structureError("PARENT_HOURS_NOT_NULL", "PARENTのplannedHoursはnullにしてください。");
+        }
+        if (!task.sourceTemporaryKeys().isEmpty()) {
+            throw structureError(
+                    "PARENT_SOURCE_KEYS_NOT_EMPTY",
+                    "PARENTのsourceTemporaryKeysは空配列にしてください。"
+            );
         }
     }
 
     private void validateLeaf(AiWbsDraftTask task) {
         if (task.parentTemporaryKey() == null || task.parentTemporaryKey().isBlank()) {
-            throw structureError("LEAFのparentTemporaryKeyは必須です。");
+            throw structureError("LEAF_PARENT_KEY_MISSING", "LEAFのparentTemporaryKeyは必須です。");
         }
         if (task.plannedStartDate() == null || task.plannedEndDate() == null
                 || task.plannedStartDate().isAfter(task.plannedEndDate())) {
-            throw structureError("LEAFの予定開始日と予定終了日を正しく設定してください。");
+            throw structureError("LEAF_PERIOD_INVALID", "LEAFの予定開始日と予定終了日を正しく設定してください。");
         }
         BigDecimal hours = task.plannedHours();
         if (hours == null || hours.compareTo(QUARTER_HOUR) < 0 || hours.compareTo(MAX_PLANNED_HOURS) > 0
                 || hours.remainder(QUARTER_HOUR).signum() != 0) {
-            throw structureError("LEAFの予定工数は0.25時間以上9999.99時間以下、0.25時間単位にしてください。");
+            throw structureError(
+                    "LEAF_HOURS_INVALID",
+                    "LEAFの予定工数は0.25時間以上9999.99時間以下、0.25時間単位にしてください。"
+            );
         }
         if (task.sourceTemporaryKeys().isEmpty()) {
-            throw structureError("LEAFには1件以上のsourceTemporaryKeysが必要です。");
+            throw structureError("LEAF_SOURCE_KEYS_EMPTY", "LEAFには1件以上のsourceTemporaryKeysが必要です。");
         }
     }
 
@@ -148,12 +165,18 @@ public class AiWbsDraftValidator {
             }
             AiWbsDraftTask parent = tasksByKey.get(task.parentTemporaryKey());
             if (parent == null || parent.taskType() != AiDraftTaskType.PARENT) {
-                throw structureError("LEAFの親参照は同じ下書き内のPARENTを指定してください。");
+                throw structureError(
+                        "LEAF_PARENT_REFERENCE_INVALID",
+                        "LEAFの親参照は同じ下書き内のPARENTを指定してください。"
+                );
             }
             Set<String> uniqueSourceKeys = new HashSet<>();
             for (String sourceKey : task.sourceTemporaryKeys()) {
                 if (sourceKey == null || !uniqueSourceKeys.add(sourceKey) || !sourceKeys.contains(sourceKey)) {
-                    throw structureError("LEAFの入力元参照が存在しないか重複しています。");
+                    throw structureError(
+                            "LEAF_SOURCE_REFERENCE_INVALID",
+                            "LEAFの入力元参照が存在しないか重複しています。"
+                    );
                 }
             }
         }
@@ -164,21 +187,44 @@ public class AiWbsDraftValidator {
         try {
             expectedUnit = WbsSplitUnit.valueOf(constraints.path("wbsSplitUnit").asText("SECTION"));
         } catch (IllegalArgumentException exception) {
-            throw structureError("生成依頼のwbsSplitUnitが正しくありません。");
+            throw structureError("REQUEST_SPLIT_UNIT_INVALID", "生成依頼のwbsSplitUnitが正しくありません。");
         }
         if (actualUnit != expectedUnit) {
-            throw structureError("wbsSplitUnitは生成依頼の指定値と一致させてください。");
+            throw structureError("SPLIT_UNIT_MISMATCH", "wbsSplitUnitは生成依頼の指定値と一致させてください。");
         }
         if (actualUnit == WbsSplitUnit.PAGE) {
             AiQuantityCondition quantity;
             try {
                 quantity = AiQuantityCondition.from(constraints).orElse(null);
             } catch (IllegalArgumentException exception) {
-                throw structureError("PAGE分割の数量条件が正しくありません。");
+                throw structureError("PAGE_QUANTITY_INVALID", "PAGE分割の数量条件が正しくありません。");
             }
             if (quantity == null || !"ページ".equals(quantity.unit())) {
-                throw structureError("PAGE分割にはページ単位の数量条件が必要です。");
+                throw structureError("PAGE_QUANTITY_UNIT_INVALID", "PAGE分割にはページ単位の数量条件が必要です。");
             }
+        }
+    }
+
+    private void addSourceCoverageWarning(
+            AiWbsGenerationInput input,
+            AiWbsDraftProposal proposal,
+            ArrayNode warnings
+    ) {
+        if (input.sourceType() != AiPlanRequestSourceType.TABLE_OF_CONTENTS
+                || proposal.wbsSplitUnit() != WbsSplitUnit.SECTION) {
+            return;
+        }
+        int detectedChapterCount = chapterHeadingDetector.count(input.sources());
+        int parentCount = (int) proposal.tasks().stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.PARENT)
+                .count();
+        if (detectedChapterCount > 1 && parentCount < detectedChapterCount) {
+            warnings.add(issue(
+                    "SOURCE_COVERAGE_MAY_BE_INCOMPLETE",
+                    "入力から" + detectedChapterCount + "件の章見出しを検出しましたが、下書きの親タスクは"
+                            + parentCount + "件です。学習範囲が不足していないか確認してください。",
+                    "tasks"
+            ));
         }
     }
 
@@ -319,13 +365,13 @@ public class AiWbsDraftValidator {
         try {
             return AiStudySchedule.from(constraints);
         } catch (IllegalArgumentException exception) {
-            throw structureError("学習可能時間または学習できない曜日が正しくありません。");
+            throw structureError("STUDY_SCHEDULE_INVALID", "学習可能時間または学習できない曜日が正しくありません。");
         }
     }
 
     private void requireText(String value, int maximumLength, String fieldName) {
         if (value == null || value.isBlank() || value.length() > maximumLength) {
-            throw structureError(fieldName + "は1〜" + maximumLength + "文字で必須です。");
+            throw structureError("TEXT_FIELD_INVALID", fieldName + "は1〜" + maximumLength + "文字で必須です。");
         }
     }
 
@@ -333,8 +379,8 @@ public class AiWbsDraftValidator {
         return value.stripTrailingZeros().toPlainString();
     }
 
-    private AiStructuredOutputException structureError(String message) {
-        return new AiStructuredOutputException(message);
+    private AiStructuredOutputException structureError(String reasonCode, String message) {
+        return new AiStructuredOutputException(reasonCode, message);
     }
 
     private record DailyAllocation(Map<LocalDate, BigDecimal> dailyHours, List<ObjectNode> warnings) {

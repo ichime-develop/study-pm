@@ -92,6 +92,22 @@ describe("AI計画作成画面", () => {
     });
   });
 
+  it("AI02は概要欄へ複数章が入力された場合に目次から作成するよう案内する", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(account())));
+
+    renderPage(<AiPlanInputPage />, "/projects/new/ai/input?method=overview", "/projects/new/ai/input");
+
+    await screen.findByRole("heading", { name: "概要から計画案を作る" });
+    fireEvent.change(screen.getByLabelText(/学習内容の概要/), {
+      target: { value: "Chapter 1 基礎\nChapter 2 実践" },
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("目次のような入力が含まれています。");
+    await userEvent.click(screen.getByRole("button", { name: "作成方法を選び直す" }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/projects/new/ai");
+  });
+
   it("AI02はAI利用不可を案内し、確認後にプロジェクト一覧へ戻る", async () => {
     vi.stubGlobal("fetch", requestAndJobFetch({
       ...generationJob(),
@@ -154,6 +170,8 @@ describe("AI計画作成画面", () => {
     renderPage(<AiPlanDraftPage />, "/projects/new/ai/drafts/draft-1", "/projects/new/ai/drafts/:draftId");
 
     expect(await screen.findByText("Javaの基本")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "プロジェクト基本情報" }).closest("section"))
+      .toHaveClass("ai-plan-form-panel");
     await userEvent.click(screen.getByRole("button", { name: "この計画でプロジェクトを作成" }));
 
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/projects/project-1/wbs"));

@@ -44,7 +44,7 @@ public class AiGenerationJobService {
             @Value("${app.ai.job-timeout:5m}") java.time.Duration timeout,
             @Value("${app.ai.daily-generation-limit:10}") int dailyLimit,
             @Value("${app.ai.openai.model:gpt-4.1-mini}") String modelName,
-            @Value("${app.ai.openai.prompt-version:v2}") String promptVersion,
+            @Value("${app.ai.openai.prompt-version:v4}") String promptVersion,
             @Value("${app.ai.openai.schema-version:v1}") String schemaVersion,
             @Value("${app.ai.openai.strategy-version:v1}") String strategyVersion
     ) {
@@ -148,6 +148,11 @@ public class AiGenerationJobService {
                     errorCode,
                     "AIは現在利用できません。WBSを手動で作成してください。",
                     List.of("OKを押してプロジェクト一覧へ戻る")
+            );
+            case "AI_STRUCTURED_OUTPUT_INVALID" -> new AiGenerationJobError(
+                    errorCode,
+                    "生成されたWBS下書きが形式要件を満たさなかったため、保存できませんでした。",
+                    List.of("同じ内容で再度生成する", "繰り返し失敗する場合は学習範囲を分ける")
             );
             default -> new AiGenerationJobError(
                     errorCode,
