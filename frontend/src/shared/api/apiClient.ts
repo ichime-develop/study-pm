@@ -5,7 +5,7 @@ import { ApiClientError, type ApiErrorResponse } from "./apiTypes";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
 type ApiRequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   isRetry?: boolean;
   skipRefresh?: boolean;
@@ -18,12 +18,22 @@ export const apiClient = {
 };
 
 const request = async <T>(path: string, options: ApiRequestOptions = {}): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method ?? "GET",
-    headers: buildHeaders(options.body),
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    credentials: "include",
-  });
+  const requestBody = buildBody(options.body);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: options.method ?? "GET",
+      headers: buildHeaders(options.body),
+      body: requestBody,
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiClientError(0, {
+      code: "NETWORK_ERROR",
+      message: "サーバーに接続できませんでした。接続状態を確認して再度お試しください。",
+      details: [],
+    });
+  }
 
   if (response.status === 204) {
     return undefined as T;
@@ -47,7 +57,7 @@ const buildHeaders = (body: unknown): HeadersInit => {
   const headers = new Headers();
   headers.set("Accept", "application/json");
 
-  if (body !== undefined) {
+  if (body !== undefined && !(body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -57,6 +67,13 @@ const buildHeaders = (body: unknown): HeadersInit => {
   }
 
   return headers;
+};
+
+const buildBody = (body: unknown): BodyInit | undefined => {
+  if (body === undefined) {
+    return undefined;
+  }
+  return body instanceof FormData ? body : JSON.stringify(body);
 };
 
 const refreshAccessTokenOnce = async (): Promise<string | null> => {

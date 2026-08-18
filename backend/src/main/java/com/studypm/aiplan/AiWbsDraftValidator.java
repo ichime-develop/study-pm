@@ -1,0 +1,430 @@
+package com.studypm.aiplan;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.stereotype.Component;
+
+/**
+ * AI出力を通常WBSへ保存可能な2階層下書きへ限定し、計画警告を算出する。
+ */
+@Component
+public class AiWbsDraftValidator {
+
+    private static final BigDecimal QUARTER_HOUR = new BigDecimal("0.25");
+    private static final BigDecimal MAX_PLANNED_HOURS = new BigDecimal("9999.99");
+    private static final BigDecimal HOURS_PER_DAY = BigDecimal.valueOf(24);
+    private final ObjectMapper objectMapper;
+    private final AiChapterHeadingDetector chapterHeadingDetector;
+
+    public AiWbsDraftValidator(ObjectMapper objectMapper, AiChapterHeadingDetector chapterHeadingDetector) {
+        this.objectMapper = objectMapper;
+        this.chapterHeadingDetector = chapterHeadingDetector;
+    }
+
+    public AiValidatedWbsDraft validate(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
+        return validate(input, proposal, List.of(), null);
+    }
+
+    AiValidatedWbsDraft validate(
+            AiWbsGenerationInput input,
+            AiWbsDraftProposal proposal,
+            List<AiWbsDraftIssue> initialWarnings,
+            Map<LocalDate, BigDecimal> assignedDailyHours
+    ) {
+        validateProject(input, proposal);
+        Map<String, AiWbsDraftTask> tasksByKey = validateTaskFields(proposal.tasks());
+        Set<String> sourceKeys = input.sources().stream()
+                .map(AiWbsGenerationSource::temporaryKey)
+                .collect(java.util.stream.Collectors.toSet());
+        validateReferences(proposal.tasks(), tasksByKey, sourceKeys);
+        validateSplitUnit(input.constraints(), proposal.wbsSplitUnit());
+
+        AiStudySchedule schedule = studySchedule(input.constraints());
+        ArrayNode collectedWarnings = objectMapper.createArrayNode();
+        initialWarnings.forEach(warning -> collectedWarnings.add(issue(
+                warning.code(), warning.message(), warning.target()
+        )));
+        addSourceCoverageWarning(input, proposal, collectedWarnings);
+        addPeriodWarnings(input, proposal.tasks(), collectedWarnings);
+        DailyAllocation allocation = assignedDailyHours == null
+                ? allocateDailyPlannedHours(input, proposal.tasks(), schedule)
+                : new DailyAllocation(Map.copyOf(assignedDailyHours), List.of());
+        collectedWarnings.addAll(allocation.warnings());
+        Map<LocalDate, BigDecimal> dailyPlannedHours = allocation.dailyHours();
+        validateDailyMaximum(dailyPlannedHours);
+        addAvailableHoursWarnings(dailyPlannedHours, schedule, collectedWarnings);
+        ArrayNode warnings = deduplicate(collectedWarnings);
+        ArrayNode relaxationOptions = relaxationOptions(input, proposal.tasks(), dailyPlannedHours, schedule, warnings);
+        AiPlanDraftValidationStatus status = warnings.isEmpty()
+                ? AiPlanDraftValidationStatus.VALID
+                : AiPlanDraftValidationStatus.WARNING;
+        return new AiValidatedWbsDraft(
+                proposal,
+                objectMapper.valueToTree(proposal.tasks()),
+                status,
+                warnings,
+                relaxationOptions,
+                dailyPlannedHours
+        );
+    }
+
+    private ArrayNode deduplicate(ArrayNode warnings) {
+        ArrayNode result = objectMapper.createArrayNode();
+        Set<String> keys = new HashSet<>();
+        warnings.forEach(warning -> {
+            String key = warning.path("code").asText() + "\u0000" + warning.path("target").asText();
+            if (keys.add(key)) {
+                result.add(warning);
+            }
+        });
+        return result;
+    }
+
+    private void validateProject(AiWbsGenerationInput input, AiWbsDraftProposal proposal) {
+        if (proposal == null || proposal.project() == null) {
+            throw structureError("PROJECT_MISSING", "projectは必須です。");
+        }
+        AiWbsDraftProject project = proposal.project();
+        requireText(project.name(), 100, "project.name");
+        if (project.description() == null || codePointCount(project.description()) > 5000) {
+            throw structureError("PROJECT_DESCRIPTION_INVALID", "project.descriptionは5,000文字以下で必須です。");
+        }
+        if (project.startDate() == null || project.targetEndDate() == null
+                || project.startDate().isAfter(project.targetEndDate())) {
+            throw structureError("PROJECT_PERIOD_INVALID", "projectの期間が正しくありません。");
+        }
+        if (!project.startDate().equals(input.startDate()) || !project.targetEndDate().equals(input.targetEndDate())) {
+            throw structureError("PROJECT_PERIOD_MISMATCH", "projectの期間は生成依頼の期間と一致させてください。");
+        }
+    }
+
+    private Map<String, AiWbsDraftTask> validateTaskFields(List<AiWbsDraftTask> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            throw structureError("TASKS_EMPTY", "tasksには1件以上のタスクが必要です。");
+        }
+        Map<String, AiWbsDraftTask> tasksByKey = new HashMap<>();
+        int leafCount = 0;
+        for (AiWbsDraftTask task : tasks) {
+            if (task == null || task.taskType() == null) {
+                throw structureError("TASK_TYPE_MISSING", "各taskのtaskTypeは必須です。");
+            }
+            requireText(task.temporaryKey(), 100, "task.temporaryKey");
+            requireText(task.name(), 100, "task.name");
+            if (task.description() == null || codePointCount(task.description()) > 5000) {
+                throw structureError("TASK_DESCRIPTION_INVALID", "task.descriptionは5,000文字以下で必須です。");
+            }
+            if (tasksByKey.putIfAbsent(task.temporaryKey(), task) != null) {
+                throw structureError("TASK_KEY_DUPLICATE", "task.temporaryKeyは重複できません。");
+            }
+            if (task.taskType() == AiDraftTaskType.PARENT) {
+                validateParent(task);
+            } else {
+                validateLeaf(task);
+                leafCount++;
+            }
+        }
+        if (leafCount == 0) {
+            throw structureError("LEAF_MISSING", "LEAFタスクが1件以上必要です。");
+        }
+        return tasksByKey;
+    }
+
+    private void validateParent(AiWbsDraftTask task) {
+        if (task.parentTemporaryKey() != null) {
+            throw structureError("PARENT_PARENT_KEY_NOT_NULL", "PARENTのparentTemporaryKeyはnullにしてください。");
+        }
+        if (task.plannedStartDate() != null) {
+            throw structureError("PARENT_START_DATE_NOT_NULL", "PARENTのplannedStartDateはnullにしてください。");
+        }
+        if (task.plannedEndDate() != null) {
+            throw structureError("PARENT_END_DATE_NOT_NULL", "PARENTのplannedEndDateはnullにしてください。");
+        }
+        if (task.plannedHours() != null) {
+            throw structureError("PARENT_HOURS_NOT_NULL", "PARENTのplannedHoursはnullにしてください。");
+        }
+        if (!task.sourceTemporaryKeys().isEmpty()) {
+            throw structureError(
+                    "PARENT_SOURCE_KEYS_NOT_EMPTY",
+                    "PARENTのsourceTemporaryKeysは空配列にしてください。"
+            );
+        }
+    }
+
+    private void validateLeaf(AiWbsDraftTask task) {
+        if (task.parentTemporaryKey() == null || task.parentTemporaryKey().isBlank()) {
+            throw structureError("LEAF_PARENT_KEY_MISSING", "LEAFのparentTemporaryKeyは必須です。");
+        }
+        if (task.plannedStartDate() == null || task.plannedEndDate() == null
+                || task.plannedStartDate().isAfter(task.plannedEndDate())) {
+            throw structureError("LEAF_PERIOD_INVALID", "LEAFの予定開始日と予定終了日を正しく設定してください。");
+        }
+        BigDecimal hours = task.plannedHours();
+        if (hours == null || hours.compareTo(QUARTER_HOUR) < 0 || hours.compareTo(MAX_PLANNED_HOURS) > 0
+                || hours.remainder(QUARTER_HOUR).signum() != 0) {
+            throw structureError(
+                    "LEAF_HOURS_INVALID",
+                    "LEAFの予定工数は0.25時間以上9999.99時間以下、0.25時間単位にしてください。"
+            );
+        }
+        if (task.sourceTemporaryKeys().isEmpty()) {
+            throw structureError("LEAF_SOURCE_KEYS_EMPTY", "LEAFには1件以上のsourceTemporaryKeysが必要です。");
+        }
+    }
+
+    private void validateReferences(
+            List<AiWbsDraftTask> tasks,
+            Map<String, AiWbsDraftTask> tasksByKey,
+            Set<String> sourceKeys
+    ) {
+        for (AiWbsDraftTask task : tasks) {
+            if (task.taskType() != AiDraftTaskType.LEAF) {
+                continue;
+            }
+            AiWbsDraftTask parent = tasksByKey.get(task.parentTemporaryKey());
+            if (parent == null || parent.taskType() != AiDraftTaskType.PARENT) {
+                throw structureError(
+                        "LEAF_PARENT_REFERENCE_INVALID",
+                        "LEAFの親参照は同じ下書き内のPARENTを指定してください。"
+                );
+            }
+            Set<String> uniqueSourceKeys = new HashSet<>();
+            for (String sourceKey : task.sourceTemporaryKeys()) {
+                if (sourceKey == null || !uniqueSourceKeys.add(sourceKey) || !sourceKeys.contains(sourceKey)) {
+                    throw structureError(
+                            "LEAF_SOURCE_REFERENCE_INVALID",
+                            "LEAFの入力元参照が存在しないか重複しています。"
+                    );
+                }
+            }
+        }
+    }
+
+    private void validateSplitUnit(JsonNode constraints, WbsSplitUnit actualUnit) {
+        WbsSplitUnit expectedUnit;
+        try {
+            expectedUnit = WbsSplitUnit.valueOf(constraints.path("wbsSplitUnit").asText("SECTION"));
+        } catch (IllegalArgumentException exception) {
+            throw structureError("REQUEST_SPLIT_UNIT_INVALID", "生成依頼のwbsSplitUnitが正しくありません。");
+        }
+        if (actualUnit != expectedUnit) {
+            throw structureError("SPLIT_UNIT_MISMATCH", "wbsSplitUnitは生成依頼の指定値と一致させてください。");
+        }
+        if (actualUnit == WbsSplitUnit.PAGE) {
+            AiQuantityCondition quantity;
+            try {
+                quantity = AiQuantityCondition.from(constraints).orElse(null);
+            } catch (IllegalArgumentException exception) {
+                throw structureError("PAGE_QUANTITY_INVALID", "PAGE分割の数量条件が正しくありません。");
+            }
+            if (quantity == null || !"ページ".equals(quantity.unit())) {
+                throw structureError("PAGE_QUANTITY_UNIT_INVALID", "PAGE分割にはページ単位の数量条件が必要です。");
+            }
+        }
+    }
+
+    private void addSourceCoverageWarning(
+            AiWbsGenerationInput input,
+            AiWbsDraftProposal proposal,
+            ArrayNode warnings
+    ) {
+        if (input.sourceType() != AiPlanRequestSourceType.TABLE_OF_CONTENTS
+                || proposal.wbsSplitUnit() != WbsSplitUnit.SECTION) {
+            return;
+        }
+        int detectedChapterCount = chapterHeadingDetector.count(input.sources());
+        int leafCount = (int) proposal.tasks().stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.LEAF)
+                .count();
+        if (detectedChapterCount > 1 && leafCount < detectedChapterCount) {
+            warnings.add(issue(
+                    "SOURCE_COVERAGE_MAY_BE_INCOMPLETE",
+                    "入力から" + detectedChapterCount + "件の章見出しを検出しましたが、下書きの実行タスクは"
+                            + leafCount + "件です。学習範囲が不足していないか確認してください。",
+                    "tasks"
+            ));
+        }
+    }
+
+    private DailyAllocation allocateDailyPlannedHours(
+            AiWbsGenerationInput input,
+            List<AiWbsDraftTask> tasks,
+            AiStudySchedule schedule
+    ) {
+        Map<LocalDate, BigDecimal> result = new HashMap<>();
+        for (AiWbsDraftTask task : tasks) {
+            if (task.taskType() != AiDraftTaskType.LEAF) {
+                continue;
+            }
+            List<LocalDate> availableDates = task.plannedStartDate().datesUntil(task.plannedEndDate().plusDays(1))
+                    .filter(date -> schedule.availableHours(date).signum() > 0)
+                    .toList();
+            if (availableDates.isEmpty()) {
+                throw new AiDraftBusinessValidationException("利用可能日がないLEAFタスクは保存できません。");
+            }
+            BigDecimal dailyHours = task.plannedHours().divide(
+                    BigDecimal.valueOf(availableDates.size()),
+                    12,
+                    java.math.RoundingMode.HALF_UP
+            );
+            for (LocalDate date : availableDates) {
+                result.merge(date, dailyHours, BigDecimal::add);
+            }
+        }
+        return new DailyAllocation(Map.copyOf(result), List.of());
+    }
+
+    private void addPeriodWarnings(
+            AiWbsGenerationInput input,
+            List<AiWbsDraftTask> tasks,
+            ArrayNode warnings
+    ) {
+        tasks.stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.LEAF)
+                .filter(task -> task.plannedStartDate().isBefore(input.startDate())
+                        || task.plannedEndDate().isAfter(input.targetEndDate()))
+                .forEach(task -> warnings.add(issue(
+                        "TASK_OUTSIDE_PROJECT_PERIOD",
+                        "プロジェクト期間外の予定を持つタスクがあります。",
+                        task.temporaryKey()
+                )));
+    }
+
+    private void validateDailyMaximum(Map<LocalDate, BigDecimal> dailyPlannedHours) {
+        if (dailyPlannedHours.values().stream().anyMatch(hours -> hours.compareTo(HOURS_PER_DAY) > 0)) {
+            throw new AiDraftBusinessValidationException(
+                    "AI_DRAFT_DAILY_LIMIT_EXCEEDED",
+                    "1日の予定工数が24時間を超える下書きは保存できません。"
+            );
+        }
+    }
+
+    private void addAvailableHoursWarnings(
+            Map<LocalDate, BigDecimal> dailyPlannedHours,
+            AiStudySchedule schedule,
+            ArrayNode warnings
+    ) {
+        for (Map.Entry<LocalDate, BigDecimal> entry : dailyPlannedHours.entrySet()) {
+            BigDecimal available = schedule.availableHours(entry.getKey());
+            if (entry.getValue().compareTo(available) > 0) {
+                warnings.add(issue(
+                        "DAILY_AVAILABLE_HOURS_EXCEEDED",
+                        "希望する1日あたり学習時間を超える日があります。",
+                        entry.getKey().toString()
+                ));
+            }
+        }
+    }
+
+    private ArrayNode relaxationOptions(
+            AiWbsGenerationInput input,
+            List<AiWbsDraftTask> tasks,
+            Map<LocalDate, BigDecimal> dailyPlannedHours,
+            AiStudySchedule schedule,
+            ArrayNode warnings
+    ) {
+        ArrayNode options = objectMapper.createArrayNode();
+        if (warnings.isEmpty()) {
+            return options;
+        }
+        Set<String> warningCodes = warningCodes(warnings);
+        Map<String, ObjectNode> optionsByCode = new LinkedHashMap<>();
+        boolean hasDailyAvailableHoursExceeded = warningCodes.contains("DAILY_AVAILABLE_HOURS_EXCEEDED");
+        if (warningCodes.contains("TASK_OUTSIDE_PROJECT_PERIOD") && !hasDailyAvailableHoursExceeded) {
+            optionsByCode.put(
+                    "ADJUST_PROJECT_PERIOD",
+                    option("ADJUST_PROJECT_PERIOD", "目標終了日を延長する")
+            );
+        }
+        if (!hasDailyAvailableHoursExceeded) {
+            optionsByCode.values().stream().limit(3).forEach(options::add);
+            return options;
+        }
+        BigDecimal maximumDailyHours = dailyPlannedHours.values().stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+        optionsByCode.put("INCREASE_AVAILABLE_HOURS", option(
+                "INCREASE_AVAILABLE_HOURS",
+                "平日または土日の学習可能時間を最大" + displayHours(maximumDailyHours) + "時間まで増やす"
+        ));
+        optionsByCode.put(
+                "EXTEND_TARGET_END_DATE",
+                option("EXTEND_TARGET_END_DATE", "目標終了日を延長して学習可能日を増やす")
+        );
+        BigDecimal totalPlannedHours = tasks.stream()
+                .filter(task -> task.taskType() == AiDraftTaskType.LEAF)
+                .map(AiWbsDraftTask::plannedHours)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal availableCapacity = input.startDate().datesUntil(input.targetEndDate().plusDays(1))
+                .map(schedule::availableHours)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal reduction = totalPlannedHours.subtract(availableCapacity).max(BigDecimal.ZERO);
+        optionsByCode.put("REDUCE_SCOPE", option(
+                "REDUCE_SCOPE",
+                reduction.signum() > 0
+                        ? "学習範囲を減らし、予定工数を少なくとも" + displayHours(reduction) + "時間減らす"
+                        : "学習範囲を減らして1日あたりの負荷を下げる"
+        ));
+        optionsByCode.values().stream().limit(3).forEach(options::add);
+        return options;
+    }
+
+    private Set<String> warningCodes(ArrayNode warnings) {
+        Set<String> result = new HashSet<>();
+        warnings.forEach(warning -> result.add(warning.path("code").asText()));
+        return result;
+    }
+
+    private ObjectNode issue(String code, String message, String target) {
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("code", code);
+        result.put("message", message);
+        result.put("target", target);
+        return result;
+    }
+
+    private ObjectNode option(String code, String message) {
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("code", code);
+        result.put("message", message);
+        return result;
+    }
+
+    private AiStudySchedule studySchedule(JsonNode constraints) {
+        try {
+            return AiStudySchedule.from(constraints);
+        } catch (IllegalArgumentException exception) {
+            throw structureError("STUDY_SCHEDULE_INVALID", "学習可能時間または学習できない曜日が正しくありません。");
+        }
+    }
+
+    private void requireText(String value, int maximumLength, String fieldName) {
+        if (value == null || value.isBlank() || codePointCount(value) > maximumLength) {
+            throw structureError("TEXT_FIELD_INVALID", fieldName + "は1〜" + maximumLength + "文字で必須です。");
+        }
+    }
+
+    private int codePointCount(String value) {
+        return value.codePointCount(0, value.length());
+    }
+
+    private String displayHours(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
+    }
+
+    private AiStructuredOutputException structureError(String reasonCode, String message) {
+        return new AiStructuredOutputException(reasonCode, message);
+    }
+
+    private record DailyAllocation(Map<LocalDate, BigDecimal> dailyHours, List<ObjectNode> warnings) {
+    }
+}

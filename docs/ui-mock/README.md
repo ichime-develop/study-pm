@@ -1,7 +1,7 @@
 <!--
 doc-type: UIモック
 id-prefix: SCR, PJ, WB, SL, AN, AI, CM
-related: docs/ui-mock/mvp1-screen-plan.md, docs/requirements/details/data-screens-interfaces.md, docs/basic-design/screen-list.md
+related: docs/ui-mock/pc-web-screen-plan.md, docs/ui-mock/mvp3-screen-plan.md, docs/requirements/details/data-screens-interfaces.md, docs/basic-design/screen-list.md
 -->
 
 # UIモック
@@ -86,8 +86,11 @@ PC Web版のモックでは、画面間の横幅差で印象や情報量が変�
 | 成果物 | 内容 |
 | --- | --- |
 | `docs/ui-mock/README.md` | UIモック全体の方針 |
-| `docs/ui-mock/mvp1-screen-plan.md` | PC Web版のモック対象画面と確認観点 |
+| `docs/ui-mock/pc-web-screen-plan.md` | PC Web版全体のモック対象画面と確認観点 |
+| `docs/ui-mock/mvp3-screen-plan.md` | AI01〜AI03の画面構成、状態、確認観点、既存モックとの差分 |
 | `mock/` | Reactで作成するPC Web版の静的UIモック |
+
+`mock/` のAI作成フローは、`mvp3-screen-plan.md` を正本としてAI01〜AI03の3画面構成へ同期済みである。
 
 ## 7. フィードバック方法
 

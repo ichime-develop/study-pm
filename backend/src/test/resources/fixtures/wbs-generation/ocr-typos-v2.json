@@ -1,0 +1,11 @@
+{
+  "fixtureId": "ocr-typos-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "HIGH",
+  "recommendedRuns": 3,
+  "textContent": "第1章 基礎ちしき\n01 はじめに\n02 開発かんきょう\n第2章 基本文法\n01 へん数\nO2 条件ぶんき\n第3章 品質かくにん\n01 単体テスト\n02 ふりかえり",
+  "expectedLearningScopes": ["基礎知識", "基本文法", "品質確認"],
+  "expectedOutlineDepth": 2
+}

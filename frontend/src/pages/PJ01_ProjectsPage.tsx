@@ -63,9 +63,13 @@ export const ProjectsPage = () => {
       <Panel className="project-list-panel">
         <PanelHeader
           actions={
-            <Link className="primary-link" to="/projects/new">
-              新規作成
-            </Link>
+            <details className="create-project-menu">
+              <summary className="primary-link">新規作成</summary>
+              <div>
+                <Link to="/projects/new"><strong>手動で作成</strong><small>基本情報を入力し、WBSを自分で追加します。</small></Link>
+                <Link to="/projects/new/ai"><strong>AIと作成</strong><small>概要または教材目次からWBS下書きを作ります。</small></Link>
+              </div>
+            </details>
           }
           title="プロジェクト一覧"
         />

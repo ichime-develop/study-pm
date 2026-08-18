@@ -1,0 +1,4 @@
+interface:
+  display_name: "study-pm 不具合調査"
+  short_description: "study-pmの不具合を再現し、原因と修正方針を報告する"
+  default_prompt: "Use $bug-investigation to investigate a study-pm bug and report the cause and fix direction without changing code."

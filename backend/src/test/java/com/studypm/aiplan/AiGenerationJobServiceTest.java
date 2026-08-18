@@ -1,0 +1,183 @@
+package com.studypm.aiplan;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.studypm.account.Account;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+/**
+ * WBS下書き生成ジョブの期限切れ解消と受付条件を検証する。
+ */
+class AiGenerationJobServiceTest {
+
+    private final AiPlanGenerationRequestRepository requestRepository = mock(AiPlanGenerationRequestRepository.class);
+    private final AiGenerationJobRepository jobRepository = mock(AiGenerationJobRepository.class);
+    private final AiPlanDraftRepository draftRepository = mock(AiPlanDraftRepository.class);
+    private final Clock clock = Clock.fixed(Instant.parse("2026-07-30T00:00:00Z"), ZoneOffset.UTC);
+
+    private AiGenerationJobService service;
+    private UUID accountId;
+    private AiPlanGenerationRequest request;
+
+    @BeforeEach
+    void setUp() {
+        service = new AiGenerationJobService(
+                requestRepository,
+                jobRepository,
+                draftRepository,
+                clock,
+                Duration.ofMinutes(5),
+                10,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1"
+        );
+        Account account = Account.create("user@example.com", "encoded", "User", clock.instant());
+        accountId = account.id();
+        request = AiPlanGenerationRequest.create(
+                account,
+                new AiPlanRequestCommand(
+                        AiPlanRequestSourceType.OVERVIEW,
+                        "Javaを学ぶ",
+                        LocalDate.parse("2026-08-01"),
+                        LocalDate.parse("2026-08-31"),
+                        JsonNodeFactory.instance.objectNode(),
+                        List.of()
+                ),
+                clock.instant().plus(Duration.ofDays(30)),
+                clock.instant()
+        );
+    }
+
+    @Test
+    void createExpiresExistingActiveJobBeforeQueuingNewJob() {
+        AiGenerationJob expiredJob = AiGenerationJob.queue(
+                request,
+                clock.instant().minusSeconds(1),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant().minus(Duration.ofMinutes(6))
+        );
+        when(requestRepository.findByIdAndAccount_Id(request.id(), accountId)).thenReturn(Optional.of(request));
+        when(jobRepository.findAllByAccount_IdAndStatusIn(any(), any())).thenReturn(List.of(expiredJob));
+        when(jobRepository.countByAccount_IdAndCreatedAtGreaterThanEqual(any(), any())).thenReturn(1L);
+        when(jobRepository.saveAndFlush(any(AiGenerationJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AiGenerationJobResponse response = service.create(accountId, request.id(), true);
+
+        assertThat(expiredJob.status()).isEqualTo(AiGenerationJobStatus.FAILED);
+        assertThat(expiredJob.errorCode()).isEqualTo("AI_JOB_TIMEOUT");
+        assertThat(response.jobType()).isEqualTo("WBS_GENERATION");
+        assertThat(response.status()).isEqualTo(AiGenerationJobStatus.QUEUED);
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(jobRepository);
+        order.verify(jobRepository).findAllByAccount_IdAndStatusIn(any(), any());
+        order.verify(jobRepository).flush();
+        order.verify(jobRepository).countByAccount_IdAndCreatedAtGreaterThanEqual(any(), any());
+    }
+
+    @Test
+    void createPreservesDeadlinePriorityForWorkerExecution() {
+        when(requestRepository.findByIdAndAccount_Id(request.id(), accountId)).thenReturn(Optional.of(request));
+        when(jobRepository.findAllByAccount_IdAndStatusIn(any(), any())).thenReturn(List.of());
+        when(jobRepository.countByAccount_IdAndCreatedAtGreaterThanEqual(any(), any())).thenReturn(0L);
+        when(jobRepository.saveAndFlush(any(AiGenerationJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AiGenerationJobResponse response = service.create(accountId, request.id(), true);
+
+        ArgumentCaptor<AiGenerationJob> jobCaptor = ArgumentCaptor.forClass(AiGenerationJob.class);
+        org.mockito.Mockito.verify(jobRepository).saveAndFlush(jobCaptor.capture());
+        assertThat(response.status()).isEqualTo(AiGenerationJobStatus.QUEUED);
+        assertThat(response.deadlineAt()).isEqualTo(clock.instant().plus(Duration.ofMinutes(5)));
+        assertThat(jobCaptor.getValue().isDeadlinePriority()).isTrue();
+    }
+
+    @Test
+    void getExplainsManualCreationWhenAiGenerationIsUnavailable() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_GENERATION_UNAVAILABLE", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_GENERATION_UNAVAILABLE");
+        assertThat(response.error().message()).isEqualTo("AIは現在利用できません。WBSを手動で作成してください。");
+        assertThat(response.error().actionHints()).containsExactly("OKを押してプロジェクト一覧へ戻る");
+    }
+
+    @Test
+    void getExplainsThatGenerationEndedBecauseOfTimeout() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_JOB_TIMEOUT", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_JOB_TIMEOUT");
+        assertThat(response.error().message()).isEqualTo("WBS下書きの生成がタイムアウトしたため終了しました。");
+        assertThat(response.error().actionHints()).containsExactly("時間をおいて再度生成する");
+    }
+
+    @Test
+    void getExplainsThatTheGeneratedDraftFailedStructuralValidation() {
+        AiGenerationJob job = AiGenerationJob.queue(
+                request,
+                clock.instant().plus(Duration.ofMinutes(5)),
+                false,
+                "test-model",
+                "prompt-v1",
+                "schema-v1",
+                "strategy-v1",
+                clock.instant()
+        );
+        job.start(clock.instant());
+        job.fail("AI_STRUCTURED_OUTPUT_INVALID", clock.instant());
+        when(jobRepository.findByIdAndAccount_Id(job.id(), accountId)).thenReturn(Optional.of(job));
+
+        AiGenerationJobResponse response = service.get(accountId, job.id());
+
+        assertThat(response.error().code()).isEqualTo("AI_STRUCTURED_OUTPUT_INVALID");
+        assertThat(response.error().message())
+                .isEqualTo("生成されたWBS下書きが形式要件を満たさなかったため、保存できませんでした。");
+        assertThat(response.error().actionHints())
+                .containsExactly("同じ内容で再度生成する", "繰り返し失敗する場合は学習範囲を分ける");
+    }
+}

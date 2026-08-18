@@ -27,3 +27,5 @@ related: docs/development/ai-assisted-development.md, docs/development/specifica
 | [ai-assisted-development.md](ai-assisted-development.md) | AI支援開発の使い方と注意点 |
 | [coding-guidelines.md](coding-guidelines.md) | 命名、コメント、クラス設計、メソッド設計の判断基準 |
 | [ci-and-branch-policy.md](ci-and-branch-policy.md) | CIの検証内容とmain保護、ブランチ運用の方針 |
+| [wbs-generation-evaluation.md](wbs-generation-evaluation.md) | MVP3のWBS生成品質、安定性、性能、費用を比較する評価方針 |
+| [wbs-generation-evaluation-results-v2.md](wbs-generation-evaluation-results-v2.md) | dataset v2の比較対象と実行済み・未実施評価を記録する |

@@ -72,4 +72,29 @@ describe("apiClient", () => {
     expect(accessTokenStore.get()).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("FormDataはContent-Typeを上書きせず送信する", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ text: "目次", detectedPageCount: 1 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const body = new FormData();
+    body.append("image", new File(["image"], "toc.jpg", { type: "image/jpeg" }));
+
+    await apiClient.request("/api/ai-plan/ocr", { method: "POST", body });
+
+    const options = fetchMock.mock.calls[0][1];
+    expect(options?.body).toBe(body);
+    expect(new Headers(options?.headers).has("Content-Type")).toBe(false);
+  });
+
+  it("HTTP応答を受け取れない場合は通信エラーとして案内する", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(apiClient.request("/api/projects")).rejects.toMatchObject({
+      status: 0,
+      body: {
+        code: "NETWORK_ERROR",
+        message: "サーバーに接続できませんでした。接続状態を確認して再度お試しください。",
+      },
+    });
+  });
 });

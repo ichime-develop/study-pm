@@ -1,0 +1,32 @@
+{
+  "datasetVersion": "v2",
+  "baseline": {
+    "promptVersion": "v4",
+    "schemaVersion": "v1",
+    "strategyVersion": "v1"
+  },
+  "candidate": {
+    "promptVersion": "v7",
+    "schemaVersion": "v4",
+    "strategyVersion": "v3"
+  },
+  "metrics": [
+    "structuralPassRate",
+    "scopeCoverage",
+    "parentCount",
+    "leafCount",
+    "totalPlannedHours",
+    "schemaRegenerationRate",
+    "inputTokens",
+    "outputTokens"
+  ],
+  "fixtureFiles": [
+    "eight-chapter-toc-v1.json",
+    "ocr-typos-v2.json",
+    "missing-line-breaks-v2.json",
+    "mixed-chapter-headings-v2.json",
+    "numbering-irregularities-v2.json",
+    "three-level-outline-v2.json",
+    "four-level-outline-v2.json"
+  ]
+}

@@ -7,6 +7,7 @@ import java.util.List;
 import com.studypm.common.error.BusinessConflictException;
 import com.studypm.common.error.InvalidRequestException;
 import com.studypm.common.error.ResourceNotFoundException;
+import com.studypm.common.error.ServiceUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,17 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody())
                 .isEqualTo(ApiErrorResponse.of("TASK_HAS_STUDY_LOGS", "学習記録があるタスクは削除できません。"));
+    }
+
+    @Test
+    void serviceUnavailableExceptionReturnsServiceUnavailableAndCode() {
+        ResponseEntity<ApiErrorResponse> response = handler.handleApplicationException(
+                new ServiceUnavailableException("AI_FEATURE_UNAVAILABLE", "AI機能は現在利用できません。")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody())
+                .isEqualTo(ApiErrorResponse.of("AI_FEATURE_UNAVAILABLE", "AI機能は現在利用できません。"));
     }
 
     @Test

@@ -1,0 +1,11 @@
+{
+  "fixtureId": "numbering-irregularities-v2",
+  "datasetVersion": "v2",
+  "sourceType": "TABLE_OF_CONTENTS",
+  "wbsSplitUnit": "SECTION",
+  "riskLevel": "NORMAL",
+  "recommendedRuns": 1,
+  "textContent": "第1章 基礎\n01 用語\n01 用語の例\n03 操作\n第2章 実践\n02 演習A\n04 演習B\n04 まとめ",
+  "expectedLearningScopes": ["基礎", "実践"],
+  "expectedOutlineDepth": 2
+}
